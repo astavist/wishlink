@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "624285930553",
+    "project_id": "wishlink-5040f",
+    "storage_bucket": "wishlink-5040f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:624285930553:android:74302ae0ae5680614669e8",
+        "android_client_info": {
+          "package_name": "com.example.wishlink"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDnCz21F17_W_t7jKW2_XIzm_oMCgYhFeY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

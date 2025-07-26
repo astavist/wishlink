@@ -1,10 +1,79 @@
 // lib/login_screen.dart
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart'; // Font Awesome ikonları için
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'home_screen.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _auth = FirebaseAuth.instance;
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _signIn() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      if (mounted && userCredential.user != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _errorMessage = _getErrorMessage(e.code);
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'An error occurred. Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  String _getErrorMessage(String code) {
+    switch (code) {
+      case 'user-not-found':
+        return 'No user found with this email.';
+      case 'wrong-password':
+        return 'Wrong password provided.';
+      case 'invalid-email':
+        return 'Invalid email address.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      default:
+        return 'An error occurred. Please try again.';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +95,17 @@ class LoginScreen extends StatelessWidget {
                 const SizedBox(height: 60),
                 // Logo ve Başlık
                 Image.asset('assets/images/LogoBlackPNG.png', height: 200),
-              
+
+                // Hata Mesajı
+                if (_errorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
 
                 // Giriş Kutusu (Card)
                 Card(
@@ -40,24 +119,25 @@ class LoginScreen extends StatelessWidget {
                       children: [
                         // E-posta Giriş Alanı
                         TextField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
                             labelText: 'Email',
                             hintText: 'you@example.com',
                             prefixIcon: const Icon(Icons.email_outlined),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none, // Kenarlık yok
+                              borderSide: BorderSide.none,
                             ),
                             filled: true,
                             fillColor: Colors.grey[100],
                             contentPadding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),
                           ),
-
-
                         ),
                         const SizedBox(height: 16),
                         // Şifre Giriş Alanı
                         TextField(
+                          controller: _passwordController,
                           obscureText: true,
                           decoration: InputDecoration(
                             labelText: 'Password',
@@ -65,7 +145,7 @@ class LoginScreen extends StatelessWidget {
                             prefixIcon: const Icon(Icons.lock_outline),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide.none, // Kenarlık yok
+                              borderSide: BorderSide.none,
                             ),
                             filled: true,
                             fillColor: Colors.grey[100],
@@ -77,26 +157,30 @@ class LoginScreen extends StatelessWidget {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: () {
-                              // Navigate to HomeScreen
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => const HomeScreen()),
-                              );
-                            },
-                            icon: const Icon(Icons.arrow_forward_ios, size: 20),
-                            label: const Text(
-                              'Login',
-                              style: TextStyle(fontSize: 18),
+                            onPressed: _isLoading ? null : _signIn,
+                            icon: _isLoading
+                                ? Container(
+                                    width: 24,
+                                    height: 24,
+                                    padding: const EdgeInsets.all(2.0),
+                                    child: const CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 3,
+                                    ),
+                                  )
+                                : const Icon(Icons.arrow_forward_ios, size: 20),
+                            label: Text(
+                              _isLoading ? 'Logging in...' : 'Login',
+                              style: const TextStyle(fontSize: 18),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFFEFB652), // Mavi hex renk kodu
-                              foregroundColor: Colors.white, // Buton yazı rengi
+                              backgroundColor: const Color(0xFFEFB652),
+                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              elevation: 0, // Gölgelendirme yok
+                              elevation: 0,
                             ),
                           ),
                         ),
@@ -105,10 +189,32 @@ class LoginScreen extends StatelessWidget {
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
-                            onPressed: () {
-                              // Şifremi unuttum işlemleri
-                              print('Forgot Password?');
-                            },
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    if (_emailController.text.trim().isEmpty) {
+                                      setState(() {
+                                        _errorMessage = 'Please enter your email address first.';
+                                      });
+                                      return;
+                                    }
+                                    try {
+                                      await _auth.sendPasswordResetEmail(
+                                        email: _emailController.text.trim(),
+                                      );
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Password reset email sent. Please check your inbox.'),
+                                          ),
+                                        );
+                                      }
+                                    } catch (e) {
+                                      setState(() {
+                                        _errorMessage = 'Could not send password reset email. Please try again.';
+                                      });
+                                    }
+                                  },
                             child: const Text(
                               'Forgot Password?',
                               style: TextStyle(color: Colors.blue),
@@ -140,9 +246,7 @@ class LoginScreen extends StatelessWidget {
                   text: 'Continue with Google',
                   backgroundColor: Colors.white,
                   textColor: Colors.black,
-                  onPressed: () {
-                    print('Continue with Google');
-                  },
+                  onPressed: _isLoading ? null : () => print('Continue with Google'),
                 ),
                 const SizedBox(height: 16),
                 _SocialLoginButton(
@@ -150,18 +254,14 @@ class LoginScreen extends StatelessWidget {
                   text: 'Continue with Apple',
                   backgroundColor: Colors.black,
                   textColor: Colors.white,
-                  onPressed: () {
-                    print('Continue with Apple');
-                  },
+                  onPressed: _isLoading ? null : () => print('Continue with Apple'),
                 ),
                 const SizedBox(height: 16),
                 _SocialLoginButton(
                   icon: FontAwesomeIcons.facebookF,
                   text: 'Continue with Facebook',
                   backgroundColor: Colors.blue[700]!,
-                  onPressed: () {
-                    print('Continue with Facebook');
-                  },
+                  onPressed: _isLoading ? null : () => print('Continue with Facebook'),
                 ),
               ],
             ),
@@ -172,20 +272,20 @@ class LoginScreen extends StatelessWidget {
   }
 }
 
-// Özel sosyal medya butonu widget'ı (private olduğu için bu dosyada kalabilir)
+// Özel sosyal medya butonu widget'ı
 class _SocialLoginButton extends StatelessWidget {
   final IconData icon;
   final String text;
   final Color backgroundColor;
   final Color textColor;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;  // VoidCallback'i nullable yap
 
   const _SocialLoginButton({
     required this.icon,
     required this.text,
     required this.backgroundColor,
     this.textColor = Colors.white,
-    required this.onPressed,
+    this.onPressed,  // required kaldır
   });
 
   @override
@@ -193,7 +293,7 @@ class _SocialLoginButton extends StatelessWidget {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        onPressed: onPressed,
+        onPressed: onPressed,  // Direkt olarak onPressed'ı geç
         icon: FaIcon(icon, color: textColor),
         label: Text(
           text,
