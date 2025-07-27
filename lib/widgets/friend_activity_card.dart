@@ -54,9 +54,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
   Widget build(BuildContext context) {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -153,18 +151,12 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
             // Ürün bilgileri
             Text(
               widget.activity.wishItem.name,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 8),
             Text(
               widget.activity.wishItem.description,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 14,
-              ),
+              style: const TextStyle(color: Colors.grey, fontSize: 14),
             ),
             const SizedBox(height: 16),
 
@@ -193,7 +185,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                 icon: const Icon(Icons.shopping_cart),
                 label: const Text('Buy Now'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: const Color.fromARGB(255, 211, 79, 11),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -269,9 +261,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                           ),
                           TextSpan(
                             text: widget.activity.activityDescription!,
-                            style: const TextStyle(
-                              color: Colors.black,
-                            ),
+                            style: const TextStyle(color: Colors.black),
                           ),
                         ],
                       ),
@@ -284,4 +274,4 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
       ),
     );
   }
-} 
+}
