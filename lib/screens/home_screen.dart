@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
 import '../widgets/friend_activity_card.dart';
+import 'add_wish_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -27,10 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 8),
             const Text(
               'WishLink',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 24,
-              ),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
             ),
           ],
         ),
@@ -64,10 +62,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             const Text(
               'Friend Activity',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -75,9 +70,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 stream: _firestoreService.getFriendActivities(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(),
-                    );
+                    return const Center(child: CircularProgressIndicator());
                   }
 
                   if (snapshot.hasError) {
@@ -119,18 +112,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           SizedBox(height: 16),
                           Text(
                             'Henüz arkadaş etkinliği yok',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
-                            ),
+                            style: TextStyle(color: Colors.grey, fontSize: 16),
                           ),
                           SizedBox(height: 8),
                           Text(
                             'Arkadaşlarınız wishlist\'e ürün eklediğinde burada görünecek',
-                            style: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 14,
-                            ),
+                            style: TextStyle(color: Colors.grey, fontSize: 14),
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -176,23 +163,24 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddWishScreen()),
+          );
+        },
+        backgroundColor: const Color(0xFFEFB652),
+        child: const Icon(Icons.add),
+      ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Friends',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Friends'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
           BottomNavigationBarItem(
             icon: Icon(Icons.notifications),
             label: 'Notifications',
@@ -234,7 +222,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void _buyNow(FriendActivity activity) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${activity.wishItem.name} satın alma sayfasına yönlendiriliyor...'),
+        content: Text(
+          '${activity.wishItem.name} satın alma sayfasına yönlendiriliyor...',
+        ),
         duration: const Duration(seconds: 2),
       ),
     );
