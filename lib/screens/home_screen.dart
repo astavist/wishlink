@@ -22,13 +22,8 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/wishlink_logo.png', // Logo yolunu kendi dosyanıza göre güncelleyin
-              height: 30,
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'WishLink',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24),
+              'assets/images/TextLogoBlackPNG.png', // Logo yolunu kendi dosyanıza göre güncelleyin
+              height: 70,
             ),
           ],
         ),
