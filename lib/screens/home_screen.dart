@@ -3,6 +3,7 @@ import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
 import '../widgets/friend_activity_card.dart';
 import 'add_wish_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,6 +14,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final FirestoreService _firestoreService = FirestoreService();
+  int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -37,126 +39,151 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
-            child: CircleAvatar(
-              backgroundColor: Colors.lightGreen[200],
-              child: const Text(
-                'ME',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selectedIndex = 2; // Profile tab index
+                });
+              },
+              child: CircleAvatar(
+                backgroundColor: Colors.lightGreen[200],
+                child: const Text(
+                  'ME',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Friend Activity',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: StreamBuilder<List<FriendActivity>>(
-                stream: _firestoreService.getFriendActivities(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: [
+          // Home Tab
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Friend Activity',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: StreamBuilder<List<FriendActivity>>(
+                    stream: _firestoreService.getFriendActivities(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
 
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Bir hata oluştu: ${snapshot.error}',
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final activities = snapshot.data ?? [];
-
-                  if (activities.isEmpty) {
-                    return const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.people_outline,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Henüz arkadaş etkinliği yok',
-                            style: TextStyle(color: Colors.grey, fontSize: 16),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Arkadaşlarınız wishlist\'e ürün eklediğinde burada görünecek',
-                            style: TextStyle(color: Colors.grey, fontSize: 14),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return RefreshIndicator(
-                    onRefresh: () async {
-                      setState(() {});
-                    },
-                    child: ListView.builder(
-                      itemCount: activities.length,
-                      itemBuilder: (context, index) {
-                        final activity = activities[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
-                          child: FriendActivityCard(
-                            activity: activity,
-                            onLike: () {
-                              // Beğeni işlemi
-                            },
-                            onComment: () {
-                              // Yorum işlemi
-                              _showCommentDialog(activity);
-                            },
-                            onShare: () {
-                              // Paylaşma işlemi
-                              _shareActivity(activity);
-                            },
-                            onBuyNow: () {
-                              // Satın alma işlemi
-                              _buyNow(activity);
-                            },
+                      if (snapshot.hasError) {
+                        return Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                size: 64,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'An error occurred: ${snapshot.error}',
+                                style: const TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
                           ),
                         );
-                      },
-                    ),
-                  );
-                },
-              ),
+                      }
+
+                      final activities = snapshot.data ?? [];
+
+                      if (activities.isEmpty) {
+                        return const Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.people_outline,
+                                size: 64,
+                                color: Colors.grey,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'No friend activity yet',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Text(
+                                'Activities will appear here when your friends add items to their wishlist',
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          setState(() {});
+                        },
+                        child: ListView.builder(
+                          itemCount: activities.length,
+                          itemBuilder: (context, index) {
+                            final activity = activities[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 16.0),
+                              child: FriendActivityCard(
+                                activity: activity,
+                                onLike: () {
+                                  // Like functionality
+                                },
+                                onComment: () {
+                                  // Comment functionality
+                                  _showCommentDialog(activity);
+                                },
+                                onShare: () {
+                                  // Share functionality
+                                  _shareActivity(activity);
+                                },
+                                onBuyNow: () {
+                                  // Buy now functionality
+                                  _buyNow(activity);
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          // Friends Tab (placeholder)
+          const Center(child: Text('Friends - Coming Soon')),
+          // Profile Tab
+          const ProfileScreen(),
+          // Notifications Tab (placeholder)
+          const Center(child: Text('Notifications - Coming Soon')),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
@@ -181,9 +208,11 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Notifications',
           ),
         ],
-        currentIndex: 0, // Home seçili
+        currentIndex: _selectedIndex,
         onTap: (index) {
-          // Bottom navigation bar öğelerine tıklandığında yapılacak işlem
+          setState(() {
+            _selectedIndex = index;
+          });
         },
       ),
     );
