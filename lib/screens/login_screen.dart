@@ -74,6 +74,54 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted && userCredential.user != null) {
+        // Check if email is verified
+        if (!userCredential.user!.emailVerified) {
+          // Send verification email again if needed
+          await userCredential.user!.sendEmailVerification();
+
+          // Sign out since email isn't verified
+          await _auth.signOut();
+
+          if (mounted) {
+            // Show verification dialog
+            await showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: const Text('Email Verification Required'),
+                  content: const Text(
+                    'You need to verify your email address before logging in.\n\n'
+                    'A verification link has been sent to your email address. Please check your inbox.\n\n'
+                    'If you can\'t find the email, please check your spam folder.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              },
+            );
+          }
+
+          setState(() {
+            _errorMessage =
+                'Email verification required. Please check your email.';
+          });
+          return;
+        }
+
+        // Update emailVerified status in Firestore
+        await _firestore
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .update({'emailVerified': true});
+
+        // Navigate to home screen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -132,19 +180,38 @@ class _LoginScreenState extends State<LoginScreen> {
         password: _passwordController.text.trim(),
       );
 
+      // Send email verification
+      await userCredential.user!.sendEmailVerification();
+
       // Save additional user data to Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'firstName': _firstNameController.text.trim(),
         'lastName': _lastNameController.text.trim(),
         'email': _emailController.text.trim(),
+        'emailVerified': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      if (mounted && userCredential.user != null) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+      if (mounted) {
+        // Show verification email sent message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Verification email sent. Please check your inbox and verify your email before logging in.',
+            ),
+            duration: Duration(seconds: 5),
+          ),
         );
+
+        // Clear the form and switch to login mode
+        setState(() {
+          _isSignUp = false;
+          _firstNameController.clear();
+          _lastNameController.clear();
+          _emailController.clear();
+          _passwordController.clear();
+          _confirmPasswordController.clear();
+        });
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
