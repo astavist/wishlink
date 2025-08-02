@@ -4,6 +4,7 @@ import '../services/firestore_service.dart';
 import '../widgets/friend_activity_card.dart';
 import 'add_wish_screen.dart';
 import 'profile_screen.dart';
+import 'friends_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,6 +16,22 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   int _selectedIndex = 0;
+  bool _hasFriendRequests = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final requests = await _firestoreService.getFriendRequests();
+    if (mounted) {
+      setState(() {
+        _hasFriendRequests = requests['incoming']?.isNotEmpty ?? false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -74,8 +91,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: StreamBuilder<List<FriendActivity>>(
-                    stream: _firestoreService.getFriendActivities(),
+                  child: FutureBuilder<List<FriendActivity>>(
+                    future: _firestoreService.getFriendActivities(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
@@ -119,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               SizedBox(height: 16),
                               Text(
-                                'No friend activity yet',
+                                'No friend activities',
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 16,
@@ -127,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               SizedBox(height: 8),
                               Text(
-                                'Activities will appear here when your friends add items to their wishlist',
+                                'Add friends to see their wishlist activities',
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 14,
@@ -140,9 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       }
 
                       return RefreshIndicator(
-                        onRefresh: () async {
-                          setState(() {});
-                        },
+                        onRefresh: _loadData,
                         child: ListView.builder(
                           itemCount: activities.length,
                           itemBuilder: (context, index) {
@@ -177,8 +192,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          // Friends Tab (placeholder)
-          const Center(child: Text('Friends - Coming Soon')),
+          // Friends Tab
+          const FriendsScreen(),
           // Profile Tab
           const ProfileScreen(),
           // Notifications Tab (placeholder)
@@ -199,11 +214,37 @@ class _HomeScreenState extends State<HomeScreen> {
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Friends'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        items: [
+          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
+            icon: Stack(
+              children: [
+                const Icon(Icons.people),
+                if (_hasFriendRequests)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 8,
+                        minHeight: 8,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            label: 'Friends',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+          const BottomNavigationBarItem(
             icon: Icon(Icons.notifications),
             label: 'Notifications',
           ),
