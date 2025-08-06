@@ -19,6 +19,7 @@ class FirestoreService {
         .collection('friendships')
         .where('userId', isEqualTo: currentUser.uid)
         .where('status', isEqualTo: 'accepted')
+        .where('type', isEqualTo: 'friendship')
         .get();
 
     return snapshot.docs
@@ -100,10 +101,19 @@ class FirestoreService {
     // Update the request document to accepted
     batch.update(requestSnapshot.docs.first.reference, {'status': 'accepted'});
 
-    // Create a new document for the accepted friendship
+    // Create friendship documents for both users
     batch.set(_firestore.collection('friendships').doc(), {
       'userId': currentUser.uid,
       'friendId': requesterId,
+      'status': 'accepted',
+      'createdAt': FieldValue.serverTimestamp(),
+      'type': 'friendship',
+    });
+
+    // Create friendship document for the requester as well
+    batch.set(_firestore.collection('friendships').doc(), {
+      'userId': requesterId,
+      'friendId': currentUser.uid,
       'status': 'accepted',
       'createdAt': FieldValue.serverTimestamp(),
       'type': 'friendship',
