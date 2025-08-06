@@ -124,6 +124,18 @@ class _FriendsScreenState extends State<FriendsScreen>
               decoration: InputDecoration(
                 hintText: 'Search users...',
                 prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchResults = [];
+                            _isSearching = false;
+                          });
+                        },
+                      )
+                    : null,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -188,6 +200,12 @@ class _FriendsScreenState extends State<FriendsScreen>
                       content: Text('Friend request sent successfully'),
                     ),
                   );
+                  // Arama alanını temizle
+                  _searchController.clear();
+                  setState(() {
+                    _searchResults = [];
+                    _isSearching = false;
+                  });
                 }
               } catch (e) {
                 if (mounted) {
