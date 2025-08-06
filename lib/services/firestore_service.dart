@@ -44,6 +44,28 @@ class FirestoreService {
         .toList();
   }
 
+  // Get all activities including user's own activities
+  Future<List<FriendActivity>> getAllActivities() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) return [];
+
+    final friendIds = await getFriendIds();
+    final allUserIds = [currentUser.uid, ...friendIds];
+
+    if (allUserIds.isEmpty) return <FriendActivity>[];
+
+    final snapshot = await _firestore
+        .collection('friend_activities')
+        .where('userId', whereIn: allUserIds)
+        .orderBy('activityTime', descending: true)
+        .limit(20)
+        .get();
+
+    return snapshot.docs
+        .map((doc) => FriendActivity.fromFirestore(doc.data(), doc.id))
+        .toList();
+  }
+
   // Send friend request
   Future<void> sendFriendRequest(String targetUserId) async {
     final currentUser = _auth.currentUser;

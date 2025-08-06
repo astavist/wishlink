@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
 import '../widgets/friend_activity_card.dart';
@@ -92,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 16),
                 Expanded(
                   child: FutureBuilder<List<FriendActivity>>(
-                    future: _firestoreService.getFriendActivities(),
+                    future: _firestoreService.getAllActivities(),
                     builder: (context, snapshot) {
                       if (snapshot.connectionState == ConnectionState.waiting) {
                         return const Center(child: CircularProgressIndicator());
@@ -136,7 +137,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               SizedBox(height: 16),
                               Text(
-                                'No friend activities',
+                                'No activities yet',
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 16,
@@ -144,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               SizedBox(height: 8),
                               Text(
-                                'Add friends to see their wishlist activities',
+                                'Add your first wish or connect with friends',
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 14,
@@ -162,6 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           itemCount: activities.length,
                           itemBuilder: (context, index) {
                             final activity = activities[index];
+
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 16.0),
                               child: FriendActivityCard(
