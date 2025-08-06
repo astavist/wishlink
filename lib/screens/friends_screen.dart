@@ -278,6 +278,8 @@ class _FriendsScreenState extends State<FriendsScreen>
                               content: Text('Friend removed successfully'),
                             ),
                           );
+                          // UI'ı güncelle
+                          await _loadData();
                         }
                       } catch (e) {
                         if (mounted) {
@@ -359,6 +361,8 @@ class _FriendsScreenState extends State<FriendsScreen>
                                   content: Text('Friend request accepted'),
                                 ),
                               );
+                              // UI'ı güncelle
+                              await _loadData();
                             }
                           } catch (e) {
                             if (mounted) {
@@ -384,6 +388,8 @@ class _FriendsScreenState extends State<FriendsScreen>
                                   content: Text('Friend request rejected'),
                                 ),
                               );
+                              // UI'ı güncelle
+                              await _loadData();
                             }
                           } catch (e) {
                             if (mounted) {

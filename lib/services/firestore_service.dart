@@ -120,8 +120,8 @@ class FirestoreService {
     // Create a batch
     final batch = _firestore.batch();
 
-    // Update the request document to accepted
-    batch.update(requestSnapshot.docs.first.reference, {'status': 'accepted'});
+    // Delete the request document (no longer needed)
+    batch.delete(requestSnapshot.docs.first.reference);
 
     // Create friendship documents for both users
     batch.set(_firestore.collection('friendships').doc(), {
