@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_service.dart';
+import '../screens/user_profile_screen.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -183,12 +184,40 @@ class _FriendsScreenState extends State<FriendsScreen>
         final userData = user.data() as Map<String, dynamic>;
 
         return ListTile(
-          leading: CircleAvatar(
-            child: Text(
-              '${userData['firstName'][0]}${userData['lastName'][0]}',
+          leading: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UserProfileScreen(
+                    userId: user.id,
+                    userName:
+                        '${userData['firstName']} ${userData['lastName']}',
+                  ),
+                ),
+              );
+            },
+            child: CircleAvatar(
+              child: Text(
+                '${userData['firstName'][0]}${userData['lastName'][0]}',
+              ),
             ),
           ),
-          title: Text('${userData['firstName']} ${userData['lastName']}'),
+          title: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UserProfileScreen(
+                    userId: user.id,
+                    userName:
+                        '${userData['firstName']} ${userData['lastName']}',
+                  ),
+                ),
+              );
+            },
+            child: Text('${userData['firstName']} ${userData['lastName']}'),
+          ),
           subtitle: Text(userData['email']),
           trailing: TextButton(
             onPressed: () async {
@@ -259,13 +288,41 @@ class _FriendsScreenState extends State<FriendsScreen>
                     userSnapshot.data!.data() as Map<String, dynamic>;
 
                 return ListTile(
-                  leading: CircleAvatar(
-                    child: Text(
-                      '${userData['firstName'][0]}${userData['lastName'][0]}',
+                  leading: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserProfileScreen(
+                            userId: friendId,
+                            userName:
+                                '${userData['firstName']} ${userData['lastName']}',
+                          ),
+                        ),
+                      );
+                    },
+                    child: CircleAvatar(
+                      child: Text(
+                        '${userData['firstName'][0]}${userData['lastName'][0]}',
+                      ),
                     ),
                   ),
-                  title: Text(
-                    '${userData['firstName']} ${userData['lastName']}',
+                  title: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserProfileScreen(
+                            userId: friendId,
+                            userName:
+                                '${userData['firstName']} ${userData['lastName']}',
+                          ),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      '${userData['firstName']} ${userData['lastName']}',
+                    ),
                   ),
                   subtitle: Text(userData['email']),
                   trailing: TextButton(
@@ -337,13 +394,41 @@ class _FriendsScreenState extends State<FriendsScreen>
                     userSnapshot.data!.data() as Map<String, dynamic>;
 
                 return ListTile(
-                  leading: CircleAvatar(
-                    child: Text(
-                      '${userData['firstName'][0]}${userData['lastName'][0]}',
+                  leading: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserProfileScreen(
+                            userId: requesterId,
+                            userName:
+                                '${userData['firstName']} ${userData['lastName']}',
+                          ),
+                        ),
+                      );
+                    },
+                    child: CircleAvatar(
+                      child: Text(
+                        '${userData['firstName'][0]}${userData['lastName'][0]}',
+                      ),
                     ),
                   ),
-                  title: Text(
-                    '${userData['firstName']} ${userData['lastName']}',
+                  title: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserProfileScreen(
+                            userId: requesterId,
+                            userName:
+                                '${userData['firstName']} ${userData['lastName']}',
+                          ),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      '${userData['firstName']} ${userData['lastName']}',
+                    ),
                   ),
                   subtitle: Text(userData['email']),
                   trailing: Row(
@@ -451,13 +536,41 @@ class _FriendsScreenState extends State<FriendsScreen>
                     userSnapshot.data!.data() as Map<String, dynamic>;
 
                 return ListTile(
-                  leading: CircleAvatar(
-                    child: Text(
-                      '${userData['firstName'][0]}${userData['lastName'][0]}',
+                  leading: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserProfileScreen(
+                            userId: friendId,
+                            userName:
+                                '${userData['firstName']} ${userData['lastName']}',
+                          ),
+                        ),
+                      );
+                    },
+                    child: CircleAvatar(
+                      child: Text(
+                        '${userData['firstName'][0]}${userData['lastName'][0]}',
+                      ),
                     ),
                   ),
-                  title: Text(
-                    '${userData['firstName']} ${userData['lastName']}',
+                  title: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserProfileScreen(
+                            userId: friendId,
+                            userName:
+                                '${userData['firstName']} ${userData['lastName']}',
+                          ),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      '${userData['firstName']} ${userData['lastName']}',
+                    ),
                   ),
                   subtitle: Text(userData['email']),
                   trailing: Container(

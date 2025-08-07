@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
+import '../screens/user_profile_screen.dart';
 
 class FriendActivityCard extends StatefulWidget {
   final FriendActivity activity;
@@ -63,44 +64,70 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
             // Kullanıcı bilgisi ve zaman
             Row(
               children: [
-                CircleAvatar(
-                  backgroundImage: widget.activity.userAvatarUrl.isNotEmpty
-                      ? NetworkImage(widget.activity.userAvatarUrl)
-                      : null,
-                  backgroundColor: Colors.lightGreen[200],
-                  radius: 20,
-                  child: widget.activity.userAvatarUrl.isEmpty
-                      ? Text(
-                          widget.activity.userName.isNotEmpty
-                              ? widget.activity.userName[0].toUpperCase()
-                              : 'U',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        )
-                      : null,
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => UserProfileScreen(
+                          userId: widget.activity.userId,
+                          userName: widget.activity.userName,
+                        ),
+                      ),
+                    );
+                  },
+                  child: CircleAvatar(
+                    backgroundImage: widget.activity.userAvatarUrl.isNotEmpty
+                        ? NetworkImage(widget.activity.userAvatarUrl)
+                        : null,
+                    backgroundColor: Colors.lightGreen[200],
+                    radius: 20,
+                    child: widget.activity.userAvatarUrl.isEmpty
+                        ? Text(
+                            widget.activity.userName.isNotEmpty
+                                ? widget.activity.userName[0].toUpperCase()
+                                : 'U',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.activity.userName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => UserProfileScreen(
+                            userId: widget.activity.userId,
+                            userName: widget.activity.userName,
+                          ),
                         ),
-                      ),
-                      Text(
-                        widget.activity.timeAgo,
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
+                      );
+                    },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.activity.userName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-                    ],
+                        Text(
+                          widget.activity.timeAgo,
+                          style: const TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 IconButton(
