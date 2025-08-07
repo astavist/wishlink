@@ -59,7 +59,8 @@ class _HomeScreenState extends State<HomeScreen> {
             child: GestureDetector(
               onTap: () {
                 setState(() {
-                  _selectedIndex = 2; // Profile tab index
+                  _selectedIndex =
+                      4; // Profile tab index (0: Home, 1: Friends, 2: Add Wish, 3: Notifications, 4: Profile)
                 });
               },
               child: CircleAvatar(
@@ -91,74 +92,84 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
                 Expanded(
-                  child: FutureBuilder<List<FriendActivity>>(
-                    future: _firestoreService.getAllActivities(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
+                  child: RefreshIndicator(
+                    onRefresh: _loadData,
+                    child: FutureBuilder<List<FriendActivity>>(
+                      future: _firestoreService.getAllActivities(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
 
-                      if (snapshot.hasError) {
-                        return Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.error_outline,
-                                size: 64,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'An error occurred: ${snapshot.error}',
-                                style: const TextStyle(
+                        if (snapshot.hasError) {
+                          return Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.error_outline,
+                                  size: 64,
                                   color: Colors.grey,
-                                  fontSize: 16,
                                 ),
-                                textAlign: TextAlign.center,
+                                const SizedBox(height: 16),
+                                Text(
+                                  'An error occurred:  ${snapshot.error}',
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 16,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+
+                        final activities = snapshot.data ?? [];
+
+                        if (activities.isEmpty) {
+                          return ListView(
+                            children: [
+                              SizedBox(
+                                height: 300,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.people_outline,
+                                        size: 64,
+                                        color: Colors.grey,
+                                      ),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'No activities yet',
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Text(
+                                        'Add your first wish or connect with friends',
+                                        style: TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 14,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ],
-                          ),
-                        );
-                      }
+                          );
+                        }
 
-                      final activities = snapshot.data ?? [];
-
-                      if (activities.isEmpty) {
-                        return const Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.people_outline,
-                                size: 64,
-                                color: Colors.grey,
-                              ),
-                              SizedBox(height: 16),
-                              Text(
-                                'No activities yet',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Add your first wish or connect with friends',
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-
-                      return RefreshIndicator(
-                        onRefresh: _loadData,
-                        child: ListView.builder(
+                        return ListView.builder(
                           itemCount: activities.length,
                           itemBuilder: (context, index) {
                             final activity = activities[index];
@@ -185,9 +196,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             );
                           },
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
