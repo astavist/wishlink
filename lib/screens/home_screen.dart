@@ -195,21 +195,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           // Friends Tab
           const FriendsScreen(),
-          // Profile Tab
-          const ProfileScreen(),
+          // Add Wish Tab (placeholder - will navigate to AddWishScreen)
+          const Center(child: Text('Add Wish')),
           // Notifications Tab (placeholder)
           const Center(child: Text('Notifications - Coming Soon')),
+          // Profile Tab
+          const ProfileScreen(),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddWishScreen()),
-          );
-        },
-        backgroundColor: const Color(0xFFEFB652),
-        child: const Icon(Icons.add),
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -241,20 +233,38 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             label: 'Friends',
           ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
+          BottomNavigationBarItem(
+            icon: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFEFB652),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.add, color: Colors.white, size: 40),
+            ),
+            label: '',
           ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.notifications),
             label: 'Notifications',
           ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
         ],
         currentIndex: _selectedIndex,
         onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
+          if (index == 2) {
+            // Add Wish button - navigate to AddWishScreen
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const AddWishScreen()),
+            );
+          } else {
+            setState(() {
+              _selectedIndex = index;
+            });
+          }
         },
       ),
     );
