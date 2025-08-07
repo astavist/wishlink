@@ -72,7 +72,7 @@ dependencies:
 
 1. **Clone the project**
    ```bash
-   git clone https://github.com/yourusername/wishlink.git
+   git clone https://github.com/astavist/wishlink.git
    cd wishlink
    ```
 
@@ -91,16 +91,6 @@ dependencies:
    flutter run
    ```
 
-## Screenshots
-
-The application includes the following main screens:
-- **Login Screen**: User authentication
-- **Home Screen**: Friend activities and wish lists
-- **Profile**: Personal wish list management
-- **Friends**: Friend adding and management
-- **Notifications**: Activity notifications
-- **Add Wish**: New wish adding form
-
 ## Future Plans
 
 - [ ] **Mobile Application Development**: Native applications for iOS and Android
@@ -109,18 +99,6 @@ The application includes the following main screens:
 - [ ] **Event-Based Lists**: Special templates and organization options for specific events
 - [ ] **AI-Powered Recommendations**: Gift and list recommendations based on users' past interactions
 - [ ] **WishLink Community**: Community space for sharing gift ideas and finding inspiration
-
-## Contributing
-
-1. Fork this repository
-2. Create a new branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Create a Pull Request
-
-## License
-
-This project is licensed under the MIT License. See the `LICENSE` file for details.
 
 ## Developer
 
@@ -133,8 +111,8 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 ## Contact
 
 For questions about the project:
-- Email: [your-email@example.com]
-- GitHub: [@yourusername]
+- Email: [yilmazsamet98@gmail.com]
+- GitHub: [@astavist]
 
 ---
 
