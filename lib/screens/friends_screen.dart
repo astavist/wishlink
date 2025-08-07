@@ -4,7 +4,9 @@ import '../services/firestore_service.dart';
 import '../screens/user_profile_screen.dart';
 
 class FriendsScreen extends StatefulWidget {
-  const FriendsScreen({super.key});
+  final int initialTabIndex;
+
+  const FriendsScreen({super.key, this.initialTabIndex = 0});
 
   @override
   State<FriendsScreen> createState() => _FriendsScreenState();
@@ -22,7 +24,11 @@ class _FriendsScreenState extends State<FriendsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTabIndex,
+    );
     _loadData();
   }
 

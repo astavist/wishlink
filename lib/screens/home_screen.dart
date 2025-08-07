@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
 import '../widgets/friend_activity_card.dart';
 import 'add_wish_screen.dart';
 import 'profile_screen.dart';
 import 'friends_screen.dart';
+import 'notification_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -17,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   int _selectedIndex = 0;
   bool _hasFriendRequests = false;
+  int _unreadNotificationsCount = 0;
 
   @override
   void initState() {
@@ -26,10 +30,127 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadData() async {
     final requests = await _firestoreService.getFriendRequests();
+    final unreadCount = await _getUnreadNotificationsCount();
     if (mounted) {
       setState(() {
         _hasFriendRequests = requests['incoming']?.isNotEmpty ?? false;
+        _unreadNotificationsCount = unreadCount;
       });
+    }
+  }
+
+  Future<int> _getUnreadNotificationsCount() async {
+    try {
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserId == null) return 0;
+
+      // Get all notifications (friend requests + wish activities)
+      final requests = await _firestoreService.getFriendRequests();
+      final incomingRequests = requests['incoming'] ?? [];
+
+      final recentActivities = await FirebaseFirestore.instance
+          .collection('friend_activities')
+          .where('activityType', isEqualTo: 'added')
+          .orderBy('activityTime', descending: true)
+          .limit(50)
+          .get();
+
+      // Get read notifications
+      final readNotificationsSnapshot = await FirebaseFirestore.instance
+          .collection('notifications')
+          .where('isRead', isEqualTo: true)
+          .get();
+      final readNotificationIds = readNotificationsSnapshot.docs
+          .map((doc) => doc.id)
+          .toSet();
+
+      // Count unread friend requests
+      int unreadCount = 0;
+      for (final request in incomingRequests) {
+        if (!readNotificationIds.contains(request.id)) {
+          unreadCount++;
+        }
+      }
+
+      // Count unread wish notifications (only for friends)
+      final friends = await _firestoreService.getFriends();
+      final friendIds = friends.map((f) => f['friendId'] as String).toSet();
+
+      for (final activity in recentActivities.docs) {
+        final activityData = activity.data();
+        final activityUserId = activityData['userId'] as String;
+
+        if (friendIds.contains(activityUserId) &&
+            activityUserId != currentUserId &&
+            !readNotificationIds.contains(activity.id)) {
+          unreadCount++;
+        }
+      }
+
+      return unreadCount;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  Future<void> _markAllNotificationsAsRead() async {
+    try {
+      final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+      if (currentUserId == null) return;
+
+      // Get all unread notifications
+      final requests = await _firestoreService.getFriendRequests();
+      final incomingRequests = requests['incoming'] ?? [];
+
+      final recentActivities = await FirebaseFirestore.instance
+          .collection('friend_activities')
+          .where('activityType', isEqualTo: 'added')
+          .orderBy('activityTime', descending: true)
+          .limit(50)
+          .get();
+
+      final readNotificationsSnapshot = await FirebaseFirestore.instance
+          .collection('notifications')
+          .where('isRead', isEqualTo: true)
+          .get();
+      final readNotificationIds = readNotificationsSnapshot.docs
+          .map((doc) => doc.id)
+          .toSet();
+
+      // Mark friend requests as read
+      for (final request in incomingRequests) {
+        if (!readNotificationIds.contains(request.id)) {
+          await FirebaseFirestore.instance
+              .collection('notifications')
+              .doc(request.id)
+              .set({'isRead': true, 'timestamp': FieldValue.serverTimestamp()});
+        }
+      }
+
+      // Mark wish notifications as read (only for friends)
+      final friends = await _firestoreService.getFriends();
+      final friendIds = friends.map((f) => f['friendId'] as String).toSet();
+
+      for (final activity in recentActivities.docs) {
+        final activityData = activity.data();
+        final activityUserId = activityData['userId'] as String;
+
+        if (friendIds.contains(activityUserId) &&
+            activityUserId != currentUserId &&
+            !readNotificationIds.contains(activity.id)) {
+          await FirebaseFirestore.instance
+              .collection('notifications')
+              .doc(activity.id)
+              .set({'isRead': true, 'timestamp': FieldValue.serverTimestamp()});
+        }
+      }
+
+      // Update local state
+      setState(() {
+        _unreadNotificationsCount = 0;
+      });
+    } catch (e) {
+      // Handle error silently
     }
   }
 
@@ -205,11 +326,11 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           // Friends Tab
-          const FriendsScreen(),
+          const FriendsScreen(initialTabIndex: 0),
           // Add Wish Tab (placeholder - will navigate to AddWishScreen)
           const Center(child: Text('Add Wish')),
-          // Notifications Tab (placeholder)
-          const Center(child: Text('Notifications - Coming Soon')),
+          // Notifications Tab
+          const NotificationScreen(),
           // Profile Tab
           const ProfileScreen(),
         ],
@@ -254,8 +375,28 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             label: '',
           ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.notifications),
+          BottomNavigationBarItem(
+            icon: Stack(
+              children: [
+                const Icon(Icons.notifications),
+                if (_unreadNotificationsCount > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 8,
+                        minHeight: 8,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             label: 'Notifications',
           ),
           const BottomNavigationBarItem(
@@ -264,13 +405,19 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
         currentIndex: _selectedIndex,
-        onTap: (index) {
+        onTap: (index) async {
           if (index == 2) {
             // Add Wish button - navigate to AddWishScreen
             Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const AddWishScreen()),
             );
+          } else if (index == 3) {
+            // Notifications tab - mark all as read and navigate
+            await _markAllNotificationsAsRead();
+            setState(() {
+              _selectedIndex = index;
+            });
           } else {
             setState(() {
               _selectedIndex = index;
