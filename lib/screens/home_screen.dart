@@ -169,9 +169,53 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.notifications_none),
-          onPressed: () {
-            // Bildirimler butonuna basıldığında yapılacak işlem
+          icon: Stack(
+            children: [
+              const Icon(Icons.notifications_none),
+              if (_unreadNotificationsCount > 0)
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      _unreadNotificationsCount > 9
+                          ? '9+'
+                          : _unreadNotificationsCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          onPressed: () async {
+            // Tüm bildirimleri okundu olarak işaretle
+            await _markAllNotificationsAsRead();
+            // NotificationScreen'e yönlendir
+            if (mounted) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationScreen(),
+                ),
+              ).then((_) {
+                // Notification screen'den dönüldüğünde veriyi yenile
+                _loadData();
+              });
+            }
           },
         ),
         actions: [
