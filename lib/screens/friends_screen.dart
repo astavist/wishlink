@@ -274,92 +274,111 @@ class _FriendsScreenState extends State<FriendsScreen>
         final friends = snapshot.data ?? [];
 
         if (friends.isEmpty) {
-          return const Center(child: Text('No friends yet'));
+          return RefreshIndicator(
+            onRefresh: () async {
+              await _loadData();
+              setState(() {});
+            },
+            child: ListView(
+              children: const [
+                SizedBox(
+                  height: 200,
+                  child: Center(child: Text('No friends yet')),
+                ),
+              ],
+            ),
+          );
         }
 
-        return ListView.builder(
-          itemCount: friends.length,
-          itemBuilder: (context, index) {
-            final friendship = friends[index];
-            final friendId = friendship['friendId'] as String;
+        return RefreshIndicator(
+          onRefresh: () async {
+            await _loadData();
+            setState(() {});
+          },
+          child: ListView.builder(
+            itemCount: friends.length,
+            itemBuilder: (context, index) {
+              final friendship = friends[index];
+              final friendId = friendship['friendId'] as String;
 
-            return FutureBuilder<DocumentSnapshot?>(
-              future: _firestoreService.getUserProfile(friendId),
-              builder: (context, userSnapshot) {
-                if (!userSnapshot.hasData) {
-                  return const SizedBox();
-                }
+              return FutureBuilder<DocumentSnapshot?>(
+                future: _firestoreService.getUserProfile(friendId),
+                builder: (context, userSnapshot) {
+                  if (!userSnapshot.hasData) {
+                    return const SizedBox();
+                  }
 
-                final userData =
-                    userSnapshot.data!.data() as Map<String, dynamic>;
+                  final userData =
+                      userSnapshot.data!.data() as Map<String, dynamic>;
 
-                return ListTile(
-                  leading: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => UserProfileScreen(
-                            userId: friendId,
-                            userName:
-                                '${userData['firstName']} ${userData['lastName']}',
+                  return ListTile(
+                    leading: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => UserProfileScreen(
+                              userId: friendId,
+                              userName:
+                                  '${userData['firstName']} ${userData['lastName']}',
+                            ),
                           ),
+                        );
+                      },
+                      child: CircleAvatar(
+                        child: Text(
+                          '${userData['firstName'][0]}${userData['lastName'][0]}',
                         ),
-                      );
-                    },
-                    child: CircleAvatar(
-                      child: Text(
-                        '${userData['firstName'][0]}${userData['lastName'][0]}',
                       ),
                     ),
-                  ),
-                  title: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => UserProfileScreen(
-                            userId: friendId,
-                            userName:
-                                '${userData['firstName']} ${userData['lastName']}',
+                    title: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => UserProfileScreen(
+                              userId: friendId,
+                              userName:
+                                  '${userData['firstName']} ${userData['lastName']}',
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                    child: Text(
-                      '${userData['firstName']} ${userData['lastName']}',
+                        );
+                      },
+                      child: Text(
+                        '${userData['firstName']} ${userData['lastName']}',
+                      ),
                     ),
-                  ),
-                  subtitle: Text(userData['email']),
-                  trailing: TextButton(
-                    onPressed: () async {
-                      try {
-                        await _firestoreService.removeFriend(friendId);
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Friend removed successfully'),
-                            ),
-                          );
-                          // UI'ı güncelle
-                          await _loadData();
+                    subtitle: Text(userData['email']),
+                    trailing: TextButton(
+                      onPressed: () async {
+                        try {
+                          await _firestoreService.removeFriend(friendId);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Friend removed successfully'),
+                              ),
+                            );
+                            // UI'ı güncelle
+                            await _loadData();
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Error removing friend'),
+                              ),
+                            );
+                          }
                         }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Error removing friend'),
-                            ),
-                          );
-                        }
-                      }
-                    },
-                    child: const Text('Remove'),
-                  ),
-                );
-              },
-            );
-          },
+                      },
+                      child: const Text('Remove'),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
         );
       },
     );
@@ -380,128 +399,147 @@ class _FriendsScreenState extends State<FriendsScreen>
         final requests = snapshot.data?['incoming'] ?? [];
 
         if (requests.isEmpty) {
-          return const Center(child: Text('No incoming friend requests'));
+          return RefreshIndicator(
+            onRefresh: () async {
+              await _loadData();
+              setState(() {});
+            },
+            child: ListView(
+              children: const [
+                SizedBox(
+                  height: 200,
+                  child: Center(child: Text('No incoming friend requests')),
+                ),
+              ],
+            ),
+          );
         }
 
-        return ListView.builder(
-          itemCount: requests.length,
-          itemBuilder: (context, index) {
-            final request = requests[index];
-            final requesterId = request['userId'] as String;
-
-            return FutureBuilder<DocumentSnapshot?>(
-              future: _firestoreService.getUserProfile(requesterId),
-              builder: (context, userSnapshot) {
-                if (!userSnapshot.hasData) {
-                  return const SizedBox();
-                }
-
-                final userData =
-                    userSnapshot.data!.data() as Map<String, dynamic>;
-
-                return ListTile(
-                  leading: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => UserProfileScreen(
-                            userId: requesterId,
-                            userName:
-                                '${userData['firstName']} ${userData['lastName']}',
-                          ),
-                        ),
-                      );
-                    },
-                    child: CircleAvatar(
-                      child: Text(
-                        '${userData['firstName'][0]}${userData['lastName'][0]}',
-                      ),
-                    ),
-                  ),
-                  title: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => UserProfileScreen(
-                            userId: requesterId,
-                            userName:
-                                '${userData['firstName']} ${userData['lastName']}',
-                          ),
-                        ),
-                      );
-                    },
-                    child: Text(
-                      '${userData['firstName']} ${userData['lastName']}',
-                    ),
-                  ),
-                  subtitle: Text(userData['email']),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextButton(
-                        onPressed: () async {
-                          try {
-                            await _firestoreService.acceptFriendRequest(
-                              requesterId,
-                            );
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Friend request accepted'),
-                                ),
-                              );
-                              // UI'ı güncelle
-                              await _loadData();
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Error accepting friend request',
-                                  ),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        child: const Text('Accept'),
-                      ),
-                      TextButton(
-                        onPressed: () async {
-                          try {
-                            await _firestoreService.removeFriend(requesterId);
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Friend request rejected'),
-                                ),
-                              );
-                              // UI'ı güncelle
-                              await _loadData();
-                            }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Error rejecting friend request',
-                                  ),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                        child: const Text('Reject'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
+        return RefreshIndicator(
+          onRefresh: () async {
+            await _loadData();
+            setState(() {});
           },
+          child: ListView.builder(
+            itemCount: requests.length,
+            itemBuilder: (context, index) {
+              final request = requests[index];
+              final requesterId = request['userId'] as String;
+
+              return FutureBuilder<DocumentSnapshot?>(
+                future: _firestoreService.getUserProfile(requesterId),
+                builder: (context, userSnapshot) {
+                  if (!userSnapshot.hasData) {
+                    return const SizedBox();
+                  }
+
+                  final userData =
+                      userSnapshot.data!.data() as Map<String, dynamic>;
+
+                  return ListTile(
+                    leading: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => UserProfileScreen(
+                              userId: requesterId,
+                              userName:
+                                  '${userData['firstName']} ${userData['lastName']}',
+                            ),
+                          ),
+                        );
+                      },
+                      child: CircleAvatar(
+                        child: Text(
+                          '${userData['firstName'][0]}${userData['lastName'][0]}',
+                        ),
+                      ),
+                    ),
+                    title: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => UserProfileScreen(
+                              userId: requesterId,
+                              userName:
+                                  '${userData['firstName']} ${userData['lastName']}',
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        '${userData['firstName']} ${userData['lastName']}',
+                      ),
+                    ),
+                    subtitle: Text(userData['email']),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: () async {
+                            try {
+                              await _firestoreService.acceptFriendRequest(
+                                requesterId,
+                              );
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Friend request accepted'),
+                                  ),
+                                );
+                                // UI'ı güncelle
+                                await _loadData();
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Error accepting friend request',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          child: const Text('Accept'),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            try {
+                              await _firestoreService.removeFriend(requesterId);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Friend request rejected'),
+                                  ),
+                                );
+                                // UI'ı güncelle
+                                await _loadData();
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Error rejecting friend request',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          child: const Text('Reject'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
         );
       },
     );
@@ -522,85 +560,104 @@ class _FriendsScreenState extends State<FriendsScreen>
         final requests = snapshot.data?['outgoing'] ?? [];
 
         if (requests.isEmpty) {
-          return const Center(child: Text('No outgoing friend requests'));
+          return RefreshIndicator(
+            onRefresh: () async {
+              await _loadData();
+              setState(() {});
+            },
+            child: ListView(
+              children: const [
+                SizedBox(
+                  height: 200,
+                  child: Center(child: Text('No outgoing friend requests')),
+                ),
+              ],
+            ),
+          );
         }
 
-        return ListView.builder(
-          itemCount: requests.length,
-          itemBuilder: (context, index) {
-            final request = requests[index];
-            final friendId = request['friendId'] as String;
-
-            return FutureBuilder<DocumentSnapshot?>(
-              future: _firestoreService.getUserProfile(friendId),
-              builder: (context, userSnapshot) {
-                if (!userSnapshot.hasData) {
-                  return const SizedBox();
-                }
-
-                final userData =
-                    userSnapshot.data!.data() as Map<String, dynamic>;
-
-                return ListTile(
-                  leading: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => UserProfileScreen(
-                            userId: friendId,
-                            userName:
-                                '${userData['firstName']} ${userData['lastName']}',
-                          ),
-                        ),
-                      );
-                    },
-                    child: CircleAvatar(
-                      child: Text(
-                        '${userData['firstName'][0]}${userData['lastName'][0]}',
-                      ),
-                    ),
-                  ),
-                  title: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => UserProfileScreen(
-                            userId: friendId,
-                            userName:
-                                '${userData['firstName']} ${userData['lastName']}',
-                          ),
-                        ),
-                      );
-                    },
-                    child: Text(
-                      '${userData['firstName']} ${userData['lastName']}',
-                    ),
-                  ),
-                  subtitle: Text(userData['email']),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'Pending',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            );
+        return RefreshIndicator(
+          onRefresh: () async {
+            await _loadData();
+            setState(() {});
           },
+          child: ListView.builder(
+            itemCount: requests.length,
+            itemBuilder: (context, index) {
+              final request = requests[index];
+              final friendId = request['friendId'] as String;
+
+              return FutureBuilder<DocumentSnapshot?>(
+                future: _firestoreService.getUserProfile(friendId),
+                builder: (context, userSnapshot) {
+                  if (!userSnapshot.hasData) {
+                    return const SizedBox();
+                  }
+
+                  final userData =
+                      userSnapshot.data!.data() as Map<String, dynamic>;
+
+                  return ListTile(
+                    leading: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => UserProfileScreen(
+                              userId: friendId,
+                              userName:
+                                  '${userData['firstName']} ${userData['lastName']}',
+                            ),
+                          ),
+                        );
+                      },
+                      child: CircleAvatar(
+                        child: Text(
+                          '${userData['firstName'][0]}${userData['lastName'][0]}',
+                        ),
+                      ),
+                    ),
+                    title: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => UserProfileScreen(
+                              userId: friendId,
+                              userName:
+                                  '${userData['firstName']} ${userData['lastName']}',
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        '${userData['firstName']} ${userData['lastName']}',
+                      ),
+                    ),
+                    subtitle: Text(userData['email']),
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Pending',
+                        style: TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
         );
       },
     );
