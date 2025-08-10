@@ -121,6 +121,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         title: Text(
           '${_firstName.isNotEmpty ? _firstName : 'User'}\'s Profile',
         ),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),

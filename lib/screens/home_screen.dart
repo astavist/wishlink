@@ -203,6 +203,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         centerTitle: true,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: Stack(
             children: [

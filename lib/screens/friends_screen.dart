@@ -103,6 +103,11 @@ class _FriendsScreenState extends State<FriendsScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Friends'),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         bottom: TabBar(
           controller: _tabController,
           tabs: [

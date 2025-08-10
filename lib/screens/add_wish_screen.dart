@@ -119,8 +119,11 @@ class _AddWishScreenState extends State<AddWishScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Add Wish'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
