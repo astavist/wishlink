@@ -5,6 +5,24 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'home_screen.dart';
 
+// Custom page route for right-to-left slide animation
+PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
+  return PageRouteBuilder<dynamic>(
+    pageBuilder: (context, animation, secondaryAnimation) => page,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      const begin = Offset(1.0, 0.0);
+      const end = Offset.zero;
+      const curve = Curves.easeInOut;
+
+      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+      var offsetAnimation = animation.drive(tween);
+
+      return SlideTransition(position: offsetAnimation, child: child);
+    },
+    transitionDuration: const Duration(milliseconds: 300),
+  );
+}
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -124,7 +142,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // Navigate to home screen
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          _createSlideRoute(const HomeScreen()),
         );
       }
     } on FirebaseAuthException catch (e) {

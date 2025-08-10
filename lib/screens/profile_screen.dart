@@ -5,6 +5,24 @@ import '../models/wish_item.dart';
 import 'login_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+// Custom page route for right-to-left slide animation
+PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
+  return PageRouteBuilder<dynamic>(
+    pageBuilder: (context, animation, secondaryAnimation) => page,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      const begin = Offset(1.0, 0.0);
+      const end = Offset.zero;
+      const curve = Curves.easeInOut;
+
+      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+      var offsetAnimation = animation.drive(tween);
+
+      return SlideTransition(position: offsetAnimation, child: child);
+    },
+    transitionDuration: const Duration(milliseconds: 300),
+  );
+}
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -114,7 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await _auth.signOut();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
+          _createSlideRoute(const LoginScreen()),
           (route) => false,
         );
       }

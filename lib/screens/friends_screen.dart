@@ -3,6 +3,24 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/firestore_service.dart';
 import '../screens/user_profile_screen.dart';
 
+// Custom page route for right-to-left slide animation
+PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
+  return PageRouteBuilder<dynamic>(
+    pageBuilder: (context, animation, secondaryAnimation) => page,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      const begin = Offset(1.0, 0.0);
+      const end = Offset.zero;
+      const curve = Curves.easeInOut;
+
+      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+      var offsetAnimation = animation.drive(tween);
+
+      return SlideTransition(position: offsetAnimation, child: child);
+    },
+    transitionDuration: const Duration(milliseconds: 300),
+  );
+}
+
 class FriendsScreen extends StatefulWidget {
   final int initialTabIndex;
 
@@ -194,8 +212,8 @@ class _FriendsScreenState extends State<FriendsScreen>
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => UserProfileScreen(
+                _createSlideRoute(
+                  UserProfileScreen(
                     userId: user.id,
                     userName:
                         '${userData['firstName']} ${userData['lastName']}',
@@ -213,8 +231,8 @@ class _FriendsScreenState extends State<FriendsScreen>
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => UserProfileScreen(
+                _createSlideRoute(
+                  UserProfileScreen(
                     userId: user.id,
                     userName:
                         '${userData['firstName']} ${userData['lastName']}',
@@ -316,8 +334,8 @@ class _FriendsScreenState extends State<FriendsScreen>
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => UserProfileScreen(
+                          _createSlideRoute(
+                            UserProfileScreen(
                               userId: friendId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
@@ -335,8 +353,8 @@ class _FriendsScreenState extends State<FriendsScreen>
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => UserProfileScreen(
+                          _createSlideRoute(
+                            UserProfileScreen(
                               userId: friendId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
@@ -441,8 +459,8 @@ class _FriendsScreenState extends State<FriendsScreen>
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => UserProfileScreen(
+                          _createSlideRoute(
+                            UserProfileScreen(
                               userId: requesterId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
@@ -460,8 +478,8 @@ class _FriendsScreenState extends State<FriendsScreen>
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => UserProfileScreen(
+                          _createSlideRoute(
+                            UserProfileScreen(
                               userId: requesterId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
@@ -602,8 +620,8 @@ class _FriendsScreenState extends State<FriendsScreen>
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => UserProfileScreen(
+                          _createSlideRoute(
+                            UserProfileScreen(
                               userId: friendId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
@@ -621,8 +639,8 @@ class _FriendsScreenState extends State<FriendsScreen>
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => UserProfileScreen(
+                          _createSlideRoute(
+                            UserProfileScreen(
                               userId: friendId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',

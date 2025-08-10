@@ -3,6 +3,24 @@ import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
 import '../screens/user_profile_screen.dart';
 
+// Custom page route for right-to-left slide animation (for user profiles)
+PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
+  return PageRouteBuilder<dynamic>(
+    pageBuilder: (context, animation, secondaryAnimation) => page,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      const begin = Offset(1.0, 0.0);
+      const end = Offset.zero;
+      const curve = Curves.easeInOut;
+
+      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+      var offsetAnimation = animation.drive(tween);
+
+      return SlideTransition(position: offsetAnimation, child: child);
+    },
+    transitionDuration: const Duration(milliseconds: 300),
+  );
+}
+
 class FriendActivityCard extends StatefulWidget {
   final FriendActivity activity;
   final VoidCallback? onLike;
@@ -68,8 +86,8 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => UserProfileScreen(
+                      _createSlideRoute(
+                        UserProfileScreen(
                           userId: widget.activity.userId,
                           userName: widget.activity.userName,
                         ),
@@ -101,8 +119,8 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(
-                          builder: (context) => UserProfileScreen(
+                        _createSlideRoute(
+                          UserProfileScreen(
                             userId: widget.activity.userId,
                             userName: widget.activity.userName,
                           ),

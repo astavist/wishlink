@@ -9,6 +9,42 @@ import 'profile_screen.dart';
 import 'friends_screen.dart';
 import 'notification_screen.dart';
 
+// Custom page route for left-to-right slide animation (for notifications)
+PageRouteBuilder<dynamic> _createLeftToRightSlideRoute(Widget page) {
+  return PageRouteBuilder<dynamic>(
+    pageBuilder: (context, animation, secondaryAnimation) => page,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      const begin = Offset(-1.0, 0.0);
+      const end = Offset.zero;
+      const curve = Curves.easeInOut;
+
+      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+      var offsetAnimation = animation.drive(tween);
+
+      return SlideTransition(position: offsetAnimation, child: child);
+    },
+    transitionDuration: const Duration(milliseconds: 300),
+  );
+}
+
+// Custom page route for bottom-to-top slide animation (for add wish)
+PageRouteBuilder<dynamic> _createBottomToTopSlideRoute(Widget page) {
+  return PageRouteBuilder<dynamic>(
+    pageBuilder: (context, animation, secondaryAnimation) => page,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      const begin = Offset(0.0, 1.0);
+      const end = Offset.zero;
+      const curve = Curves.easeInOut;
+
+      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+      var offsetAnimation = animation.drive(tween);
+
+      return SlideTransition(position: offsetAnimation, child: child);
+    },
+    transitionDuration: const Duration(milliseconds: 300),
+  );
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -208,9 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
             if (mounted) {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const NotificationScreen(),
-                ),
+                _createLeftToRightSlideRoute(const NotificationScreen()),
               ).then((_) {
                 // Notification screen'den dönüldüğünde veriyi yenile
                 _loadData();
@@ -454,7 +488,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // Add Wish button - navigate to AddWishScreen
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const AddWishScreen()),
+              _createBottomToTopSlideRoute(const AddWishScreen()),
             );
           } else if (index == 3) {
             // Notifications tab - mark all as read and navigate

@@ -5,6 +5,24 @@ import '../services/firestore_service.dart';
 import '../screens/user_profile_screen.dart';
 import '../screens/friends_screen.dart';
 
+// Custom page route for right-to-left slide animation
+PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
+  return PageRouteBuilder<dynamic>(
+    pageBuilder: (context, animation, secondaryAnimation) => page,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      const begin = Offset(1.0, 0.0);
+      const end = Offset.zero;
+      const curve = Curves.easeInOut;
+
+      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+      var offsetAnimation = animation.drive(tween);
+
+      return SlideTransition(position: offsetAnimation, child: child);
+    },
+    transitionDuration: const Duration(milliseconds: 300),
+  );
+}
+
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
 
@@ -154,9 +172,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       if (mounted) {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => const FriendsScreen(initialTabIndex: 1),
-          ),
+          _createSlideRoute(const FriendsScreen(initialTabIndex: 1)),
         );
       }
     } else if (notification.type == NotificationType.newWish) {
@@ -164,8 +180,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
       if (mounted) {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => UserProfileScreen(
+          _createSlideRoute(
+            UserProfileScreen(
               userId: notification.userId,
               userName: notification.userName,
             ),
