@@ -130,12 +130,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _signOut() async {
     try {
       await _auth.signOut();
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          _createSlideRoute(const LoginScreen()),
-          (route) => false,
-        );
-      }
+      // AuthWrapper will automatically navigate to LoginScreen
+      // No need to manually navigate as Firebase Auth handles the state
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(

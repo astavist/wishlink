@@ -139,11 +139,8 @@ class _LoginScreenState extends State<LoginScreen> {
             .doc(userCredential.user!.uid)
             .update({'emailVerified': true});
 
-        // Navigate to home screen
-        Navigator.pushReplacement(
-          context,
-          _createSlideRoute(const HomeScreen()),
-        );
+        // User is now signed in, AuthWrapper will automatically navigate to HomeScreen
+        // No need to manually navigate as Firebase Auth handles the state
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
