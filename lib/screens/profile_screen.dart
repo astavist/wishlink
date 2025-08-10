@@ -237,137 +237,173 @@ class _ProfileScreenState extends State<ProfileScreen> {
               else
                 ...(_userWishes
                     .map(
-                      (wish) => Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          leading: wish.imageUrl.isNotEmpty
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    wish.imageUrl,
+                      (wish) => Dismissible(
+                        key: Key(wish.id),
+                        direction: DismissDirection
+                            .endToStart, // Only allow left swipe
+                        confirmDismiss: (direction) async {
+                          final shouldDelete = await _showDeleteWishDialog(
+                            wish,
+                          );
+                          if (shouldDelete) {
+                            await _deleteWish(wish);
+                          }
+                          return shouldDelete;
+                        },
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20.0),
+                          color: Colors.red,
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.delete, color: Colors.white, size: 30),
+                              SizedBox(height: 4),
+                              Text(
+                                'Delete',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        child: Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: ListTile(
+                            leading: wish.imageUrl.isNotEmpty
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      wish.imageUrl,
+                                      width: 50,
+                                      height: 50,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return Container(
+                                              width: 50,
+                                              height: 50,
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[300],
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: const Icon(Icons.image),
+                                            );
+                                          },
+                                    ),
+                                  )
+                                : Container(
                                     width: 50,
                                     height: 50,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        width: 50,
-                                        height: 50,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[300],
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: const Icon(Icons.image),
-                                      );
-                                    },
-                                  ),
-                                )
-                              : Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[300],
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(Icons.image),
-                                ),
-                          title: Text(
-                            wish.name,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (wish.description.isNotEmpty)
-                                Text(
-                                  wish.description,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              const SizedBox(height: 4),
-                              if (wish.price > 0) ...[
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.attach_money,
-                                      color: Colors.green,
-                                      size: 16,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[300],
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${wish.price.toStringAsFixed(2)}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
+                                    child: const Icon(Icons.image),
+                                  ),
+                            title: Text(
+                              wish.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (wish.description.isNotEmpty)
+                                  Text(
+                                    wish.description,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                const SizedBox(height: 4),
+                                if (wish.price > 0) ...[
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.attach_money,
                                         color: Colors.green,
+                                        size: 16,
                                       ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${wish.price.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                ],
+                                if (wish.productUrl.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  ElevatedButton.icon(
+                                    onPressed: () =>
+                                        _launchUrl(wish.productUrl),
+                                    icon: const Icon(Icons.link, size: 16),
+                                    label: const Text('View Product'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFFEFB652),
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      minimumSize: const Size(0, 32),
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
+                                  ),
+                                ],
                               ],
-                              if (wish.productUrl.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                ElevatedButton.icon(
-                                  onPressed: () => _launchUrl(wish.productUrl),
-                                  icon: const Icon(Icons.link, size: 16),
-                                  label: const Text('View Product'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFEFB652),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
+                            ),
+                            trailing: PopupMenuButton<String>(
+                              onSelected: (value) {
+                                if (value == 'edit') {
+                                  // TODO: Implement edit wish functionality
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Edit Wish - Coming Soon'),
                                     ),
-                                    minimumSize: const Size(0, 32),
+                                  );
+                                } else if (value == 'delete') {
+                                  _showDeleteWishDialog(wish);
+                                }
+                              },
+                              itemBuilder: (context) => [
+                                const PopupMenuItem(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.edit, size: 20),
+                                      SizedBox(width: 8),
+                                      Text('Edit'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.delete,
+                                        size: 20,
+                                        color: Colors.red,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Delete',
+                                        style: TextStyle(color: Colors.red),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
-                            ],
-                          ),
-                          trailing: PopupMenuButton<String>(
-                            onSelected: (value) {
-                              if (value == 'edit') {
-                                // TODO: Implement edit wish functionality
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Edit Wish - Coming Soon'),
-                                  ),
-                                );
-                              } else if (value == 'delete') {
-                                _showDeleteWishDialog(wish);
-                              }
-                            },
-                            itemBuilder: (context) => [
-                              const PopupMenuItem(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(Icons.edit, size: 20),
-                                    SizedBox(width: 8),
-                                    Text('Edit'),
-                                  ],
-                                ),
-                              ),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.delete,
-                                      size: 20,
-                                      color: Colors.red,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Delete',
-                                      style: TextStyle(color: Colors.red),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                         ),
                       ),
@@ -481,21 +517,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _showDeleteWishDialog(WishItem wish) {
-    showDialog(
+  Future<bool> _showDeleteWishDialog(WishItem wish) async {
+    final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Wish'),
         content: Text('Are you sure you want to delete "${wish.name}"?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              Navigator.of(context).pop();
-              await _deleteWish(wish);
+              Navigator.of(context).pop(true);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
@@ -503,6 +538,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
     );
+    return result ?? false;
   }
 
   Future<void> _deleteWish(WishItem wish) async {
