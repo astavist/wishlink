@@ -8,6 +8,7 @@ class SampleDataHelper {
         'description': 'Latest iPhone with advanced camera features',
         'productUrl': 'https://www.apple.com/iphone-15-pro/',
         'imageUrl': 'https://example.com/iphone15pro.jpg',
+        'price': 999.99,
         'createdAt': Timestamp.now(),
       },
       {
@@ -15,6 +16,7 @@ class SampleDataHelper {
         'description': 'Comfortable running shoes with great cushioning',
         'productUrl': 'https://www.nike.com/t/air-max-270-mens-shoes-KkLcGR',
         'imageUrl': 'https://example.com/nike-airmax.jpg',
+        'price': 150.00,
         'createdAt': Timestamp.now(),
       },
       {
@@ -22,6 +24,7 @@ class SampleDataHelper {
         'description': 'Lightweight laptop with powerful M2 chip',
         'productUrl': 'https://www.apple.com/macbook-air-m2/',
         'imageUrl': 'https://example.com/macbook-air.jpg',
+        'price': 1199.99,
         'createdAt': Timestamp.now(),
       },
       {
@@ -30,6 +33,7 @@ class SampleDataHelper {
         'productUrl':
             'https://www.samsung.com/us/televisions-home-theater/tvs/qled-4k-smart-tv-65-class-q60c-qled-4k-uhd-hdr-dual-led-quantum-hdr-smart-tv-with-alexa-built-in-qn65q60cafxza/',
         'imageUrl': 'https://example.com/samsung-tv.jpg',
+        'price': 1299.99,
         'createdAt': Timestamp.now(),
       },
       {
@@ -37,6 +41,7 @@ class SampleDataHelper {
         'description': '7-in-1 electric pressure cooker',
         'productUrl': 'https://instantpot.com/duo/',
         'imageUrl': 'https://example.com/instant-pot.jpg',
+        'price': 89.99,
         'createdAt': Timestamp.now(),
       },
     ];
@@ -53,6 +58,7 @@ class SampleDataHelper {
           'description': 'Latest iPhone with advanced camera features',
           'productUrl': 'https://www.apple.com/iphone-15-pro/',
           'imageUrl': 'https://example.com/iphone15pro.jpg',
+          'price': 999.99,
           'createdAt': Timestamp.now(),
         },
         'activityTime': Timestamp.now(),
@@ -68,6 +74,7 @@ class SampleDataHelper {
           'description': 'Lightweight laptop with powerful M2 chip',
           'productUrl': 'https://www.apple.com/macbook-air-m2/',
           'imageUrl': 'https://example.com/macbook-air.jpg',
+          'price': 1199.99,
           'createdAt': Timestamp.now(),
         },
         'activityTime': Timestamp.now(),

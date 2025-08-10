@@ -253,6 +253,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               const SizedBox(height: 4),
+                              if (wish.price > 0) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.attach_money,
+                                      color: Colors.green,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${wish.price.toStringAsFixed(2)}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.green,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                              ],
                               if (wish.productUrl.isNotEmpty) ...[
                                 const SizedBox(height: 8),
                                 ElevatedButton.icon(

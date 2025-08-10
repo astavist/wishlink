@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/wish_item.dart';
 import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class AddWishScreen extends StatefulWidget {
   const AddWishScreen({super.key});
@@ -19,6 +18,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
   final _descriptionController = TextEditingController();
   final _productUrlController = TextEditingController();
   final _imageUrlController = TextEditingController();
+  final _priceController = TextEditingController();
   bool _isLoading = false;
 
   @override
@@ -27,6 +27,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
     _descriptionController.dispose();
     _productUrlController.dispose();
     _imageUrlController.dispose();
+    _priceController.dispose();
     super.dispose();
   }
 
@@ -59,6 +60,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
         description: _descriptionController.text.trim(),
         productUrl: _productUrlController.text.trim(),
         imageUrl: _imageUrlController.text.trim(),
+        price: double.tryParse(_priceController.text.trim()) ?? 0.0,
         createdAt: DateTime.now(),
       );
 
@@ -79,6 +81,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
           description: wishItem.description,
           productUrl: wishItem.productUrl,
           imageUrl: wishItem.imageUrl,
+          price: wishItem.price,
           createdAt: wishItem.createdAt,
         ),
         activityTime: DateTime.now(),
@@ -129,7 +132,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
-                  labelText: 'Wish Name',
+                  labelText: 'Wish Name *',
                   border: OutlineInputBorder(),
                 ),
                 validator: (value) {
@@ -147,21 +150,25 @@ class _AddWishScreenState extends State<AddWishScreen> {
                   border: OutlineInputBorder(),
                 ),
                 maxLines: 3,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please enter a description';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _productUrlController,
                 decoration: const InputDecoration(
-                  labelText: 'Product URL (optional)',
+                  labelText: 'Product URL *',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.url,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a product URL';
+                  }
+                  final uri = Uri.tryParse(value.trim());
+                  if (uri == null || !uri.hasAbsolutePath) {
+                    return 'Please enter a valid URL';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -171,6 +178,25 @@ class _AddWishScreenState extends State<AddWishScreen> {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.url,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _priceController,
+                decoration: const InputDecoration(
+                  labelText: 'Price *',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType: TextInputType.number,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a price';
+                  }
+                  final price = double.tryParse(value.trim());
+                  if (price == null || price <= 0) {
+                    return 'Please enter a valid price greater than 0';
+                  }
+                  return null;
+                },
               ),
               const SizedBox(height: 32),
               ElevatedButton(

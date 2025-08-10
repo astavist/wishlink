@@ -6,6 +6,7 @@ class WishItem {
   final String description;
   final String productUrl;
   final String imageUrl;
+  final double price;
   final DateTime createdAt;
 
   WishItem({
@@ -14,6 +15,7 @@ class WishItem {
     required this.description,
     required this.productUrl,
     required this.imageUrl,
+    required this.price,
     required this.createdAt,
   });
 
@@ -24,6 +26,7 @@ class WishItem {
       description: data['description'] ?? '',
       productUrl: data['productUrl'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
+      price: (data['price'] ?? 0.0).toDouble(),
       createdAt: (data['createdAt'] as Timestamp).toDate(),
     );
   }
@@ -34,6 +37,7 @@ class WishItem {
       'description': description,
       'productUrl': productUrl,
       'imageUrl': imageUrl,
+      'price': price,
       'createdAt': createdAt,
     };
   }

@@ -206,7 +206,28 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
             const SizedBox(height: 16),
 
             // Fiyat
-            const SizedBox(height: 16),
+            if (widget.activity.wishItem.price > 0)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.attach_money,
+                      color: Colors.green,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${widget.activity.wishItem.price.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
             // Satın Al butonu
             SizedBox(
