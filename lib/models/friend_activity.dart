@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'wish_item.dart';
 
 class FriendActivity {
@@ -25,17 +26,17 @@ class FriendActivity {
     this.commentsCount = 0,
   });
 
-  factory FriendActivity.fromFirestore(Map<String, dynamic> data, String id) {
+  factory FriendActivity.fromMap(Map<String, dynamic> data, String id) {
     return FriendActivity(
       id: id,
       userId: data['userId'] ?? '',
       userName: data['userName'] ?? '',
       userAvatarUrl: data['userAvatarUrl'] ?? '',
-      wishItem: WishItem.fromFirestore(
-        data['wishItem'] ?? {}, 
+      wishItem: WishItem.fromMap(
+        data['wishItem'] ?? {},
         data['wishItemId'] ?? '',
       ),
-      activityTime: data['activityTime']?.toDate() ?? DateTime.now(),
+      activityTime: (data['activityTime'] as Timestamp).toDate(),
       activityType: data['activityType'] ?? 'added',
       activityDescription: data['activityDescription'],
       likesCount: data['likesCount'] ?? 0,
@@ -43,14 +44,14 @@ class FriendActivity {
     );
   }
 
-  Map<String, dynamic> toFirestore() {
+  Map<String, dynamic> toMap() {
     return {
       'userId': userId,
       'userName': userName,
       'userAvatarUrl': userAvatarUrl,
-      'wishItem': wishItem.toFirestore(),
+      'wishItem': wishItem.toMap(),
       'wishItemId': wishItem.id,
-      'activityTime': activityTime,
+      'activityTime': Timestamp.fromDate(activityTime),
       'activityType': activityType,
       'activityDescription': activityDescription,
       'likesCount': likesCount,
@@ -72,4 +73,4 @@ class FriendActivity {
       return 'Just now';
     }
   }
-} 
+}

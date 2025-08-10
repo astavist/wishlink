@@ -76,7 +76,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final wishes = wishesSnapshot.docs.map((doc) {
         final data = doc.data();
         final wishData = data['wishItem'] as Map<String, dynamic>;
-        return WishItem.fromFirestore(wishData, wishData['id'] ?? doc.id);
+        return WishItem.fromMap(wishData, wishData['id'] ?? doc.id);
       }).toList();
 
       setState(() {
@@ -253,13 +253,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               const SizedBox(height: 4),
-                              Text(
-                                '\$${wish.price.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.green,
-                                ),
-                              ),
                               if (wish.productUrl.isNotEmpty) ...[
                                 const SizedBox(height: 8),
                                 ElevatedButton.icon(

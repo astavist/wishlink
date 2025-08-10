@@ -100,8 +100,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       }
 
       // Add wish notifications (only for friends)
-      final friends = await _firestoreService.getFriends();
-      final friendIds = friends.map((f) => f['friendId'] as String).toSet();
+      final friendIds = await _firestoreService.getFriendIds();
 
       for (final activity in recentActivities.docs) {
         final activityData = activity.data();

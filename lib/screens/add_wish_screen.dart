@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../models/friend_activity.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/wish_item.dart';
+import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AddWishScreen extends StatefulWidget {
   const AddWishScreen({super.key});
@@ -15,74 +17,84 @@ class _AddWishScreenState extends State<AddWishScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _priceController = TextEditingController();
-  final _imageUrlController = TextEditingController();
   final _productUrlController = TextEditingController();
-  String _selectedCategory = 'Other';
+  final _imageUrlController = TextEditingController();
   bool _isLoading = false;
-
-  final List<String> _categories = [
-    'Electronics',
-    'Fashion',
-    'Books',
-    'Home',
-    'Sports',
-    'Beauty',
-    'Toys',
-    'Other',
-  ];
 
   @override
   void dispose() {
     _nameController.dispose();
     _descriptionController.dispose();
-    _priceController.dispose();
-    _imageUrlController.dispose();
     _productUrlController.dispose();
+    _imageUrlController.dispose();
     super.dispose();
   }
 
   Future<void> _saveWish() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
     });
 
     try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return;
+
+      // Get user profile data
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(currentUser.uid)
+          .get();
+
+      final userData = userDoc.data();
+      final userName =
+          '${userData?['firstName'] ?? ''} ${userData?['lastName'] ?? ''}'
+              .trim();
+      final userAvatarUrl = userData?['avatarUrl'] ?? '';
+
       final wishItem = WishItem(
-        id: 'wish_${DateTime.now().millisecondsSinceEpoch}',
+        id: '', // Will be set by Firestore
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
-        price: double.parse(_priceController.text.trim()),
-        imageUrl: _imageUrlController.text.trim(),
-        category: _selectedCategory,
         productUrl: _productUrlController.text.trim(),
+        imageUrl: _imageUrlController.text.trim(),
         createdAt: DateTime.now(),
       );
 
-      final activity = FriendActivity(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        userId: FirebaseAuth.instance.currentUser?.uid ?? '',
-        userName:
-            FirebaseAuth.instance.currentUser?.email?.split('@')[0] ??
-            'Anonymous',
-        userAvatarUrl: '',
-        wishItem: wishItem,
+      // Add wish to wishes collection
+      final wishDocRef = await FirebaseFirestore.instance
+          .collection('wishes')
+          .add(wishItem.toMap());
+
+      // Create friend activity
+      final friendActivity = FriendActivity(
+        id: '', // Will be set by Firestore
+        userId: currentUser.uid,
+        userName: userName.isNotEmpty ? userName : 'Unknown User',
+        userAvatarUrl: userAvatarUrl,
+        wishItem: WishItem(
+          id: wishDocRef.id,
+          name: wishItem.name,
+          description: wishItem.description,
+          productUrl: wishItem.productUrl,
+          imageUrl: wishItem.imageUrl,
+          createdAt: wishItem.createdAt,
+        ),
         activityTime: DateTime.now(),
         activityType: 'added',
-        activityDescription: 'Just added this to my wishlist!',
+        activityDescription: 'added a new wish',
       );
 
-      await FirestoreService().addFriendActivity(activity);
+      // Add friend activity
+      final firestoreService = FirestoreService();
+      await firestoreService.addFriendActivity(friendActivity);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Wish added successfully!')),
         );
-        Navigator.pop(context);
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
@@ -102,126 +114,77 @@ class _AddWishScreenState extends State<AddWishScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Add New Wish')),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Product Name*',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a product name';
-                    }
-                    return null;
-                  },
+      appBar: AppBar(
+        title: const Text('Add Wish'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextFormField(
+                controller: _nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Wish Name',
+                  border: OutlineInputBorder(),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _descriptionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Description*',
-                    border: OutlineInputBorder(),
-                  ),
-                  maxLines: 3,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a description';
-                    }
-                    return null;
-                  },
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a wish name';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _priceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Price*',
-                    border: OutlineInputBorder(),
-                    prefixText: '\$ ',
-                  ),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter a price';
-                    }
-                    if (double.tryParse(value) == null) {
-                      return 'Please enter a valid number';
-                    }
-                    return null;
-                  },
+                maxLines: 3,
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Please enter a description';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _productUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Product URL (optional)',
+                  border: OutlineInputBorder(),
                 ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: _selectedCategory,
-                  decoration: const InputDecoration(
-                    labelText: 'Category',
-                    border: OutlineInputBorder(),
-                  ),
-                  items: _categories.map((category) {
-                    return DropdownMenuItem(
-                      value: category,
-                      child: Text(category),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _selectedCategory = value;
-                      });
-                    }
-                  },
+                keyboardType: TextInputType.url,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _imageUrlController,
+                decoration: const InputDecoration(
+                  labelText: 'Image URL (optional)',
+                  border: OutlineInputBorder(),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _imageUrlController,
-                  decoration: const InputDecoration(
-                    labelText: 'Image URL',
-                    border: OutlineInputBorder(),
-                    hintText: 'https://example.com/image.jpg',
-                  ),
+                keyboardType: TextInputType.url,
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: _isLoading ? null : _saveWish,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEFB652),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _productUrlController,
-                  decoration: const InputDecoration(
-                    labelText: 'Product URL',
-                    border: OutlineInputBorder(),
-                    hintText: 'https://example.com/product',
-                  ),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _saveWish,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEFB652),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        )
-                      : const Text(
-                          'Add to Wishlist',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                ),
-              ],
-            ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text('Add Wish', style: TextStyle(fontSize: 18)),
+              ),
+            ],
           ),
         ),
       ),

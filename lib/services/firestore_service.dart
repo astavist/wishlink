@@ -15,16 +15,33 @@ class FirestoreService {
     final currentUser = _auth.currentUser;
     if (currentUser == null) return [];
 
+    // Get all friendships where current user is either userId or friendId
     final snapshot = await _firestore
         .collection('friendships')
-        .where('userId', isEqualTo: currentUser.uid)
         .where('status', isEqualTo: 'accepted')
         .where('type', isEqualTo: 'friendship')
         .get();
 
-    return snapshot.docs
-        .map((doc) => doc.data()['friendId'] as String)
-        .toList();
+    // Filter to get only mutual friendships and extract friend IDs
+    final friendIds = <String>{};
+
+    for (final doc in snapshot.docs) {
+      final data = doc.data();
+      final userId = data['userId'] as String;
+      final friendId = data['friendId'] as String;
+
+      // Current user must be one of the parties
+      if (userId == currentUser.uid || friendId == currentUser.uid) {
+        // Add the other user's ID
+        if (userId == currentUser.uid) {
+          friendIds.add(friendId);
+        } else {
+          friendIds.add(userId);
+        }
+      }
+    }
+
+    return friendIds.toList();
   }
 
   // Get friend activities only from friends
@@ -40,7 +57,7 @@ class FirestoreService {
         .get();
 
     return snapshot.docs
-        .map((doc) => FriendActivity.fromFirestore(doc.data(), doc.id))
+        .map((doc) => FriendActivity.fromMap(doc.data(), doc.id))
         .toList();
   }
 
@@ -62,7 +79,7 @@ class FirestoreService {
         .get();
 
     return snapshot.docs
-        .map((doc) => FriendActivity.fromFirestore(doc.data(), doc.id))
+        .map((doc) => FriendActivity.fromMap(doc.data(), doc.id))
         .toList();
   }
 
@@ -203,19 +220,28 @@ class FirestoreService {
     };
   }
 
-  // Get user's friends
+  // Get user's friends (returns documents for backward compatibility)
   Future<List<DocumentSnapshot>> getFriends() async {
-    final currentUser = _auth.currentUser;
-    if (currentUser == null) return [];
+    final friendIds = await getFriendIds();
+    if (friendIds.isEmpty) return [];
 
-    final snapshot = await _firestore
-        .collection('friendships')
-        .where('userId', isEqualTo: currentUser.uid)
-        .where('status', isEqualTo: 'accepted')
-        .where('type', isEqualTo: 'friendship')
-        .get();
+    // Get the actual friendship documents
+    final friendDocs = <DocumentSnapshot>[];
+    for (final friendId in friendIds) {
+      final friendDoc = await _firestore
+          .collection('friendships')
+          .where('userId', isEqualTo: _auth.currentUser?.uid)
+          .where('friendId', isEqualTo: friendId)
+          .where('status', isEqualTo: 'accepted')
+          .where('type', isEqualTo: 'friendship')
+          .get();
 
-    return snapshot.docs;
+      if (friendDoc.docs.isNotEmpty) {
+        friendDocs.add(friendDoc.docs.first);
+      }
+    }
+
+    return friendDocs;
   }
 
   // Search users
@@ -244,9 +270,7 @@ class FirestoreService {
 
   // Add friend activity
   Future<void> addFriendActivity(FriendActivity activity) async {
-    await _firestore
-        .collection('friend_activities')
-        .add(activity.toFirestore());
+    await _firestore.collection('friend_activities').add(activity.toMap());
   }
 
   // Like activity
