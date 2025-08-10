@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
 import '../widgets/friend_activity_card.dart';
@@ -532,17 +533,30 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _buyNow(FriendActivity activity) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${activity.wishItem.name} satın alma sayfasına yönlendiriliyor...',
+    if (activity.wishItem.productUrl.isNotEmpty) {
+      _launchUrl(activity.wishItem.productUrl);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${activity.wishItem.name} için link bulunamadı'),
+          duration: const Duration(seconds: 2),
         ),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-    // Burada ürünün satın alma sayfasına yönlendirme yapılabilir
-    // if (activity.wishItem.productUrl.isNotEmpty) {
-    //   launch(activity.wishItem.productUrl);
-    // }
+      );
+    }
+  }
+
+  Future<void> _launchUrl(String url) async {
+    if (url.isNotEmpty) {
+      final uri = Uri.parse(url);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Link açılamadı')));
+        }
+      }
+    }
   }
 }
