@@ -2,26 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/wish_item.dart';
-import 'login_screen.dart';
+import '../widgets/wish_card_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
-
-// Custom page route for right-to-left slide animation
-PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
-  return PageRouteBuilder<dynamic>(
-    pageBuilder: (context, animation, secondaryAnimation) => page,
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      const begin = Offset(1.0, 0.0);
-      const end = Offset.zero;
-      const curve = Curves.easeInOut;
-
-      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-      var offsetAnimation = animation.drive(tween);
-
-      return SlideTransition(position: offsetAnimation, child: child);
-    },
-    transitionDuration: const Duration(milliseconds: 300),
-  );
-}
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -125,6 +107,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       }
     }
+  }
+
+  void _showWishCardDialog(WishItem wish) {
+    showDialog(
+      context: context,
+      builder: (context) => WishCardDialog(
+        wish: wish,
+        onWishUpdated: () {
+          // Refresh the wishes list after update
+          _refreshPage();
+        },
+      ),
+    );
+  }
+
+  Future<String?> _showSwipeActionDialog(WishItem wish) async {
+    return showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Choose Action'),
+          content: Text('What would you like to do with "${wish.name}"?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop('edit'),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.edit, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Text('Edit'),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop('delete'),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.delete, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('Delete'),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(null),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _signOut() async {
@@ -243,167 +278,136 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         direction: DismissDirection
                             .endToStart, // Only allow left swipe
                         confirmDismiss: (direction) async {
-                          final shouldDelete = await _showDeleteWishDialog(
-                            wish,
-                          );
-                          if (shouldDelete) {
+                          final action = await _showSwipeActionDialog(wish);
+                          if (action == 'delete') {
                             await _deleteWish(wish);
+                            return true;
+                          } else if (action == 'edit') {
+                            _showWishCardDialog(wish);
+                            return false; // Don't dismiss, just show edit dialog
                           }
-                          return shouldDelete;
+                          return false; // Don't dismiss if no action selected
                         },
                         background: Container(
                           alignment: Alignment.centerRight,
                           padding: const EdgeInsets.only(right: 20.0),
-                          color: Colors.red,
+                          color: Colors.orange,
                           child: const Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.delete, color: Colors.white, size: 30),
+                              Icon(
+                                Icons.swipe_left,
+                                color: Colors.white,
+                                size: 30,
+                              ),
                               SizedBox(height: 4),
                               Text(
-                                'Delete',
+                                'Swipe for options',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
+                                  fontSize: 12,
                                 ),
+                                textAlign: TextAlign.center,
                               ),
                             ],
                           ),
                         ),
-                        child: Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: ListTile(
-                            leading: wish.imageUrl.isNotEmpty
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      wish.imageUrl,
+                        child: InkWell(
+                          onTap: () => _showWishCardDialog(wish),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: ListTile(
+                              leading: wish.imageUrl.isNotEmpty
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        wish.imageUrl,
+                                        width: 50,
+                                        height: 50,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                              return Container(
+                                                width: 50,
+                                                height: 50,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.grey[300],
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: const Icon(Icons.image),
+                                              );
+                                            },
+                                      ),
+                                    )
+                                  : Container(
                                       width: 50,
                                       height: 50,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                            return Container(
-                                              width: 50,
-                                              height: 50,
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey[300],
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: const Icon(Icons.image),
-                                            );
-                                          },
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[300],
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(Icons.image),
                                     ),
-                                  )
-                                : Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[300],
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(Icons.image),
-                                  ),
-                            title: Text(
-                              wish.name,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w500,
+                              title: Text(
+                                wish.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (wish.description.isNotEmpty)
-                                  Text(
-                                    wish.description,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                const SizedBox(height: 4),
-                                if (wish.price > 0) ...[
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (wish.description.isNotEmpty)
+                                    Text(
+                                      wish.description,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.attach_money,
-                                        color: Colors.green,
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '${wish.price.toStringAsFixed(2)}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
+                                  if (wish.price > 0) ...[
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.attach_money,
                                           color: Colors.green,
+                                          size: 16,
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                ],
-                                if (wish.productUrl.isNotEmpty) ...[
-                                  const SizedBox(height: 8),
-                                  ElevatedButton.icon(
-                                    onPressed: () =>
-                                        _launchUrl(wish.productUrl),
-                                    icon: const Icon(Icons.link, size: 16),
-                                    label: const Text('View Product'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFFEFB652),
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      minimumSize: const Size(0, 32),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${wish.price.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
+                                  ],
                                 ],
-                              ],
-                            ),
-                            trailing: PopupMenuButton<String>(
-                              onSelected: (value) {
-                                if (value == 'edit') {
-                                  // TODO: Implement edit wish functionality
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Edit Wish - Coming Soon'),
-                                    ),
-                                  );
-                                } else if (value == 'delete') {
-                                  _showDeleteWishDialog(wish);
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.edit, size: 20),
-                                      SizedBox(width: 8),
-                                      Text('Edit'),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'delete',
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.delete,
-                                        size: 20,
-                                        color: Colors.red,
+                              ),
+                              trailing: wish.productUrl.isNotEmpty
+                                  ? ElevatedButton.icon(
+                                      onPressed: () =>
+                                          _launchUrl(wish.productUrl),
+                                      icon: const Icon(Icons.link, size: 16),
+                                      label: const Text('View Product'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFFEFB652,
+                                        ),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 6,
+                                        ),
+                                        minimumSize: const Size(0, 32),
                                       ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Delete',
-                                        style: TextStyle(color: Colors.red),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                                    )
+                                  : null,
                             ),
                           ),
                         ),
