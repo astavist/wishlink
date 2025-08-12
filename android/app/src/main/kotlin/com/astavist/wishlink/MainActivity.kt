@@ -1,4 +1,4 @@
-package com.example.wishlink
+package com.astavist.wishlink
 
 import io.flutter.embedding.android.FlutterActivity
 

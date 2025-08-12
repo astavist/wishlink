@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'home_screen.dart';
+import 'email_verification_required_screen.dart';
 
 // Custom page route for right-to-left slide animation
 PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
@@ -97,39 +98,14 @@ class _LoginScreenState extends State<LoginScreen> {
           // Send verification email again if needed
           await userCredential.user!.sendEmailVerification();
 
-          // Sign out since email isn't verified
-          await _auth.signOut();
-
+          // Email verifikasyonu yapılmamış, EmailVerificationRequiredScreen'e yönlendir
           if (mounted) {
-            // Show verification dialog
-            await showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text('Email Verification Required'),
-                  content: const Text(
-                    'You need to verify your email address before logging in.\n\n'
-                    'A verification link has been sent to your email address. Please check your inbox.\n\n'
-                    'If you can\'t find the email, please check your spam folder.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text('OK'),
-                    ),
-                  ],
-                );
-              },
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => const EmailVerificationRequiredScreen(),
+              ),
             );
           }
-
-          setState(() {
-            _errorMessage =
-                'Email verification required. Please check your email.';
-          });
           return;
         }
 
