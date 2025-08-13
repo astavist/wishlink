@@ -25,6 +25,7 @@ class _EmailVerificationRequiredScreenState
     super.initState();
     _setFirebaseLocale();
     _startVerificationCheck();
+    // Otomatik email gönderme kaldırıldı - sadece kullanıcı resend butonuna bastığında gidecek
   }
 
   void _setFirebaseLocale() {
@@ -185,13 +186,13 @@ class _EmailVerificationRequiredScreenState
             ),
             const SizedBox(height: 16),
             Text(
-              'We\'ve sent a verification email to:\n${_auth.currentUser?.email}',
+              'To verify your account, please send a verification email to:\n${_auth.currentUser?.email}',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 24),
             const Text(
-              'Please check your email and click the verification link to continue.',
+              'Click the button below to send a verification email, then check your inbox and click the verification link.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
@@ -202,12 +203,12 @@ class _EmailVerificationRequiredScreenState
                 onPressed: _isResending ? null : _resendVerificationEmail,
                 child: _isResending
                     ? const CircularProgressIndicator()
-                    : const Text('Resend Verification Email'),
+                    : const Text('Send Verification Email'),
               ),
             ),
             const SizedBox(height: 16),
             const Text(
-              'After verifying your email, you\'ll be automatically redirected.',
+              'After sending and verifying your email, you\'ll be automatically redirected.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),

@@ -302,13 +302,26 @@ class _FriendsScreenState extends State<FriendsScreen>
               await _loadData();
               setState(() {});
             },
-            child: ListView(
-              children: const [
-                SizedBox(
-                  height: 200,
-                  child: Center(child: Text('No friends yet')),
-                ),
-              ],
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No friends yet',
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Connect with friends to see their wishes',
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           );
         }
@@ -427,13 +440,26 @@ class _FriendsScreenState extends State<FriendsScreen>
               await _loadData();
               setState(() {});
             },
-            child: ListView(
-              children: const [
-                SizedBox(
-                  height: 200,
-                  child: Center(child: Text('No incoming friend requests')),
-                ),
-              ],
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(Icons.person_add_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No incoming friend requests',
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'When someone sends you a request, it will appear here',
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           );
         }
@@ -588,13 +614,26 @@ class _FriendsScreenState extends State<FriendsScreen>
               await _loadData();
               setState(() {});
             },
-            child: ListView(
-              children: const [
-                SizedBox(
-                  height: 200,
-                  child: Center(child: Text('No outgoing friend requests')),
-                ),
-              ],
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Icon(Icons.send_outlined, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text(
+                    'No outgoing friend requests',
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    'Search for users and send friend requests to connect',
+                    style: TextStyle(color: Colors.grey, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           );
         }
