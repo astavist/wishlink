@@ -227,9 +227,14 @@ class _FriendsScreenState extends State<FriendsScreen>
               );
             },
             child: CircleAvatar(
-              child: Text(
-                '${userData['firstName'][0]}${userData['lastName'][0]}',
-              ),
+              backgroundImage: userData['profilePhotoUrl']?.isNotEmpty == true
+                  ? NetworkImage(userData['profilePhotoUrl'])
+                  : null,
+              child: userData['profilePhotoUrl']?.isNotEmpty == true
+                  ? null
+                  : Text(
+                      '${userData['firstName'][0]}${userData['lastName'][0]}',
+                    ),
             ),
           ),
           title: GestureDetector(
@@ -362,9 +367,15 @@ class _FriendsScreenState extends State<FriendsScreen>
                         );
                       },
                       child: CircleAvatar(
-                        child: Text(
-                          '${userData['firstName'][0]}${userData['lastName'][0]}',
-                        ),
+                        backgroundImage:
+                            userData['profilePhotoUrl']?.isNotEmpty == true
+                            ? NetworkImage(userData['profilePhotoUrl'])
+                            : null,
+                        child: userData['profilePhotoUrl']?.isNotEmpty == true
+                            ? null
+                            : Text(
+                                '${userData['firstName'][0]}${userData['lastName'][0]}',
+                              ),
                       ),
                     ),
                     title: GestureDetector(
@@ -500,9 +511,15 @@ class _FriendsScreenState extends State<FriendsScreen>
                         );
                       },
                       child: CircleAvatar(
-                        child: Text(
-                          '${userData['firstName'][0]}${userData['lastName'][0]}',
-                        ),
+                        backgroundImage:
+                            userData['profilePhotoUrl']?.isNotEmpty == true
+                            ? NetworkImage(userData['profilePhotoUrl'])
+                            : null,
+                        child: userData['profilePhotoUrl']?.isNotEmpty == true
+                            ? null
+                            : Text(
+                                '${userData['firstName'][0]}${userData['lastName'][0]}',
+                              ),
                       ),
                     ),
                     title: GestureDetector(
@@ -674,9 +691,15 @@ class _FriendsScreenState extends State<FriendsScreen>
                         );
                       },
                       child: CircleAvatar(
-                        child: Text(
-                          '${userData['firstName'][0]}${userData['lastName'][0]}',
-                        ),
+                        backgroundImage:
+                            userData['profilePhotoUrl']?.isNotEmpty == true
+                            ? NetworkImage(userData['profilePhotoUrl'])
+                            : null,
+                        child: userData['profilePhotoUrl']?.isNotEmpty == true
+                            ? null
+                            : Text(
+                                '${userData['firstName'][0]}${userData['lastName'][0]}',
+                              ),
                       ),
                     ),
                     title: GestureDetector(

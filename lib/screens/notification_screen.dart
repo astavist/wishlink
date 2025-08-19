@@ -322,9 +322,36 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             vertical: 4,
                           ),
                           child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: Colors.blue[100],
-                              child: _getNotificationIcon(notification.type),
+                            leading: FutureBuilder<DocumentSnapshot?>(
+                              future: _firestoreService.getUserProfile(
+                                notification.userId,
+                              ),
+                              builder: (context, userSnapshot) {
+                                if (userSnapshot.hasData &&
+                                    userSnapshot.data != null) {
+                                  final userData =
+                                      userSnapshot.data!.data()
+                                          as Map<String, dynamic>?;
+                                  final profilePhotoUrl =
+                                      userData?['profilePhotoUrl'] ?? '';
+
+                                  if (profilePhotoUrl.isNotEmpty) {
+                                    return CircleAvatar(
+                                      backgroundImage: NetworkImage(
+                                        profilePhotoUrl,
+                                      ),
+                                    );
+                                  }
+                                }
+
+                                // Fallback to default avatar with icon
+                                return CircleAvatar(
+                                  backgroundColor: Colors.blue[100],
+                                  child: _getNotificationIcon(
+                                    notification.type,
+                                  ),
+                                );
+                              },
                             ),
                             title: Text(
                               notification.title,

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/wish_item.dart';
 import '../widgets/wish_card_dialog.dart';
+import '../services/storage_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -15,10 +18,15 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
+  final _storageService = StorageService();
+  final _imagePicker = ImagePicker();
+
   bool _isLoading = true;
+  bool _isUploadingPhoto = false;
   String _firstName = '';
   String _lastName = '';
   String _email = '';
+  String _profilePhotoUrl = '';
   List<WishItem> _userWishes = [];
 
   @override
@@ -41,7 +49,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _firstName = userData.data()?['firstName'] ?? '';
             _lastName = userData.data()?['lastName'] ?? '';
             _email = userData.data()?['email'] ?? '';
+            _profilePhotoUrl = userData.data()?['profilePhotoUrl'] ?? '';
           });
+        }
+
+        // Load profile photo from storage if not in Firestore
+        if (_profilePhotoUrl.isEmpty) {
+          try {
+            final photoUrl = await _storageService.getProfilePhotoUrl(user.uid);
+            if (photoUrl != null) {
+              setState(() {
+                _profilePhotoUrl = photoUrl;
+              });
+              // Update Firestore with the photo URL
+              await _firestore.collection('users').doc(user.uid).update({
+                'profilePhotoUrl': photoUrl,
+              });
+            }
+          } catch (e) {
+            // Profile photo not found, that's okay
+          }
         }
 
         // Load user's wishes from friend_activities
@@ -92,6 +119,136 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (user != null) {
       await _loadUserData();
     }
+  }
+
+  // Profil fotoğrafı seçme ve yükleme
+  Future<void> _pickAndUploadProfilePhoto() async {
+    try {
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          _isUploadingPhoto = true;
+        });
+
+        final user = _auth.currentUser;
+        if (user != null) {
+          final file = File(pickedFile.path);
+
+          // Upload to Firebase Storage
+          final photoUrl = await _storageService.uploadProfilePhoto(
+            userId: user.uid,
+            file: file,
+          );
+
+          // Update Firestore
+          await _firestore.collection('users').doc(user.uid).update({
+            'profilePhotoUrl': photoUrl,
+          });
+
+          setState(() {
+            _profilePhotoUrl = photoUrl;
+            _isUploadingPhoto = false;
+          });
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Profil fotoğrafı başarıyla güncellendi!'),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isUploadingPhoto = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profil fotoğrafı yüklenirken hata: $e')),
+        );
+      }
+    }
+  }
+
+  // Profil fotoğrafı silme
+  Future<void> _deleteProfilePhoto() async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null && _profilePhotoUrl.isNotEmpty) {
+        // Delete from Storage
+        await _storageService.deleteProfilePhoto(user.uid);
+
+        // Update Firestore
+        await _firestore.collection('users').doc(user.uid).update({
+          'profilePhotoUrl': '',
+        });
+
+        setState(() {
+          _profilePhotoUrl = '';
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profil fotoğrafı silindi')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profil fotoğrafı silinirken hata: $e')),
+        );
+      }
+    }
+  }
+
+  // Profil fotoğrafı seçenekleri dialog'u
+  void _showProfilePhotoOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('Galeriden Seç'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickAndUploadProfilePhoto();
+                },
+              ),
+              if (_profilePhotoUrl.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text(
+                    'Fotoğrafı Sil',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _deleteProfilePhoto();
+                  },
+                ),
+              ListTile(
+                leading: const Icon(Icons.close),
+                title: const Text('İptal'),
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _launchUrl(String url) async {
@@ -209,9 +366,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Center(
                 child: Column(
                   children: [
-                    const CircleAvatar(
-                      radius: 50,
-                      child: Icon(Icons.person, size: 50),
+                    Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundImage: _profilePhotoUrl.isNotEmpty
+                              ? NetworkImage(_profilePhotoUrl)
+                              : null,
+                          child: _profilePhotoUrl.isEmpty
+                              ? const Icon(Icons.person, size: 50)
+                              : null,
+                        ),
+                        if (_isUploadingPhoto)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(50),
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).primaryColor,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white, width: 3),
+                            ),
+                            child: GestureDetector(
+                              onTap: _isUploadingPhoto
+                                  ? null
+                                  : _showProfilePhotoOptions,
+                              child: Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).primaryColor,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     Text(

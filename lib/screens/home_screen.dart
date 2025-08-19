@@ -266,15 +266,37 @@ class _HomeScreenState extends State<HomeScreen> {
                       4; // Profile tab index (0: Home, 1: Friends, 2: Add Wish, 3: Notifications, 4: Profile)
                 });
               },
-              child: CircleAvatar(
-                backgroundColor: Colors.lightGreen[200],
-                child: const Text(
-                  'ME',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              child: FutureBuilder<DocumentSnapshot?>(
+                future: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(FirebaseAuth.instance.currentUser?.uid)
+                    .get(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasData && snapshot.data != null) {
+                    final userData =
+                        snapshot.data!.data() as Map<String, dynamic>?;
+                    final profilePhotoUrl = userData?['profilePhotoUrl'] ?? '';
+
+                    if (profilePhotoUrl.isNotEmpty) {
+                      return CircleAvatar(
+                        backgroundImage: NetworkImage(profilePhotoUrl),
+                        radius: 20,
+                      );
+                    }
+                  }
+
+                  // Fallback to default avatar
+                  return CircleAvatar(
+                    backgroundColor: Colors.lightGreen[200],
+                    child: const Text(
+                      'ME',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),

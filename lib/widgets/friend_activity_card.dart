@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
 import '../screens/user_profile_screen.dart';
@@ -94,23 +95,40 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                       ),
                     );
                   },
-                  child: CircleAvatar(
-                    backgroundImage: widget.activity.userAvatarUrl.isNotEmpty
-                        ? NetworkImage(widget.activity.userAvatarUrl)
-                        : null,
-                    backgroundColor: Colors.lightGreen[200],
-                    radius: 20,
-                    child: widget.activity.userAvatarUrl.isEmpty
-                        ? Text(
-                            widget.activity.userName.isNotEmpty
-                                ? widget.activity.userName[0].toUpperCase()
-                                : 'U',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )
-                        : null,
+                  child: FutureBuilder<DocumentSnapshot?>(
+                    future: _firestoreService.getUserProfile(
+                      widget.activity.userId,
+                    ),
+                    builder: (context, userSnapshot) {
+                      if (userSnapshot.hasData && userSnapshot.data != null) {
+                        final userData =
+                            userSnapshot.data!.data() as Map<String, dynamic>?;
+                        final profilePhotoUrl =
+                            userData?['profilePhotoUrl'] ?? '';
+
+                        if (profilePhotoUrl.isNotEmpty) {
+                          return CircleAvatar(
+                            backgroundImage: NetworkImage(profilePhotoUrl),
+                            radius: 20,
+                          );
+                        }
+                      }
+
+                      // Fallback to default avatar
+                      return CircleAvatar(
+                        backgroundColor: Colors.lightGreen[200],
+                        radius: 20,
+                        child: Text(
+                          widget.activity.userName.isNotEmpty
+                              ? widget.activity.userName[0].toUpperCase()
+                              : 'U',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 10),

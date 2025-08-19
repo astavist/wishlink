@@ -25,6 +25,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String _firstName = '';
   String _lastName = '';
   String _email = '';
+  String _profilePhotoUrl = '';
   List<WishItem> _userWishes = [];
 
   @override
@@ -45,6 +46,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           _firstName = userData.data()?['firstName'] ?? '';
           _lastName = userData.data()?['lastName'] ?? '';
           _email = userData.data()?['email'] ?? '';
+          _profilePhotoUrl = userData.data()?['profilePhotoUrl'] ?? '';
         });
       }
 
@@ -142,9 +144,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               Center(
                 child: Column(
                   children: [
-                    const CircleAvatar(
+                    CircleAvatar(
                       radius: 50,
-                      child: Icon(Icons.person, size: 50),
+                      backgroundImage: _profilePhotoUrl.isNotEmpty
+                          ? NetworkImage(_profilePhotoUrl)
+                          : null,
+                      child: _profilePhotoUrl.isEmpty
+                          ? const Icon(Icons.person, size: 50)
+                          : null,
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -277,11 +284,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 4),
                               ],
-                              if (wish.productUrl.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                ElevatedButton.icon(
+                            ],
+                          ),
+                          trailing: wish.productUrl.isNotEmpty
+                              ? ElevatedButton.icon(
                                   onPressed: () => _launchUrl(wish.productUrl),
                                   icon: const Icon(Icons.link, size: 16),
                                   label: const Text('View Product'),
@@ -294,10 +301,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                     ),
                                     minimumSize: const Size(0, 32),
                                   ),
-                                ),
-                              ],
-                            ],
-                          ),
+                                )
+                              : null,
                         ),
                       ),
                     )
