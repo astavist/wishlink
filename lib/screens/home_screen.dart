@@ -10,23 +10,7 @@ import 'profile_screen.dart';
 import 'friends_screen.dart';
 import 'notification_screen.dart';
 
-// Custom page route for left-to-right slide animation (for notifications)
-PageRouteBuilder<dynamic> _createLeftToRightSlideRoute(Widget page) {
-  return PageRouteBuilder<dynamic>(
-    pageBuilder: (context, animation, secondaryAnimation) => page,
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      const begin = Offset(-1.0, 0.0);
-      const end = Offset.zero;
-      const curve = Curves.easeInOut;
-
-      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-      var offsetAnimation = animation.drive(tween);
-
-      return SlideTransition(position: offsetAnimation, child: child);
-    },
-    transitionDuration: const Duration(milliseconds: 300),
-  );
-}
+// (Removed unused left-to-right slide route)
 
 // Custom page route for bottom-to-top slide animation (for add wish)
 PageRouteBuilder<dynamic> _createBottomToTopSlideRoute(Widget page) {
@@ -58,11 +42,30 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   bool _hasFriendRequests = false;
   int _unreadNotificationsCount = 0;
+  late final PageController _pageController;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _pageController = PageController(initialPage: 0);
+  }
+
+  int _bottomIndexToPageIndex(int bottomIndex) {
+    // Maps BottomNavigationBar indices (0,1,2,3,4) to PageView indices (0,1,2,3)
+    // Excludes index 2 (Add Wish) from paging
+    return bottomIndex <= 1 ? bottomIndex : bottomIndex - 1;
+  }
+
+  int _pageIndexToBottomIndex(int pageIndex) {
+    // Maps PageView indices (0,1,2,3) back to BottomNavigationBar indices (0,1,3,4)
+    return pageIndex <= 1 ? pageIndex : pageIndex + 1;
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -242,18 +245,13 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           onPressed: () async {
-            // Tüm bildirimleri okundu olarak işaretle
-            await _markAllNotificationsAsRead();
-            // NotificationScreen'e yönlendir
-            if (mounted) {
-              Navigator.push(
-                context,
-                _createLeftToRightSlideRoute(const NotificationScreen()),
-              ).then((_) {
-                // Notification screen'den dönüldüğünde veriyi yenile
-                _loadData();
-              });
-            }
+            // PageView içinde Notifications sekmesine geç; state güncellemeleri onPageChanged'de yapılır
+            final targetPage = _bottomIndexToPageIndex(3);
+            _pageController.animateToPage(
+              targetPage,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
           },
         ),
         actions: [
@@ -261,10 +259,13 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.only(right: 16.0),
             child: GestureDetector(
               onTap: () {
-                setState(() {
-                  _selectedIndex =
-                      4; // Profile tab index (0: Home, 1: Friends, 2: Add Wish, 3: Notifications, 4: Profile)
-                });
+                final targetBottomIndex = 4;
+                final targetPage = _bottomIndexToPageIndex(targetBottomIndex);
+                _pageController.animateToPage(
+                  targetPage,
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeInOut,
+                );
               },
               child: FutureBuilder<DocumentSnapshot?>(
                 future: FirebaseFirestore.instance
@@ -302,10 +303,25 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: IndexedStack(
-        index: _selectedIndex,
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (pageIndex) {
+          final newBottomIndex = _pageIndexToBottomIndex(pageIndex);
+          if (newBottomIndex == 3) {
+            // Fire-and-forget to avoid race with subsequent page changes
+            _markAllNotificationsAsRead();
+          }
+          if (mounted) {
+            setState(() {
+              _selectedIndex = newBottomIndex;
+              if (newBottomIndex == 3) {
+                _unreadNotificationsCount = 0;
+              }
+            });
+          }
+        },
         children: [
-          // Home Tab
+          // Home
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -398,19 +414,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               padding: const EdgeInsets.only(bottom: 16.0),
                               child: FriendActivityCard(
                                 activity: activity,
-                                onLike: () {
-                                  // Like functionality
-                                },
+                                onLike: () {},
                                 onComment: () {
-                                  // Comment functionality
                                   _showCommentDialog(activity);
                                 },
                                 onShare: () {
-                                  // Share functionality
                                   _shareActivity(activity);
                                 },
                                 onBuyNow: () {
-                                  // Buy now functionality
                                   _buyNow(activity);
                                 },
                               ),
@@ -424,13 +435,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          // Friends Tab
+          // Friends
           const FriendsScreen(initialTabIndex: 0),
-          // Add Wish Tab (placeholder - will navigate to AddWishScreen)
-          const Center(child: Text('Add Wish')),
-          // Notifications Tab
+          // Notifications
           const NotificationScreen(),
-          // Profile Tab
+          // Profile
           const ProfileScreen(),
         ],
       ),
@@ -511,17 +520,15 @@ class _HomeScreenState extends State<HomeScreen> {
               context,
               _createBottomToTopSlideRoute(const AddWishScreen()),
             );
-          } else if (index == 3) {
-            // Notifications tab - mark all as read and navigate
-            await _markAllNotificationsAsRead();
-            setState(() {
-              _selectedIndex = index;
-            });
-          } else {
-            setState(() {
-              _selectedIndex = index;
-            });
+            return;
           }
+
+          final targetPage = _bottomIndexToPageIndex(index);
+          _pageController.animateToPage(
+            targetPage,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
         },
       ),
     );
