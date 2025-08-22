@@ -200,7 +200,7 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/images/TextLogoBlackPNG.png', // Logo yolunu kendi dosyanıza göre güncelleyin
+              'assets/images/AppBar.png', // Logo yolunu kendi dosyanıza göre güncelleyin
               height: 70,
             ),
           ],
