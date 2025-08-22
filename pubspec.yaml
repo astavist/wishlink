@@ -33,6 +33,7 @@ dependencies:
   image_picker: ^1.2.0
 
 dev_dependencies:
+  flutter_launcher_icons: "^0.14.4"
   flutter_test:
     sdk: flutter
 
@@ -42,3 +43,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/AppIcon.png"
