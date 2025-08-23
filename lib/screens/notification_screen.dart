@@ -36,6 +36,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   final _auth = FirebaseAuth.instance;
   List<NotificationItem> _notifications = [];
   bool _isLoading = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -47,94 +48,186 @@ class _NotificationScreenState extends State<NotificationScreen> {
     try {
       setState(() {
         _isLoading = true;
+        _errorMessage = null;
       });
 
       final currentUserId = _auth.currentUser?.uid;
-      if (currentUserId == null) return;
+      if (currentUserId == null) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'User not authenticated';
+        });
+        return;
+      }
 
-      // Load friend requests
-      final requests = await _firestoreService.getFriendRequests();
+      // Batch operations to reduce Firestore calls
+      final batchResults = await Future.wait([
+        _firestoreService.getFriendRequests(),
+        _firestoreService.getFriendIds(),
+        _firestore
+            .collection('notifications')
+            .where('isRead', isEqualTo: true)
+            .get(),
+        _firestore
+            .collection('friend_activities')
+            .where('activityType', isEqualTo: 'added')
+            .orderBy('activityTime', descending: true)
+            .limit(20) // Reduced from 50 to 20
+            .get(),
+      ], eagerError: true);
+
+      final requests = batchResults[0] as Map<String, List<DocumentSnapshot>>;
+      final friendIds = batchResults[1] as List<String>;
+      final readNotificationsSnapshot = batchResults[2] as QuerySnapshot;
+      final recentActivities = batchResults[3] as QuerySnapshot;
+
       final incomingRequests = requests['incoming'] ?? [];
-
-      // Load read status for notifications
-      final readNotificationsSnapshot = await _firestore
-          .collection('notifications')
-          .where('isRead', isEqualTo: true)
-          .get();
       final readNotificationIds = readNotificationsSnapshot.docs
           .map((doc) => doc.id)
           .toSet();
 
-      // Load recent friend activities (wish additions)
-      final recentActivities = await _firestore
-          .collection('friend_activities')
-          .where('activityType', isEqualTo: 'added')
-          .orderBy('activityTime', descending: true)
-          .limit(50)
-          .get();
-
       final notifications = <NotificationItem>[];
 
-      // Add friend request notifications
-      for (final request in incomingRequests) {
-        final requesterId = request['userId'] as String;
-        final userData = await _firestoreService.getUserProfile(requesterId);
+      // Process friend requests
+      if (incomingRequests.isNotEmpty) {
+        final requesterIds = incomingRequests
+            .map((doc) => doc['userId'] as String)
+            .toSet();
 
-        if (userData != null) {
-          final userDataMap = userData.data() as Map<String, dynamic>;
-          notifications.add(
-            NotificationItem(
-              id: request.id,
-              type: NotificationType.friendRequest,
-              title: 'New Friend Request',
-              message:
-                  '${userDataMap['firstName']} ${userDataMap['lastName']} sent you a friend request',
-              userId: requesterId,
-              userName:
-                  '${userDataMap['firstName']} ${userDataMap['lastName']}',
-              timestamp: request['timestamp'] as Timestamp? ?? Timestamp.now(),
-              isRead: readNotificationIds.contains(request.id),
-            ),
-          );
+        // Batch fetch user profiles for friend requests
+        final userProfiles = <String, Map<String, dynamic>>{};
+        for (final requesterId in requesterIds) {
+          try {
+            final userData = await _firestoreService.getUserProfile(
+              requesterId,
+            );
+            if (userData != null) {
+              userProfiles[requesterId] =
+                  userData.data() as Map<String, dynamic>;
+            }
+          } catch (e) {
+            // Skip this user if profile fetch fails
+            continue;
+          }
         }
-      }
 
-      // Add wish notifications (only for friends)
-      final friendIds = await _firestoreService.getFriendIds();
-
-      for (final activity in recentActivities.docs) {
-        final activityData = activity.data();
-        final activityUserId = activityData['userId'] as String;
-
-        // Only show notifications for friends' activities
-        if (friendIds.contains(activityUserId) &&
-            activityUserId != currentUserId) {
-          final userData = await _firestoreService.getUserProfile(
-            activityUserId,
-          );
+        for (final request in incomingRequests) {
+          final requesterId = request['userId'] as String;
+          final userData = userProfiles[requesterId];
 
           if (userData != null) {
-            final userDataMap = userData.data() as Map<String, dynamic>;
-            final wishData = activityData['wishItem'] as Map<String, dynamic>;
+            // Safely get timestamp from request document
+            Timestamp requestTimestamp;
+            try {
+              final requestData = request.data() as Map<String, dynamic>?;
+              // Try to get timestamp from different possible fields
+              if (requestData != null && requestData.containsKey('timestamp')) {
+                requestTimestamp = request['timestamp'] as Timestamp;
+              } else if (requestData != null &&
+                  requestData.containsKey('createdAt')) {
+                requestTimestamp = request['createdAt'] as Timestamp;
+              } else {
+                // If no timestamp field exists, use current time
+                requestTimestamp = Timestamp.now();
+              }
+            } catch (e) {
+              // Fallback to current time if timestamp parsing fails
+              requestTimestamp = Timestamp.now();
+            }
 
             notifications.add(
               NotificationItem(
-                id: activity.id,
-                type: NotificationType.newWish,
-                title: 'New Wish Added',
+                id: request.id,
+                type: NotificationType.friendRequest,
+                title: 'New Friend Request',
                 message:
-                    '${userDataMap['firstName']} ${userDataMap['lastName']} added "${wishData['name']}" to their wishlist',
-                userId: activityUserId,
-                userName:
-                    '${userDataMap['firstName']} ${userDataMap['lastName']}',
-                wishId: wishData['id'] as String? ?? '',
-                wishName: wishData['name'] as String? ?? '',
-                timestamp:
-                    activityData['activityTime'] as Timestamp? ??
-                    Timestamp.now(),
-                isRead: readNotificationIds.contains(activity.id),
+                    '${userData['firstName']} ${userData['lastName']} sent you a friend request',
+                userId: requesterId,
+                userName: '${userData['firstName']} ${userData['lastName']}',
+                timestamp: requestTimestamp,
+                isRead: readNotificationIds.contains(request.id),
               ),
             );
+          }
+        }
+      }
+
+      // Process wish notifications (only for friends)
+      if (recentActivities.docs.isNotEmpty && friendIds.isNotEmpty) {
+        final activityUserIds = recentActivities.docs
+            .map((doc) => doc['userId'] as String)
+            .where((id) => friendIds.contains(id) && id != currentUserId)
+            .toSet();
+
+        if (activityUserIds.isNotEmpty) {
+          // Batch fetch user profiles for activities
+          final activityUserProfiles = <String, Map<String, dynamic>>{};
+          for (final userId in activityUserIds) {
+            try {
+              final userData = await _firestoreService.getUserProfile(userId);
+              if (userData != null) {
+                activityUserProfiles[userId] =
+                    userData.data() as Map<String, dynamic>;
+              }
+            } catch (e) {
+              // Skip this user if profile fetch fails
+              continue;
+            }
+          }
+
+          for (final activity in recentActivities.docs) {
+            final activityData = activity.data() as Map<String, dynamic>;
+            final activityUserId = activityData['userId'] as String;
+
+            // Only show notifications for friends' activities
+            if (friendIds.contains(activityUserId) &&
+                activityUserId != currentUserId) {
+              final userData = activityUserProfiles[activityUserId];
+
+              if (userData != null) {
+                final wishData =
+                    activityData['wishItem'] as Map<String, dynamic>?;
+                if (wishData != null) {
+                  // Safely get timestamp from activity document
+                  Timestamp activityTimestamp;
+                  try {
+                    if (activityData.containsKey('activityTime')) {
+                      activityTimestamp =
+                          activityData['activityTime'] as Timestamp;
+                    } else if (activityData.containsKey('timestamp')) {
+                      activityTimestamp =
+                          activityData['timestamp'] as Timestamp;
+                    } else if (activityData.containsKey('createdAt')) {
+                      activityTimestamp =
+                          activityData['createdAt'] as Timestamp;
+                    } else {
+                      // If no timestamp field exists, use current time
+                      activityTimestamp = Timestamp.now();
+                    }
+                  } catch (e) {
+                    // Fallback to current time if timestamp parsing fails
+                    activityTimestamp = Timestamp.now();
+                  }
+
+                  notifications.add(
+                    NotificationItem(
+                      id: activity.id,
+                      type: NotificationType.newWish,
+                      title: 'New Wish Added',
+                      message:
+                          '${userData['firstName']} ${userData['lastName']} added "${wishData['name']}" to their wishlist',
+                      userId: activityUserId,
+                      userName:
+                          '${userData['firstName']} ${userData['lastName']}',
+                      wishId: wishData['id'] as String? ?? '',
+                      wishName: wishData['name'] as String? ?? '',
+                      timestamp: activityTimestamp,
+                      isRead: readNotificationIds.contains(activity.id),
+                    ),
+                  );
+                }
+              }
+            }
           }
         }
       }
@@ -149,10 +242,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
     } catch (e) {
       setState(() {
         _isLoading = false;
+        _errorMessage = 'Error loading notifications: ${e.toString()}';
       });
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error loading notifications')),
+          SnackBar(
+            content: Text('Error loading notifications: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -282,6 +380,35 @@ class _NotificationScreenState extends State<NotificationScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error loading notifications',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      color: Colors.red,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _errorMessage!,
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _refreshNotifications,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
           : RefreshIndicator(
               onRefresh: _refreshNotifications,
               child: _notifications.isEmpty
@@ -322,36 +449,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             vertical: 4,
                           ),
                           child: ListTile(
-                            leading: FutureBuilder<DocumentSnapshot?>(
-                              future: _firestoreService.getUserProfile(
-                                notification.userId,
-                              ),
-                              builder: (context, userSnapshot) {
-                                if (userSnapshot.hasData &&
-                                    userSnapshot.data != null) {
-                                  final userData =
-                                      userSnapshot.data!.data()
-                                          as Map<String, dynamic>?;
-                                  final profilePhotoUrl =
-                                      userData?['profilePhotoUrl'] ?? '';
-
-                                  if (profilePhotoUrl.isNotEmpty) {
-                                    return CircleAvatar(
-                                      backgroundImage: NetworkImage(
-                                        profilePhotoUrl,
-                                      ),
-                                    );
-                                  }
-                                }
-
-                                // Fallback to default avatar with icon
-                                return CircleAvatar(
-                                  backgroundColor: Colors.blue[100],
-                                  child: _getNotificationIcon(
-                                    notification.type,
-                                  ),
-                                );
-                              },
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.blue[100],
+                              child: _getNotificationIcon(notification.type),
                             ),
                             title: Text(
                               notification.title,
