@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
 import '../screens/user_profile_screen.dart';
+import '../screens/wish_detail_screen.dart';
 
 // Custom page route for right-to-left slide animation (for user profiles)
 PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
@@ -179,73 +180,101 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
             // Ürün görseli
             ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: widget.activity.wishItem.imageUrl.isNotEmpty
-                  ? Image.network(
-                      widget.activity.wishItem.imageUrl,
-                      width: double.infinity,
-                      height: 200,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: double.infinity,
-                          height: 200,
-                          color: Colors.grey[300],
-                          child: const Icon(
-                            Icons.image_not_supported,
-                            size: 50,
-                            color: Colors.grey,
-                          ),
-                        );
-                      },
-                    )
-                  : Container(
-                      width: double.infinity,
-                      height: 200,
-                      color: Colors.grey[300],
-                      child: const Icon(
-                        Icons.image,
-                        size: 50,
-                        color: Colors.grey,
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    createRightToLeftSlideRoute(
+                      WishDetailScreen(wish: widget.activity.wishItem),
+                    ),
+                  );
+                },
+                child: widget.activity.wishItem.imageUrl.isNotEmpty
+                    ? Image.network(
+                        widget.activity.wishItem.imageUrl,
+                        width: double.infinity,
+                        height: 200,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: double.infinity,
+                            height: 200,
+                            color: Colors.grey[300],
+                            child: const Icon(
+                              Icons.image_not_supported,
+                              size: 50,
+                              color: Colors.grey,
+                            ),
+                          );
+                        },
+                      )
+                    : Container(
+                        width: double.infinity,
+                        height: 200,
+                        color: Colors.grey[300],
+                        child: const Icon(
+                          Icons.image,
+                          size: 50,
+                          color: Colors.grey,
+                        ),
                       ),
-                    ),
-            ),
-            const SizedBox(height: 16),
-
-            // Ürün bilgileri
-            Text(
-              widget.activity.wishItem.name,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              widget.activity.wishItem.description,
-              style: const TextStyle(color: Colors.grey, fontSize: 14),
-            ),
-            const SizedBox(height: 16),
-
-            // Fiyat
-            if (widget.activity.wishItem.price > 0)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.attach_money,
-                      color: Colors.green,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${widget.activity.wishItem.price.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                        color: Colors.green,
-                      ),
-                    ),
-                  ],
-                ),
               ),
+            ),
+            const SizedBox(height: 16),
+
+            // Ürün bilgileri (tıklanabilir)
+            InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  createRightToLeftSlideRoute(
+                    WishDetailScreen(wish: widget.activity.wishItem),
+                  ),
+                );
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.activity.wishItem.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.activity.wishItem.description,
+                    style: const TextStyle(color: Colors.grey, fontSize: 14),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Fiyat
+                  if (widget.activity.wishItem.price > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16.0),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.attach_money,
+                            color: Colors.green,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${widget.activity.wishItem.price.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
 
             // Satın Al butonu
             SizedBox(

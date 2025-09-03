@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/wish_item.dart';
-import '../widgets/wish_card_dialog.dart';
+import 'wish_detail_screen.dart';
 import '../services/storage_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -266,16 +266,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showWishCardDialog(WishItem wish) {
-    showDialog(
-      context: context,
-      builder: (context) => WishCardDialog(
-        wish: wish,
-        onWishUpdated: () {
-          // Refresh the wishes list after update
-          _refreshPage();
-        },
-      ),
+  void _openWishDetail(WishItem wish) {
+    Navigator.push(
+      context,
+      createRightToLeftSlideRoute(WishDetailScreen(wish: wish)),
     );
   }
 
@@ -494,7 +488,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             await _deleteWish(wish);
                             return true;
                           } else if (action == 'edit') {
-                            _showWishCardDialog(wish);
+                            _openWishDetail(wish);
                             return false; // Don't dismiss, just show edit dialog
                           }
                           return false; // Don't dismiss if no action selected
@@ -525,7 +519,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         child: InkWell(
-                          onTap: () => _showWishCardDialog(wish),
+                          onTap: () => _openWishDetail(wish),
                           borderRadius: BorderRadius.circular(12),
                           child: Card(
                             margin: const EdgeInsets.only(bottom: 12),
