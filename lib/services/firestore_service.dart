@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/friend_activity.dart';
+import '../models/wish_list.dart';
 
 class FirestoreService {
   static final FirestoreService _instance = FirestoreService._internal();
@@ -297,5 +298,60 @@ class FirestoreService {
   // Dispose method to clean up resources
   void dispose() {
     // No longer needed since we're using Future instead of Stream
+  }
+
+  // ===================== Wish Lists =====================
+  Future<WishList> createWishList({
+    required String name,
+    String coverImageUrl = '',
+  }) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('Not authenticated');
+    }
+
+    final docRef = await _firestore.collection('wish_lists').add({
+      'userId': currentUser.uid,
+      'name': name,
+      'createdAt': FieldValue.serverTimestamp(),
+      'coverImageUrl': coverImageUrl,
+    });
+
+    final created = await docRef.get();
+    return WishList.fromMap(created.data() as Map<String, dynamic>, created.id);
+  }
+
+  Future<List<WishList>> getUserWishLists(String userId) async {
+    final snapshot = await _firestore
+        .collection('wish_lists')
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snapshot.docs
+        .map((doc) => WishList.fromMap(doc.data(), doc.id))
+        .toList();
+  }
+
+  Future<void> deleteWishList(String listId) async {
+    await _firestore.collection('wish_lists').doc(listId).delete();
+  }
+
+  // Assign wish to list by writing `listId` to wish document
+  Future<void> assignWishToList({
+    required String wishId,
+    required String listId,
+  }) async {
+    await _firestore.collection('wishes').doc(wishId).update({
+      'listId': listId,
+    });
+  }
+
+  Future<List<DocumentSnapshot>> getWishesByList(String listId) async {
+    final snapshot = await _firestore
+        .collection('wishes')
+        .where('listId', isEqualTo: listId)
+        .orderBy('createdAt', descending: true)
+        .get();
+    return snapshot.docs;
   }
 }

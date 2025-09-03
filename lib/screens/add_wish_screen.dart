@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/wish_item.dart';
 import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
+import '../models/wish_list.dart';
 
 class AddWishScreen extends StatefulWidget {
   const AddWishScreen({super.key});
@@ -20,6 +21,8 @@ class _AddWishScreenState extends State<AddWishScreen> {
   final _imageUrlController = TextEditingController();
   final _priceController = TextEditingController();
   bool _isLoading = false;
+  String? _selectedListId;
+  List<WishList> _lists = [];
 
   @override
   void dispose() {
@@ -29,6 +32,67 @@ class _AddWishScreenState extends State<AddWishScreen> {
     _imageUrlController.dispose();
     _priceController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLists();
+  }
+
+  Future<void> _loadLists() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final service = FirestoreService();
+    final lists = await service.getUserWishLists(user.uid);
+    if (mounted) {
+      setState(() {
+        _lists = lists;
+      });
+    }
+  }
+
+  Future<void> _createNewListFlow() async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Yeni Liste Oluştur'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: 'Liste adı'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('İptal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
+            child: const Text('Oluştur'),
+          ),
+        ],
+      ),
+    );
+
+    if (name == null || name.isEmpty) return;
+
+    try {
+      final service = FirestoreService();
+      final newList = await service.createWishList(name: name);
+      if (mounted) {
+        setState(() {
+          _lists.insert(0, newList);
+          _selectedListId = newList.id;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Liste oluşturulamadı')));
+      }
+    }
   }
 
   void _closeKeyboard() {
@@ -71,7 +135,10 @@ class _AddWishScreenState extends State<AddWishScreen> {
       // Add wish to wishes collection
       final wishDocRef = await FirebaseFirestore.instance
           .collection('wishes')
-          .add(wishItem.toMap());
+          .add({
+            ...wishItem.toMap(),
+            if (_selectedListId != null) 'listId': _selectedListId,
+          });
 
       // Create friend activity
       final friendActivity = FriendActivity(
@@ -150,6 +217,40 @@ class _AddWishScreenState extends State<AddWishScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                DropdownButtonFormField<String?>(
+                  value: _selectedListId,
+                  decoration: const InputDecoration(
+                    labelText: 'Assign to List',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('No list'),
+                    ),
+                    ..._lists.map(
+                      (l) => DropdownMenuItem<String?>(
+                        value: l.id,
+                        child: Text(l.name),
+                      ),
+                    ),
+                    const DropdownMenuItem<String?>(
+                      value: '__create__',
+                      child: Text('➕ Create new list'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value == '__create__') {
+                      FocusScope.of(context).unfocus();
+                      _createNewListFlow();
+                      return;
+                    }
+                    setState(() {
+                      _selectedListId = value;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _nameController,
                   decoration: const InputDecoration(
