@@ -1,8 +1,10 @@
 // lib/login_screen.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'home_screen.dart';
 import 'email_verification_required_screen.dart';
 
@@ -35,6 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
+  final _googleSignIn = GoogleSignIn();
 
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
@@ -135,6 +138,75 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        return;
+      }
+
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+      final user = userCredential.user;
+      if (user == null) {
+        throw FirebaseAuthException(
+          code: 'user-not-found',
+          message: 'No user returned from Google sign-in.',
+        );
+      }
+
+      final userDocRef = _firestore.collection('users').doc(user.uid);
+      final userDoc = await userDocRef.get();
+
+      final displayName = user.displayName?.trim() ?? '';
+      final nameParts = displayName.isNotEmpty
+          ? displayName.split(RegExp(r'\s+'))
+          : <String>[];
+      final firstName = nameParts.isNotEmpty
+          ? nameParts.first
+          : (user.email?.split('@').first ?? googleUser.email);
+      final lastName = nameParts.length > 1
+          ? nameParts.sublist(1).join(' ')
+          : '';
+
+      if (!userDoc.exists) {
+        await userDocRef.set({
+          'firstName': firstName,
+          'lastName': lastName,
+          'email': user.email ?? googleUser.email,
+          'emailVerified': true,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } else if (!(userDoc.data()?['emailVerified'] ?? false)) {
+        await userDocRef.update({'emailVerified': true});
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _errorMessage = _getErrorMessage(e.code);
+      });
+    } catch (_) {
+      setState(() {
+        _errorMessage = 'Google sign-in failed. Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   String _getErrorMessage(String code) {
     switch (code) {
       case 'user-not-found':
@@ -147,6 +219,8 @@ class _LoginScreenState extends State<LoginScreen> {
         return 'This account has been disabled.';
       case 'email-already-in-use':
         return 'An account already exists with this email.';
+      case 'account-exists-with-different-credential':
+        return 'An account already exists with a different sign-in method.';
       case 'weak-password':
         return 'The password provided is too weak.';
       default:
@@ -237,6 +311,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final showAppleSignIn =
+        !kIsWeb && Theme.of(context).platform == TargetPlatform.iOS;
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Container(
@@ -567,20 +643,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         text: 'Continue with Google',
                         backgroundColor: Colors.white,
                         textColor: Colors.black,
-                        onPressed: _isLoading
-                            ? null
-                            : () => print('Continue with Google'),
+                        onPressed: _isLoading ? null : _signInWithGoogle,
                       ),
-                      const SizedBox(height: 16),
-                      _SocialLoginButton(
-                        icon: FontAwesomeIcons.apple,
-                        text: 'Continue with Apple',
-                        backgroundColor: Colors.black,
-                        textColor: Colors.white,
-                        onPressed: _isLoading
-                            ? null
-                            : () => print('Continue with Apple'),
-                      ),
+                      if (showAppleSignIn) ...[
+                        const SizedBox(height: 16),
+                        _SocialLoginButton(
+                          icon: FontAwesomeIcons.apple,
+                          text: 'Continue with Apple',
+                          backgroundColor: Colors.black,
+                          textColor: Colors.white,
+                          onPressed: _isLoading
+                              ? null
+                              : () => print('Continue with Apple'),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       _SocialLoginButton(
                         icon: FontAwesomeIcons.facebookF,
