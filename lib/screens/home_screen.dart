@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
 import '../widgets/friend_activity_card.dart';
+import '../widgets/activity_comments_sheet.dart';
 import 'add_wish_screen.dart';
 import 'profile_screen.dart';
 import 'friends_screen.dart';
@@ -415,9 +416,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: FriendActivityCard(
                                 activity: activity,
                                 onLike: () {},
-                                onComment: () {
-                                  _showCommentDialog(activity);
-                                },
+                                onComment: () => _showCommentsBottomSheet(activity),
                                 onShare: () {
                                   _shareActivity(activity);
                                 },
@@ -534,20 +533,21 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showCommentDialog(FriendActivity activity) {
-    showDialog(
+  Future<int> _showCommentsBottomSheet(FriendActivity activity) async {
+    final addedCounter = ValueNotifier<int>(0);
+
+    await showModalBottomSheet<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('${activity.userName}\'ın gönderisi'),
-        content: const Text('Yorum özelliği yakında gelecek!'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Tamam'),
-          ),
-        ],
+      isScrollControlled: true,
+      builder: (context) => ActivityCommentsSheet(
+        activity: activity,
+        addedCounter: addedCounter,
       ),
     );
+
+    final added = addedCounter.value;
+    addedCounter.dispose();
+    return added;
   }
 
   void _shareActivity(FriendActivity activity) {

@@ -12,6 +12,7 @@ class FriendActivity {
   final String? activityDescription;
   final int likesCount;
   final int commentsCount;
+  final List<String> likedUserIds;
 
   FriendActivity({
     required this.id,
@@ -24,6 +25,7 @@ class FriendActivity {
     this.activityDescription,
     this.likesCount = 0,
     this.commentsCount = 0,
+    this.likedUserIds = const [],
   });
 
   factory FriendActivity.fromMap(Map<String, dynamic> data, String id) {
@@ -41,6 +43,7 @@ class FriendActivity {
       activityDescription: data['activityDescription'],
       likesCount: data['likesCount'] ?? 0,
       commentsCount: data['commentsCount'] ?? 0,
+      likedUserIds: List<String>.from(data['likedUserIds'] ?? const []),
     );
   }
 
@@ -56,6 +59,7 @@ class FriendActivity {
       'activityDescription': activityDescription,
       'likesCount': likesCount,
       'commentsCount': commentsCount,
+      'likedUserIds': likedUserIds,
     };
   }
 

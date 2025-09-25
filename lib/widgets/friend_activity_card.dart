@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
 import '../screens/user_profile_screen.dart';
@@ -26,7 +27,7 @@ PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
 class FriendActivityCard extends StatefulWidget {
   final FriendActivity activity;
   final VoidCallback? onLike;
-  final VoidCallback? onComment;
+  final Future<int> Function()? onComment;
   final VoidCallback? onShare;
   final VoidCallback? onBuyNow;
 
@@ -45,29 +46,115 @@ class FriendActivityCard extends StatefulWidget {
 
 class _FriendActivityCardState extends State<FriendActivityCard> {
   final FirestoreService _firestoreService = FirestoreService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   bool _isLiked = false;
+  bool _isProcessingLike = false;
+  bool _isOwnActivity = false;
   int _likesCount = 0;
+  int _commentsCount = 0;
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
-    _likesCount = widget.activity.likesCount;
+    _syncStateFromWidget();
   }
 
-  void _handleLike() async {
-    setState(() {
-      if (_isLiked) {
-        _likesCount--;
-        _firestoreService.unlikeActivity(widget.activity.id);
-      } else {
-        _likesCount++;
-        _firestoreService.likeActivity(widget.activity.id);
+  @override
+  void didUpdateWidget(covariant FriendActivityCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncStateFromWidget();
+  }
+
+  void _syncStateFromWidget() {
+    _currentUserId = _auth.currentUser?.uid;
+    _likesCount = widget.activity.likesCount;
+    _commentsCount = widget.activity.commentsCount;
+
+    final currentUserId = _currentUserId;
+    _isOwnActivity =
+        currentUserId != null && widget.activity.userId == currentUserId;
+    _isLiked = currentUserId != null &&
+        widget.activity.likedUserIds.contains(currentUserId);
+  }
+
+  Future<void> _handleLike() async {
+    final userId = _currentUserId ?? _auth.currentUser?.uid;
+    if (userId == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please sign in to like wishes.')),
+        );
       }
-      _isLiked = !_isLiked;
+      return;
+    }
+
+    if (_isOwnActivity || _isProcessingLike) {
+      return;
+    }
+
+    setState(() {
+      _isProcessingLike = true;
     });
 
-    if (widget.onLike != null) {
-      widget.onLike!();
+    try {
+      if (_isLiked) {
+        await _firestoreService.unlikeActivity(
+          activityId: widget.activity.id,
+          userId: userId,
+        );
+        if (mounted) {
+          setState(() {
+            _isLiked = false;
+            if (_likesCount > 0) {
+              _likesCount -= 1;
+            }
+          });
+        }
+      } else {
+        await _firestoreService.likeActivity(
+          activityId: widget.activity.id,
+          userId: userId,
+        );
+        if (mounted) {
+          setState(() {
+            _isLiked = true;
+            _likesCount += 1;
+          });
+        }
+      }
+
+      widget.onLike?.call();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to update like. Try again.')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessingLike = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleCommentPressed() async {
+    if (_isOwnActivity || widget.onComment == null) {
+      return;
+    }
+
+    final addedCount = await widget.onComment!.call();
+    if (!mounted) {
+      return;
+    }
+
+    if (addedCount > 0) {
+      setState(() {
+        _commentsCount += addedCount;
+      });
     }
   }
 
@@ -262,7 +349,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '${widget.activity.wishItem.price.toStringAsFixed(2)}',
+                            widget.activity.wishItem.price.toStringAsFixed(2),
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
@@ -306,9 +393,11 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                         _isLiked ? Icons.favorite : Icons.favorite_border,
                         color: _isLiked ? Colors.red : null,
                       ),
-                      onPressed: _handleLike,
+                      onPressed: (!_isOwnActivity && !_isProcessingLike)
+                          ? _handleLike
+                          : null,
                     ),
-                    if (_likesCount > 0)
+                    if (!_isOwnActivity && _likesCount > 0)
                       Text(
                         _likesCount.toString(),
                         style: const TextStyle(
@@ -322,11 +411,12 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.chat_bubble_outline),
-                      onPressed: widget.onComment,
+                      onPressed:
+                          !_isOwnActivity ? _handleCommentPressed : null,
                     ),
-                    if (widget.activity.commentsCount > 0)
+                    if (!_isOwnActivity && _commentsCount > 0)
                       Text(
-                        widget.activity.commentsCount.toString(),
+                        _commentsCount.toString(),
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 12,

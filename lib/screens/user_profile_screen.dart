@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/wish_item.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'wish_detail_screen.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -78,7 +79,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final wishes = wishesSnapshot.docs.map((doc) {
         final data = doc.data();
         final wishData = data['wishItem'] as Map<String, dynamic>;
-        return WishItem.fromMap(wishData, wishData['id'] ?? doc.id);
+        final wishId = (data['wishItemId'] as String?) ?? wishData['id'] ?? doc.id;
+        return WishItem.fromMap(wishData, wishId);
       }).toList();
 
       setState(() {
@@ -219,6 +221,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       (wish) => Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              createRightToLeftSlideRoute(
+                                WishDetailScreen(wish: wish),
+                              ),
+                            );
+                          },
                           leading: wish.imageUrl.isNotEmpty
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
@@ -276,7 +285,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      '${wish.price.toStringAsFixed(2)}',
+                                      wish.price.toStringAsFixed(2),
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: Colors.green,

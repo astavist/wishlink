@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/friend_activity.dart';
+import '../models/friend_activity_comment.dart';
 import '../models/wish_list.dart';
 
 class FirestoreService {
@@ -255,7 +256,7 @@ class FirestoreService {
     final snapshot = await _firestore
         .collection('users')
         .where('firstName', isGreaterThanOrEqualTo: query)
-        .where('firstName', isLessThan: query + 'z')
+        .where('firstName', isLessThan: '${query}z')
         .get();
 
     return snapshot.docs
@@ -274,17 +275,87 @@ class FirestoreService {
     await _firestore.collection('friend_activities').add(activity.toMap());
   }
 
+  Stream<FriendActivity?> streamActivityForWish(String wishId) {
+    return _firestore
+        .collection('friend_activities')
+        .where('wishItemId', isEqualTo: wishId)
+        .where('activityType', isEqualTo: 'added')
+        .limit(1)
+        .snapshots()
+        .map((snapshot) {
+          if (snapshot.docs.isEmpty) {
+            return null;
+          }
+          final doc = snapshot.docs.first;
+          return FriendActivity.fromMap(doc.data(), doc.id);
+        });
+  }
+
+  Future<FriendActivity?> fetchActivityForWish(String wishId) async {
+    final snapshot = await _firestore
+        .collection('friend_activities')
+        .where('wishItemId', isEqualTo: wishId)
+        .where('activityType', isEqualTo: 'added')
+        .limit(1)
+        .get();
+
+    if (snapshot.docs.isEmpty) {
+      return null;
+    }
+
+    final doc = snapshot.docs.first;
+    return FriendActivity.fromMap(doc.data(), doc.id);
+  }
+
   // Like activity
-  Future<void> likeActivity(String activityId) async {
-    await _firestore.collection('friend_activities').doc(activityId).update({
-      'likesCount': FieldValue.increment(1),
+  Future<void> likeActivity({required String activityId, required String userId}) async {
+    final docRef = _firestore.collection('friend_activities').doc(activityId);
+
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(docRef);
+      if (!snapshot.exists) {
+        return;
+      }
+
+      final data = snapshot.data();
+      final likedUsers = List<String>.from(
+        (data?['likedUserIds'] as List<dynamic>?) ?? const [],
+      );
+
+      if (likedUsers.contains(userId)) {
+        return;
+      }
+
+      transaction.update(docRef, {
+        'likedUserIds': FieldValue.arrayUnion([userId]),
+        'likesCount': FieldValue.increment(1),
+      });
     });
   }
 
   // Unlike activity
-  Future<void> unlikeActivity(String activityId) async {
-    await _firestore.collection('friend_activities').doc(activityId).update({
-      'likesCount': FieldValue.increment(-1),
+  Future<void> unlikeActivity({required String activityId, required String userId}) async {
+    final docRef = _firestore.collection('friend_activities').doc(activityId);
+
+    await _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(docRef);
+      if (!snapshot.exists) {
+        return;
+      }
+
+      final data = snapshot.data();
+      final likedUsers = List<String>.from(
+        (data?['likedUserIds'] as List<dynamic>?) ?? const [],
+      );
+
+      if (!likedUsers.contains(userId)) {
+        return;
+      }
+
+      transaction.update(docRef, {
+        'likedUserIds': FieldValue.arrayRemove([userId]),
+        'likesCount': FieldValue.increment(-1),
+      });
     });
   }
 
@@ -293,6 +364,61 @@ class FirestoreService {
     await _firestore.collection('friend_activities').doc(activityId).update({
       'commentsCount': FieldValue.increment(increment),
     });
+  }
+
+  Stream<List<FriendActivityComment>> streamActivityComments(String activityId) {
+    return _firestore
+        .collection('friend_activities')
+        .doc(activityId)
+        .collection('comments')
+        .orderBy('createdAt', descending: false)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map(FriendActivityComment.fromDocument)
+              .toList(),
+        );
+  }
+
+  Future<void> addCommentToActivity(String activityId, String commentText) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('Not authenticated');
+    }
+
+    final userDoc =
+        await _firestore.collection('users').doc(currentUser.uid).get();
+    final userData = userDoc.data() ?? <String, dynamic>{};
+    final firstName = (userData['firstName'] as String?)?.trim() ?? '';
+    final lastName = (userData['lastName'] as String?)?.trim() ?? '';
+    final combinedName = [firstName, lastName]
+        .where((part) => part.isNotEmpty)
+        .join(' ')
+        .trim();
+    final displayName = combinedName.isNotEmpty
+        ? combinedName
+        : (userData['username'] as String?)?.trim() ??
+            currentUser.displayName ??
+            currentUser.email ??
+            'Anonymous';
+
+    final profilePhotoUrl = userData['profilePhotoUrl'] as String?;
+
+    final commentData = {
+      'userId': currentUser.uid,
+      'userName': displayName,
+      'profilePhotoUrl': profilePhotoUrl,
+      'comment': commentText.trim(),
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    final commentsRef = _firestore
+        .collection('friend_activities')
+        .doc(activityId)
+        .collection('comments');
+
+    await commentsRef.add(commentData);
+    await updateCommentCount(activityId, 1);
   }
 
   // Dispose method to clean up resources

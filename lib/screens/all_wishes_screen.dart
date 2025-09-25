@@ -21,7 +21,8 @@ class AllWishesScreen extends StatelessWidget {
     return wishesSnapshot.docs.map((doc) {
       final data = doc.data();
       final wishData = data['wishItem'] as Map<String, dynamic>;
-      return WishItem.fromMap(wishData, wishData['id'] ?? doc.id);
+      final wishId = (data['wishItemId'] as String?) ?? wishData['id'] ?? doc.id;
+      return WishItem.fromMap(wishData, wishId);
     }).toList();
   }
 
