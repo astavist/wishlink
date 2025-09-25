@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'change_password_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -20,12 +21,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _signOut() async {
     try {
       await _auth.signOut();
+      if (!mounted) return;
+      Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Error signing out')));
     }
+  }
+
+  void _navigateToChangePassword() {
+    Navigator.of(context).push(_buildSlideRoute(const ChangePasswordScreen()));
+  }
+
+  Route<void> _buildSlideRoute(Widget page) {
+    return PageRouteBuilder<void>(
+      // ignore: unnecessary_underscores
+      pageBuilder: (_, __, ___) => page,
+      // ignore: unnecessary_underscores
+      transitionsBuilder: (_, animation, __, child) {
+        final tween = Tween(
+          begin: const Offset(1, 0),
+          end: Offset.zero,
+        ).chain(CurveTween(curve: Curves.easeInOut));
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
+    );
   }
 
   @override
@@ -52,7 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: const Icon(Icons.lock),
             title: const Text('Change Password'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showComingSoon('Change Password - Coming Soon'),
+            onTap: _navigateToChangePassword,
           ),
           ListTile(
             leading: const Icon(Icons.notifications),
