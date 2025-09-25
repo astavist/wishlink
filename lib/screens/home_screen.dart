@@ -10,6 +10,7 @@ import 'add_wish_screen.dart';
 import 'profile_screen.dart';
 import 'friends_screen.dart';
 import 'notification_screen.dart';
+import 'settings_screen.dart';
 
 // (Removed unused left-to-right slide route)
 
@@ -256,51 +257,71 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
         actions: [
-          Padding(
+          Container(
+            width: 72,
             padding: const EdgeInsets.only(right: 16.0),
-            child: GestureDetector(
-              onTap: () {
-                final targetBottomIndex = 4;
-                final targetPage = _bottomIndexToPageIndex(targetBottomIndex);
-                _pageController.animateToPage(
-                  targetPage,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                );
-              },
-              child: FutureBuilder<DocumentSnapshot?>(
-                future: FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(FirebaseAuth.instance.currentUser?.uid)
-                    .get(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasData && snapshot.data != null) {
-                    final userData =
-                        snapshot.data!.data() as Map<String, dynamic>?;
-                    final profilePhotoUrl = userData?['profilePhotoUrl'] ?? '';
-
-                    if (profilePhotoUrl.isNotEmpty) {
-                      return CircleAvatar(
-                        backgroundImage: NetworkImage(profilePhotoUrl),
-                        radius: 20,
+            alignment: Alignment.centerRight,
+            child: _selectedIndex == 4
+                ? IconButton(
+                    icon: const Icon(Icons.settings),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    splashRadius: 22,
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SettingsScreen(),
+                        ),
                       );
-                    }
-                  }
+                    },
+                    tooltip: 'Settings',
+                  )
+                : GestureDetector(
+                    onTap: () {
+                      final targetBottomIndex = 4;
+                      final targetPage = _bottomIndexToPageIndex(
+                        targetBottomIndex,
+                      );
+                      _pageController.animateToPage(
+                        targetPage,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                    child: FutureBuilder<DocumentSnapshot?>(
+                      future: FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(FirebaseAuth.instance.currentUser?.uid)
+                          .get(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData && snapshot.data != null) {
+                          final userData =
+                              snapshot.data!.data() as Map<String, dynamic>?;
+                          final profilePhotoUrl =
+                              userData?['profilePhotoUrl'] ?? '';
 
-                  // Fallback to default avatar
-                  return CircleAvatar(
-                    backgroundColor: Colors.lightGreen[200],
-                    child: const Text(
-                      'ME',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                          if (profilePhotoUrl.isNotEmpty) {
+                            return CircleAvatar(
+                              backgroundImage: NetworkImage(profilePhotoUrl),
+                              radius: 20,
+                            );
+                          }
+                        }
+
+                        return CircleAvatar(
+                          backgroundColor: Colors.lightGreen[200],
+                          child: const Text(
+                            'ME',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
-            ),
+                  ),
           ),
         ],
       ),
@@ -416,7 +437,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: FriendActivityCard(
                                 activity: activity,
                                 onLike: () {},
-                                onComment: () => _showCommentsBottomSheet(activity),
+                                onComment: () =>
+                                    _showCommentsBottomSheet(activity),
                                 onShare: () {
                                   _shareActivity(activity);
                                 },
@@ -539,10 +561,8 @@ class _HomeScreenState extends State<HomeScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => ActivityCommentsSheet(
-        activity: activity,
-        addedCounter: addedCounter,
-      ),
+      builder: (context) =>
+          ActivityCommentsSheet(activity: activity, addedCounter: addedCounter),
     );
 
     final added = addedCounter.value;

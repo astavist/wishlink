@@ -10,6 +10,7 @@ import '../models/wish_list.dart';
 import '../services/firestore_service.dart';
 import 'all_wishes_screen.dart';
 import 'wish_list_detail_screen.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -106,7 +107,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final wishes = wishesSnapshot.docs.map((doc) {
         final data = doc.data();
         final wishData = data['wishItem'] as Map<String, dynamic>;
-        final wishId = (data['wishItemId'] as String?) ?? wishData['id'] ?? doc.id;
+        final wishId =
+            (data['wishItemId'] as String?) ?? wishData['id'] ?? doc.id;
         return WishItem.fromMap(wishData, wishId);
       }).toList();
 
@@ -274,20 +276,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<void> _signOut() async {
-    try {
-      await _auth.signOut();
-      // AuthWrapper will automatically navigate to LoginScreen
-      // No need to manually navigate as Firebase Auth handles the state
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Error signing out')));
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -302,13 +290,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _signOut,
-            tooltip: 'Sign Out',
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: _refreshPage,
@@ -461,104 +442,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
               ),
               const SizedBox(height: 8),
-
-              // Account Settings Section
-              const Text(
-                'Account Settings',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-
-              // Edit Profile Option
-              ListTile(
-                leading: const Icon(Icons.edit),
-                title: const Text('Edit Profile'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  // TODO: Implement edit profile functionality
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Edit Profile - Coming Soon')),
-                  );
-                },
-              ),
-
-              // Change Password Option
-              ListTile(
-                leading: const Icon(Icons.lock),
-                title: const Text('Change Password'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  // TODO: Implement change password functionality
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Change Password - Coming Soon'),
-                    ),
-                  );
-                },
-              ),
-
-              // Notification Settings
-              ListTile(
-                leading: const Icon(Icons.notifications),
-                title: const Text('Notification Settings'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  // TODO: Implement notification settings
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Notifications - Coming Soon'),
-                    ),
-                  );
-                },
-              ),
-
-              const Divider(height: 32),
-
-              // Privacy Settings
-              ListTile(
-                leading: const Icon(Icons.privacy_tip),
-                title: const Text('Privacy Settings'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  // TODO: Implement privacy settings
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Privacy Settings - Coming Soon'),
-                    ),
-                  );
-                },
-              ),
-
-              // Help & Support
-              ListTile(
-                leading: const Icon(Icons.help),
-                title: const Text('Help & Support'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  // TODO: Implement help & support
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Help & Support - Coming Soon'),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 32),
-
-              // Sign Out Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _signOut,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                  child: const Text('Sign Out'),
-                ),
-              ),
             ],
           ),
         ),
