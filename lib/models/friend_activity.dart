@@ -5,6 +5,7 @@ class FriendActivity {
   final String id;
   final String userId;
   final String userName;
+  final String userUsername;
   final String userAvatarUrl;
   final WishItem wishItem;
   final DateTime activityTime;
@@ -18,6 +19,7 @@ class FriendActivity {
     required this.id,
     required this.userId,
     required this.userName,
+    required this.userUsername,
     required this.userAvatarUrl,
     required this.wishItem,
     required this.activityTime,
@@ -33,6 +35,7 @@ class FriendActivity {
       id: id,
       userId: data['userId'] ?? '',
       userName: data['userName'] ?? '',
+      userUsername: data['userUsername'] ?? '',
       userAvatarUrl: data['userAvatarUrl'] ?? '',
       wishItem: WishItem.fromMap(
         data['wishItem'] ?? {},
@@ -51,6 +54,7 @@ class FriendActivity {
     return {
       'userId': userId,
       'userName': userName,
+      'userUsername': userUsername,
       'userAvatarUrl': userAvatarUrl,
       'wishItem': wishItem.toMap(),
       'wishItemId': wishItem.id,

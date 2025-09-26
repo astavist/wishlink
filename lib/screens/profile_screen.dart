@@ -10,7 +10,6 @@ import '../models/wish_list.dart';
 import '../services/firestore_service.dart';
 import 'all_wishes_screen.dart';
 import 'wish_list_detail_screen.dart';
-import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -30,6 +29,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _firstName = '';
   String _lastName = '';
   String _email = '';
+  String _username = '';
   String _profilePhotoUrl = '';
   List<WishItem> _userWishes = [];
   List<WishList> _wishLists = [];
@@ -55,6 +55,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _firstName = userData.data()?['firstName'] ?? '';
             _lastName = userData.data()?['lastName'] ?? '';
             _email = userData.data()?['email'] ?? '';
+            _username = (userData.data()?['username'] as String?)?.trim() ?? '';
             _profilePhotoUrl = userData.data()?['profilePhotoUrl'] ?? '';
           });
         }
@@ -282,6 +283,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final displayName = '$_firstName $_lastName'.trim();
+    final headerTitle = displayName.isNotEmpty
+        ? displayName
+        : _username.isNotEmpty
+            ? '@$_username'
+            : 'Profile';
+    final secondaryText = _username.isNotEmpty ? '@$_username' : _email;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
@@ -362,16 +371,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      '$_firstName $_lastName',
+                      headerTitle,
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _email,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
-                    ),
+                    if (secondaryText.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        secondaryText,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
+                      ),
+                    ],
                   ],
                 ),
               ),

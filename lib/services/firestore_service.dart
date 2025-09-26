@@ -308,7 +308,10 @@ class FirestoreService {
   }
 
   // Like activity
-  Future<void> likeActivity({required String activityId, required String userId}) async {
+  Future<void> likeActivity({
+    required String activityId,
+    required String userId,
+  }) async {
     final docRef = _firestore.collection('friend_activities').doc(activityId);
 
     await _firestore.runTransaction((transaction) async {
@@ -334,7 +337,10 @@ class FirestoreService {
   }
 
   // Unlike activity
-  Future<void> unlikeActivity({required String activityId, required String userId}) async {
+  Future<void> unlikeActivity({
+    required String activityId,
+    required String userId,
+  }) async {
     final docRef = _firestore.collection('friend_activities').doc(activityId);
 
     await _firestore.runTransaction((transaction) async {
@@ -366,7 +372,9 @@ class FirestoreService {
     });
   }
 
-  Stream<List<FriendActivityComment>> streamActivityComments(String activityId) {
+  Stream<List<FriendActivityComment>> streamActivityComments(
+    String activityId,
+  ) {
     return _firestore
         .collection('friend_activities')
         .doc(activityId)
@@ -374,39 +382,46 @@ class FirestoreService {
         .orderBy('createdAt', descending: false)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs
-              .map(FriendActivityComment.fromDocument)
-              .toList(),
+          (snapshot) =>
+              snapshot.docs.map(FriendActivityComment.fromDocument).toList(),
         );
   }
 
-  Future<void> addCommentToActivity(String activityId, String commentText) async {
+  Future<void> addCommentToActivity(
+    String activityId,
+    String commentText,
+  ) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) {
       throw Exception('Not authenticated');
     }
 
-    final userDoc =
-        await _firestore.collection('users').doc(currentUser.uid).get();
+    final userDoc = await _firestore
+        .collection('users')
+        .doc(currentUser.uid)
+        .get();
     final userData = userDoc.data() ?? <String, dynamic>{};
     final firstName = (userData['firstName'] as String?)?.trim() ?? '';
     final lastName = (userData['lastName'] as String?)?.trim() ?? '';
-    final combinedName = [firstName, lastName]
-        .where((part) => part.isNotEmpty)
-        .join(' ')
-        .trim();
+    final combinedName = [
+      firstName,
+      lastName,
+    ].where((part) => part.isNotEmpty).join(' ').trim();
     final displayName = combinedName.isNotEmpty
         ? combinedName
         : (userData['username'] as String?)?.trim() ??
-            currentUser.displayName ??
-            currentUser.email ??
-            'Anonymous';
+              currentUser.displayName ??
+              currentUser.email ??
+              'Anonymous';
 
+    final username =
+        (userData['username'] as String?)?.trim().toLowerCase() ?? '';
     final profilePhotoUrl = userData['profilePhotoUrl'] as String?;
 
     final commentData = {
       'userId': currentUser.uid,
       'userName': displayName,
+      'userUsername': username,
       'profilePhotoUrl': profilePhotoUrl,
       'comment': commentText.trim(),
       'createdAt': FieldValue.serverTimestamp(),

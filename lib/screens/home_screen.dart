@@ -81,6 +81,22 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _handleLogoTap() {
+    const targetBottomIndex = 0;
+    final targetPage = _bottomIndexToPageIndex(targetBottomIndex);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _selectedIndex = targetBottomIndex;
+    });
+    _pageController.animateToPage(
+      targetPage,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
   Future<int> _getUnreadNotificationsCount() async {
     try {
       final currentUserId = FirebaseAuth.instance.currentUser?.uid;
@@ -198,14 +214,18 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Image.asset(
-              'assets/images/AppBar.png', // Logo yolunu kendi dosyanÄ±za gÃ¶re gÃ¼ncelleyin
-              height: 70,
-            ),
-          ],
+        title: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _handleLogoTap,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/images/AppBar.png', // Logo yolunu kendi dosyanýza göre güncelleyin
+                height: 70,
+              ),
+            ],
+          ),
         ),
         centerTitle: true,
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,

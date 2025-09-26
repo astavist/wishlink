@@ -120,7 +120,10 @@ class _AddWishScreenState extends State<AddWishScreen> {
       final userName =
           '${userData?['firstName'] ?? ''} ${userData?['lastName'] ?? ''}'
               .trim();
-      final userAvatarUrl = userData?['avatarUrl'] ?? '';
+      final userUsername =
+          (userData?['username'] as String?)?.trim().toLowerCase() ?? '';
+      final userAvatarUrl =
+          (userData?['profilePhotoUrl'] as String?)?.trim() ?? '';
 
       final wishItem = WishItem(
         id: '', // Will be set by Firestore
@@ -145,6 +148,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
         id: '', // Will be set by Firestore
         userId: currentUser.uid,
         userName: userName.isNotEmpty ? userName : 'Unknown User',
+        userUsername: userUsername,
         userAvatarUrl: userAvatarUrl,
         wishItem: WishItem(
           id: wishDocRef.id,

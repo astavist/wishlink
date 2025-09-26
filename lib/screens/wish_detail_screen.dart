@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -30,6 +31,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
   bool _hasLoadedActivity = false;
   int _likesCount = 0;
   int _commentsCount = 0;
+  String _ownerAvatarUrl = '';
 
   @override
   void initState() {
@@ -56,31 +58,41 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     _activitySubscription = _firestoreService
         .streamActivityForWish(widget.wish.id)
         .listen((activity) {
-      if (!mounted) {
-        return;
-      }
+          if (!mounted) {
+            return;
+          }
 
-      setState(() {
-        _hasLoadedActivity = true;
-        _activity = activity;
-        final currentUserId = _auth.currentUser?.uid;
+          setState(() {
+            _hasLoadedActivity = true;
+            _activity = activity;
+            final currentUserId = _auth.currentUser?.uid;
 
-        if (activity == null) {
-          _isOwnActivity = false;
-          _isLiked = false;
-          _likesCount = 0;
-          _commentsCount = 0;
-          return;
-        }
+            if (activity == null) {
+              _isOwnActivity = false;
+              _isLiked = false;
+              _likesCount = 0;
+              _commentsCount = 0;
+              _ownerAvatarUrl = '';
+              return;
+            }
 
-        _isOwnActivity =
-            currentUserId != null && activity.userId == currentUserId;
-        _isLiked = currentUserId != null &&
-            activity.likedUserIds.contains(currentUserId);
-        _likesCount = activity.likesCount;
-        _commentsCount = activity.commentsCount;
-      });
-    });
+            _isOwnActivity =
+                currentUserId != null && activity.userId == currentUserId;
+            _isLiked =
+                currentUserId != null &&
+                activity.likedUserIds.contains(currentUserId);
+            _likesCount = activity.likesCount;
+            _commentsCount = activity.commentsCount;
+            final avatar = activity.userAvatarUrl.trim();
+            _ownerAvatarUrl = avatar.isNotEmpty ? avatar : '';
+          });
+
+          final latestActivity = activity;
+          if (latestActivity != null &&
+              latestActivity.userAvatarUrl.trim().isEmpty) {
+            _fetchOwnerAvatar(latestActivity.userId);
+          }
+        });
   }
 
   @override
@@ -99,10 +111,28 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not open link')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Could not open link')));
       }
+    }
+  }
+
+  Future<void> _fetchOwnerAvatar(String userId) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+      final photoUrl =
+          (snapshot.data()?['profilePhotoUrl'] as String?)?.trim() ?? '';
+      if (photoUrl.isNotEmpty && mounted) {
+        setState(() {
+          _ownerAvatarUrl = photoUrl;
+        });
+      }
+    } catch (_) {
+      // Ignore load errors; we'll keep the placeholder avatar.
     }
   }
 
@@ -177,10 +207,8 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (context) => ActivityCommentsSheet(
-        activity: activity,
-        addedCounter: addedCounter,
-      ),
+      builder: (context) =>
+          ActivityCommentsSheet(activity: activity, addedCounter: addedCounter),
     );
 
     final added = addedCounter.value;
@@ -233,11 +261,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
                 color: Colors.grey[300],
                 borderRadius: borderRadius,
               ),
-              child: const Icon(
-                Icons.image,
-                size: 64,
-                color: Colors.grey,
-              ),
+              child: const Icon(Icons.image, size: 64, color: Colors.grey),
             );
           },
         ),
@@ -303,16 +327,26 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
       );
     }
 
-    final hasAvatar = activity.userAvatarUrl.trim().isNotEmpty;
-    final initials = activity.userName.isNotEmpty
-        ? activity.userName.trim()[0].toUpperCase()
+    final activityAvatar = activity.userAvatarUrl.trim();
+    final avatarUrl = activityAvatar.isNotEmpty
+        ? activityAvatar
+        : _ownerAvatarUrl;
+    final hasAvatar = avatarUrl.isNotEmpty;
+    final displayName = activity.userName.isNotEmpty
+        ? activity.userName
+        : 'Unknown User';
+    final handle = activity.userUsername;
+    final initials = displayName.isNotEmpty
+        ? displayName.trim()[0].toUpperCase()
         : '?';
 
     final baseBodyColor = theme.textTheme.bodyMedium?.color ?? Colors.grey;
     final subtleColor = baseBodyColor.withValues(alpha: 0.6);
     final title = _isOwnActivity
         ? 'Bu dilek sana ait'
-        : "${activity.userName}'s wish";
+        : handle.isNotEmpty
+        ? '$displayName (@$handle)'
+        : "$displayName's wish";
     final subtitle =
         "Added ${activity.timeAgo == 'Just now' ? 'moments ago' : activity.timeAgo}";
 
@@ -324,8 +358,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
           CircleAvatar(
             radius: 26,
             backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-            backgroundImage:
-                hasAvatar ? NetworkImage(activity.userAvatarUrl) : null,
+            backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
             child: hasAvatar
                 ? null
                 : Text(
@@ -350,7 +383,9 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: theme.textTheme.bodyMedium?.copyWith(color: subtleColor),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: subtleColor,
+                  ),
                 ),
               ],
             ),
@@ -397,17 +432,10 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
             ),
             if (wish.description.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Text(
-                wish.description,
-                style: theme.textTheme.bodyLarge,
-              ),
+              Text(wish.description, style: theme.textTheme.bodyLarge),
             ],
             const SizedBox(height: 16),
-            Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              children: chips,
-            ),
+            Wrap(spacing: 12, runSpacing: 8, children: chips),
             if (wish.productUrl.isNotEmpty) ...[
               const SizedBox(height: 20),
               SizedBox(
@@ -467,8 +495,10 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
               if ((count ?? 0) > 0) ...[
                 const SizedBox(width: 8),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(999),
@@ -495,9 +525,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     if (!_hasLoadedActivity) {
       return Padding(
         padding: const EdgeInsets.only(top: 24),
-        child: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        child: const Center(child: CircularProgressIndicator()),
       );
     }
 

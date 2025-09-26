@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'change_password_screen.dart';
+import 'edit_profile_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -31,12 +32,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  void _navigateToChangePassword() {
-    Navigator.of(context).push(_buildSlideRoute(const ChangePasswordScreen()));
+  Future<void> _navigateToEditProfile() async {
+    final updated = await Navigator.of(
+      context,
+    ).push<bool>(_buildSlideRoute<bool>(const EditProfileScreen()));
+    if (!mounted) return;
+    if (updated == true) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Profile updated')));
+    }
   }
 
-  Route<void> _buildSlideRoute(Widget page) {
-    return PageRouteBuilder<void>(
+  void _navigateToChangePassword() {
+    Navigator.of(
+      context,
+    ).push<void>(_buildSlideRoute<void>(const ChangePasswordScreen()));
+  }
+
+  Route<T> _buildSlideRoute<T>(Widget page) {
+    return PageRouteBuilder<T>(
       // ignore: unnecessary_underscores
       pageBuilder: (_, __, ___) => page,
       // ignore: unnecessary_underscores
@@ -68,7 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             leading: const Icon(Icons.edit),
             title: const Text('Edit Profile'),
             trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showComingSoon('Edit Profile - Coming Soon'),
+            onTap: _navigateToEditProfile,
           ),
           ListTile(
             leading: const Icon(Icons.lock),

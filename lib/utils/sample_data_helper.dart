@@ -52,6 +52,7 @@ class SampleDataHelper {
       {
         'userId': 'user1',
         'userName': 'John Doe',
+        'userUsername': 'john',
         'userAvatarUrl': 'https://example.com/avatar1.jpg',
         'wishItem': {
           'name': 'iPhone 15 Pro',
@@ -68,6 +69,7 @@ class SampleDataHelper {
       {
         'userId': 'user2',
         'userName': 'Jane Smith',
+        'userUsername': 'jane',
         'userAvatarUrl': 'https://example.com/avatar2.jpg',
         'wishItem': {
           'name': 'MacBook Air M2',

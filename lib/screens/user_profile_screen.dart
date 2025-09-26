@@ -8,12 +8,14 @@ class UserProfileScreen extends StatefulWidget {
   final String userId;
   final String? userName;
   final String? userEmail;
+  final String? userUsername;
 
   const UserProfileScreen({
     super.key,
     required this.userId,
     this.userName,
     this.userEmail,
+    this.userUsername,
   });
 
   @override
@@ -26,6 +28,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String _firstName = '';
   String _lastName = '';
   String _email = '';
+  String _username = '';
   String _profilePhotoUrl = '';
   List<WishItem> _userWishes = [];
 
@@ -47,6 +50,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           _firstName = userData.data()?['firstName'] ?? '';
           _lastName = userData.data()?['lastName'] ?? '';
           _email = userData.data()?['email'] ?? '';
+          _username =
+              (userData.data()?['username'] as String?)?.trim() ??
+              widget.userUsername ??
+              '';
           _profilePhotoUrl = userData.data()?['profilePhotoUrl'] ?? '';
         });
       }
@@ -79,7 +86,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       final wishes = wishesSnapshot.docs.map((doc) {
         final data = doc.data();
         final wishData = data['wishItem'] as Map<String, dynamic>;
-        final wishId = (data['wishItemId'] as String?) ?? wishData['id'] ?? doc.id;
+        final wishId =
+            (data['wishItemId'] as String?) ?? wishData['id'] ?? doc.id;
         return WishItem.fromMap(wishData, wishId);
       }).toList();
 
@@ -116,25 +124,45 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final handle =
+        (_username.isNotEmpty ? _username : (widget.userUsername ?? '')).trim();
+    final resolvedName = [
+      _firstName.trim(),
+      _lastName.trim(),
+    ].where((value) => value.isNotEmpty).join(' ').trim();
+    final fallbackName = resolvedName.isNotEmpty
+        ? resolvedName
+        : (widget.userName ?? 'User');
+    final profileTitle = handle.isNotEmpty ? '@$handle' : fallbackName;
+    final wishesTitle = handle.isNotEmpty
+        ? '@$handle\'s Wishes'
+        : "$fallbackName's Wishes";
+    final emptyStateName = handle.isNotEmpty
+        ? '@$handle'
+        : (fallbackName.isNotEmpty ? fallbackName : 'This user');
+
+    final appBar = AppBar(
+      title: Text(profileTitle),
+      backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+      foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+    );
+
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Scaffold(
+        appBar: appBar,
+        body: const Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          '${_firstName.isNotEmpty ? _firstName : 'User'}\'s Profile',
-        ),
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
+      appBar: appBar,
       body: RefreshIndicator(
         onRefresh: _refreshPage,
         child: SingleChildScrollView(
@@ -157,16 +185,17 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      '$_firstName $_lastName',
+                      fallbackName,
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      _email,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
-                    ),
+                    if (_email.isNotEmpty)
+                      Text(
+                        _email,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -174,7 +203,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
               // User's Wishes Section
               Text(
-                '${_firstName.isNotEmpty ? _firstName : 'User'}\'s Wishes',
+                wishesTitle,
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -208,7 +237,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '${_firstName.isNotEmpty ? _firstName : 'This user'} hasn\'t added any wishes yet',
+                        '$emptyStateName hasn\'t added any wishes yet',
                         style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                         textAlign: TextAlign.center,
                       ),

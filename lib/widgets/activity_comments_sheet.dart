@@ -57,7 +57,9 @@ class _ActivityCommentsSheetState extends State<ActivityCommentsSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not add comment. Please try again.')),
+          const SnackBar(
+            content: Text('Could not add comment. Please try again.'),
+          ),
         );
       }
     } finally {
@@ -117,8 +119,9 @@ class _ActivityCommentsSheetState extends State<ActivityCommentsSheet> {
               const SizedBox(height: 8),
               Expanded(
                 child: StreamBuilder<List<FriendActivityComment>>(
-                  stream: _firestoreService
-                      .streamActivityComments(widget.activity.id),
+                  stream: _firestoreService.streamActivityComments(
+                    widget.activity.id,
+                  ),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -161,8 +164,9 @@ class _ActivityCommentsSheetState extends State<ActivityCommentsSheet> {
                               CircleAvatar(
                                 radius: 18,
                                 backgroundColor: Colors.orange[200],
-                                backgroundImage:
-                                    hasAvatar ? NetworkImage(comment.profilePhotoUrl!) : null,
+                                backgroundImage: hasAvatar
+                                    ? NetworkImage(comment.profilePhotoUrl!)
+                                    : null,
                                 child: hasAvatar
                                     ? null
                                     : Text(
@@ -190,6 +194,19 @@ class _ActivityCommentsSheetState extends State<ActivityCommentsSheet> {
                                             ),
                                           ),
                                         ),
+                                        if (comment.userUsername.isNotEmpty)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              right: 8.0,
+                                            ),
+                                            child: Text(
+                                              '@${comment.userUsername}',
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ),
                                         Text(
                                           _formatTimeAgo(comment.createdAt),
                                           style: TextStyle(
@@ -235,12 +252,16 @@ class _ActivityCommentsSheetState extends State<ActivityCommentsSheet> {
                       height: 44,
                       child: ElevatedButton(
                         onPressed: _isSending ? null : _submitComment,
-                        style: ElevatedButton.styleFrom(padding: EdgeInsets.zero),
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                        ),
                         child: _isSending
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.send),
                       ),

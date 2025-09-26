@@ -75,7 +75,8 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     final currentUserId = _currentUserId;
     _isOwnActivity =
         currentUserId != null && widget.activity.userId == currentUserId;
-    _isLiked = currentUserId != null &&
+    _isLiked =
+        currentUserId != null &&
         widget.activity.likedUserIds.contains(currentUserId);
   }
 
@@ -160,6 +161,11 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
 
   @override
   Widget build(BuildContext context) {
+    final displayName = widget.activity.userName.isNotEmpty
+        ? widget.activity.userName
+        : 'Unknown User';
+    final handle = widget.activity.userUsername;
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -179,6 +185,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                         UserProfileScreen(
                           userId: widget.activity.userId,
                           userName: widget.activity.userName,
+                          userUsername: handle.isNotEmpty ? handle : null,
                         ),
                       ),
                     );
@@ -207,8 +214,8 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                         backgroundColor: Colors.lightGreen[200],
                         radius: 20,
                         child: Text(
-                          widget.activity.userName.isNotEmpty
-                              ? widget.activity.userName[0].toUpperCase()
+                          displayName.isNotEmpty
+                              ? displayName[0].toUpperCase()
                               : 'U',
                           style: const TextStyle(
                             color: Colors.white,
@@ -229,6 +236,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                           UserProfileScreen(
                             userId: widget.activity.userId,
                             userName: widget.activity.userName,
+                            userUsername: handle.isNotEmpty ? handle : null,
                           ),
                         ),
                       );
@@ -237,12 +245,20 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.activity.userName,
+                          displayName,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
                           ),
                         ),
+                        if (handle.isNotEmpty)
+                          Text(
+                            '@$handle',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 13,
+                            ),
+                          ),
                         Text(
                           widget.activity.timeAgo,
                           style: const TextStyle(
@@ -411,8 +427,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                   children: [
                     IconButton(
                       icon: const Icon(Icons.chat_bubble_outline),
-                      onPressed:
-                          !_isOwnActivity ? _handleCommentPressed : null,
+                      onPressed: !_isOwnActivity ? _handleCommentPressed : null,
                     ),
                     if (!_isOwnActivity && _commentsCount > 0)
                       Text(
@@ -442,7 +457,9 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: '${widget.activity.userName} ',
+                            text: handle.isNotEmpty
+                                ? '$displayName (@$handle) '
+                                : '$displayName ',
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.black,

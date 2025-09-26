@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../services/firestore_service.dart';
 import '../screens/user_profile_screen.dart';
 
@@ -33,11 +35,15 @@ class FriendsScreen extends StatefulWidget {
 class _FriendsScreenState extends State<FriendsScreen>
     with SingleTickerProviderStateMixin {
   final FirestoreService _firestoreService = FirestoreService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   List<DocumentSnapshot> _searchResults = [];
   bool _isSearching = false;
   int _incomingRequestCount = 0;
+  Set<String> _friendIds = <String>{};
+  Set<String> _incomingRequestIds = <String>{};
+  Set<String> _outgoingRequestIds = <String>{};
 
   @override
   void initState() {
@@ -52,9 +58,34 @@ class _FriendsScreenState extends State<FriendsScreen>
 
   Future<void> _loadData() async {
     final requests = await _firestoreService.getFriendRequests();
+    final friendIds = await _firestoreService.getFriendIds();
+
+    final incomingDocs = requests['incoming'] ?? <DocumentSnapshot>[];
+    final outgoingDocs = requests['outgoing'] ?? <DocumentSnapshot>[];
+
+    final incomingIds = incomingDocs
+        .map(
+          (doc) =>
+              ((doc.data() as Map<String, dynamic>?)?['userId'] as String?) ??
+              '',
+        )
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    final outgoingIds = outgoingDocs
+        .map(
+          (doc) =>
+              ((doc.data() as Map<String, dynamic>?)?['friendId'] as String?) ??
+              '',
+        )
+        .where((id) => id.isNotEmpty)
+        .toSet();
+
     if (mounted) {
       setState(() {
-        _incomingRequestCount = requests['incoming']?.length ?? 0;
+        _incomingRequestCount = incomingDocs.length;
+        _friendIds = friendIds.toSet();
+        _incomingRequestIds = incomingIds;
+        _outgoingRequestIds = outgoingIds;
       });
     }
   }
@@ -96,6 +127,52 @@ class _FriendsScreenState extends State<FriendsScreen>
         ).showSnackBar(const SnackBar(content: Text('Error searching users')));
       }
     }
+  }
+
+  String _formatDisplayName(Map<String, dynamic> data) {
+    final firstName = (data['firstName'] as String? ?? '').trim();
+    final lastName = (data['lastName'] as String? ?? '').trim();
+    final username = (data['username'] as String?)?.trim() ?? '';
+    final displayName = [
+      firstName,
+      lastName,
+    ].where((value) => value.isNotEmpty).join(' ').trim();
+
+    if (username.isNotEmpty) {
+      if (displayName.isNotEmpty) {
+        return '$displayName (@$username)';
+      }
+      return '@$username';
+    }
+
+    return displayName.isNotEmpty ? displayName : 'User';
+  }
+
+  String _buildInitials(Map<String, dynamic> data) {
+    final firstName = (data['firstName'] as String? ?? '').trim();
+    final lastName = (data['lastName'] as String? ?? '').trim();
+    if (firstName.isNotEmpty && lastName.isNotEmpty) {
+      return '${firstName[0]}${lastName[0]}'.toUpperCase();
+    }
+    if (firstName.isNotEmpty) {
+      return firstName[0].toUpperCase();
+    }
+    final username = (data['username'] as String?)?.trim() ?? '';
+    if (username.isNotEmpty) {
+      return username[0].toUpperCase();
+    }
+    return '?';
+  }
+
+  Widget _buildStatusChip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(label, style: const TextStyle(fontSize: 12)),
+    );
   }
 
   @override
@@ -206,70 +283,56 @@ class _FriendsScreenState extends State<FriendsScreen>
       return const Center(child: Text('No users found'));
     }
 
+    final currentUserId = _auth.currentUser?.uid;
+
     return ListView.builder(
       itemCount: _searchResults.length,
       itemBuilder: (context, index) {
         final user = _searchResults[index];
         final userData = user.data() as Map<String, dynamic>;
 
-        return ListTile(
-          leading: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                _createSlideRoute(
-                  UserProfileScreen(
-                    userId: user.id,
-                    userName:
-                        '${userData['firstName']} ${userData['lastName']}',
-                  ),
-                ),
-              );
+        final avatarUrl =
+            (userData['profilePhotoUrl'] as String?)?.trim() ?? '';
+        final displayName = _formatDisplayName(userData);
+        final initials = _buildInitials(userData);
+        final email = (userData['email'] as String? ?? '').trim();
+
+        final isSelf = user.id == currentUserId;
+        final isFriend = _friendIds.contains(user.id);
+        final hasOutgoing = _outgoingRequestIds.contains(user.id);
+        final hasIncoming = _incomingRequestIds.contains(user.id);
+
+        Widget? trailing;
+        if (isSelf) {
+          trailing = null;
+        } else if (isFriend) {
+          trailing = _buildStatusChip('Friends');
+        } else if (hasOutgoing) {
+          trailing = _buildStatusChip('Request sent');
+        } else if (hasIncoming) {
+          trailing = TextButton(
+            onPressed: () {
+              _tabController.animateTo(1);
             },
-            child: CircleAvatar(
-              backgroundImage: userData['profilePhotoUrl']?.isNotEmpty == true
-                  ? NetworkImage(userData['profilePhotoUrl'])
-                  : null,
-              child: userData['profilePhotoUrl']?.isNotEmpty == true
-                  ? null
-                  : Text(
-                      '${userData['firstName'][0]}${userData['lastName'][0]}',
-                    ),
-            ),
-          ),
-          title: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                _createSlideRoute(
-                  UserProfileScreen(
-                    userId: user.id,
-                    userName:
-                        '${userData['firstName']} ${userData['lastName']}',
-                  ),
-                ),
-              );
-            },
-            child: Text('${userData['firstName']} ${userData['lastName']}'),
-          ),
-          subtitle: Text(userData['email']),
-          trailing: TextButton(
+            child: const Text('Respond'),
+          );
+        } else {
+          trailing = TextButton(
             onPressed: () async {
               try {
                 await _firestoreService.sendFriendRequest(user.id);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Friend request sent successfully'),
-                    ),
-                  );
-                  // Arama alanını temizle
-                  _searchController.clear();
-                  setState(() {
-                    _searchResults = [];
-                    _isSearching = false;
-                  });
+                if (!mounted) {
+                  return;
                 }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Friend request sent successfully'),
+                  ),
+                );
+                await _loadData();
+                setState(() {
+                  _outgoingRequestIds.add(user.id);
+                });
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -281,7 +344,49 @@ class _FriendsScreenState extends State<FriendsScreen>
               }
             },
             child: const Text('Add Friend'),
+          );
+        }
+
+        return ListTile(
+          leading: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                _createSlideRoute(
+                  UserProfileScreen(
+                    userId: user.id,
+                    userName:
+                        '${userData['firstName']} ${userData['lastName']}',
+                    userUsername: (userData['username'] as String?)?.trim(),
+                  ),
+                ),
+              );
+            },
+            child: CircleAvatar(
+              backgroundImage: avatarUrl.isNotEmpty
+                  ? NetworkImage(avatarUrl)
+                  : null,
+              child: avatarUrl.isNotEmpty ? null : Text(initials),
+            ),
           ),
+          title: GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                _createSlideRoute(
+                  UserProfileScreen(
+                    userId: user.id,
+                    userName:
+                        '${userData['firstName']} ${userData['lastName']}',
+                    userUsername: (userData['username'] as String?)?.trim(),
+                  ),
+                ),
+              );
+            },
+            child: Text(displayName),
+          ),
+          subtitle: email.isNotEmpty ? Text(email) : null,
+          trailing: trailing,
         );
       },
     );
@@ -352,6 +457,11 @@ class _FriendsScreenState extends State<FriendsScreen>
                   final userData =
                       userSnapshot.data!.data() as Map<String, dynamic>;
 
+                  final displayName = _formatDisplayName(userData);
+                  final avatarUrl =
+                      (userData['profilePhotoUrl'] as String?)?.trim() ?? '';
+                  final email = (userData['email'] as String? ?? '').trim();
+
                   return ListTile(
                     leading: GestureDetector(
                       onTap: () {
@@ -362,20 +472,18 @@ class _FriendsScreenState extends State<FriendsScreen>
                               userId: friendId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
+                              userUsername:
+                                  (userData['username'] as String?)?.trim(),
                             ),
                           ),
                         );
                       },
                       child: CircleAvatar(
                         backgroundImage:
-                            userData['profilePhotoUrl']?.isNotEmpty == true
-                            ? NetworkImage(userData['profilePhotoUrl'])
-                            : null,
-                        child: userData['profilePhotoUrl']?.isNotEmpty == true
+                            avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                        child: avatarUrl.isNotEmpty
                             ? null
-                            : Text(
-                                '${userData['firstName'][0]}${userData['lastName'][0]}',
-                              ),
+                            : Text(_buildInitials(userData)),
                       ),
                     ),
                     title: GestureDetector(
@@ -387,15 +495,15 @@ class _FriendsScreenState extends State<FriendsScreen>
                               userId: friendId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
+                              userUsername:
+                                  (userData['username'] as String?)?.trim(),
                             ),
                           ),
                         );
                       },
-                      child: Text(
-                        '${userData['firstName']} ${userData['lastName']}',
-                      ),
+                      child: Text(displayName),
                     ),
-                    subtitle: Text(userData['email']),
+                    subtitle: email.isNotEmpty ? Text(email) : null,
                     trailing: TextButton(
                       onPressed: () async {
                         try {
@@ -496,6 +604,11 @@ class _FriendsScreenState extends State<FriendsScreen>
                   final userData =
                       userSnapshot.data!.data() as Map<String, dynamic>;
 
+                  final displayName = _formatDisplayName(userData);
+                  final avatarUrl =
+                      (userData['profilePhotoUrl'] as String?)?.trim() ?? '';
+                  final email = (userData['email'] as String? ?? '').trim();
+
                   return ListTile(
                     leading: GestureDetector(
                       onTap: () {
@@ -506,20 +619,18 @@ class _FriendsScreenState extends State<FriendsScreen>
                               userId: requesterId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
+                              userUsername:
+                                  (userData['username'] as String?)?.trim(),
                             ),
                           ),
                         );
                       },
                       child: CircleAvatar(
                         backgroundImage:
-                            userData['profilePhotoUrl']?.isNotEmpty == true
-                            ? NetworkImage(userData['profilePhotoUrl'])
-                            : null,
-                        child: userData['profilePhotoUrl']?.isNotEmpty == true
+                            avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                        child: avatarUrl.isNotEmpty
                             ? null
-                            : Text(
-                                '${userData['firstName'][0]}${userData['lastName'][0]}',
-                              ),
+                            : Text(_buildInitials(userData)),
                       ),
                     ),
                     title: GestureDetector(
@@ -531,15 +642,15 @@ class _FriendsScreenState extends State<FriendsScreen>
                               userId: requesterId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
+                              userUsername:
+                                  (userData['username'] as String?)?.trim(),
                             ),
                           ),
                         );
                       },
-                      child: Text(
-                        '${userData['firstName']} ${userData['lastName']}',
-                      ),
+                      child: Text(displayName),
                     ),
-                    subtitle: Text(userData['email']),
+                    subtitle: email.isNotEmpty ? Text(email) : null,
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -676,6 +787,11 @@ class _FriendsScreenState extends State<FriendsScreen>
                   final userData =
                       userSnapshot.data!.data() as Map<String, dynamic>;
 
+                  final displayName = _formatDisplayName(userData);
+                  final avatarUrl =
+                      (userData['profilePhotoUrl'] as String?)?.trim() ?? '';
+                  final email = (userData['email'] as String? ?? '').trim();
+
                   return ListTile(
                     leading: GestureDetector(
                       onTap: () {
@@ -686,20 +802,18 @@ class _FriendsScreenState extends State<FriendsScreen>
                               userId: friendId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
+                              userUsername:
+                                  (userData['username'] as String?)?.trim(),
                             ),
                           ),
                         );
                       },
                       child: CircleAvatar(
                         backgroundImage:
-                            userData['profilePhotoUrl']?.isNotEmpty == true
-                            ? NetworkImage(userData['profilePhotoUrl'])
-                            : null,
-                        child: userData['profilePhotoUrl']?.isNotEmpty == true
+                            avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                        child: avatarUrl.isNotEmpty
                             ? null
-                            : Text(
-                                '${userData['firstName'][0]}${userData['lastName'][0]}',
-                              ),
+                            : Text(_buildInitials(userData)),
                       ),
                     ),
                     title: GestureDetector(
@@ -711,15 +825,15 @@ class _FriendsScreenState extends State<FriendsScreen>
                               userId: friendId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
+                              userUsername:
+                                  (userData['username'] as String?)?.trim(),
                             ),
                           ),
                         );
                       },
-                      child: Text(
-                        '${userData['firstName']} ${userData['lastName']}',
-                      ),
+                      child: Text(displayName),
                     ),
-                    subtitle: Text(userData['email']),
+                    subtitle: email.isNotEmpty ? Text(email) : null,
                     trailing: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,

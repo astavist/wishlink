@@ -5,26 +5,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'home_screen.dart';
 import 'email_verification_required_screen.dart';
-
-// Custom page route for right-to-left slide animation
-PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
-  return PageRouteBuilder<dynamic>(
-    pageBuilder: (context, animation, secondaryAnimation) => page,
-    transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      const begin = Offset(1.0, 0.0);
-      const end = Offset.zero;
-      const curve = Curves.easeInOut;
-
-      var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-      var offsetAnimation = animation.drive(tween);
-
-      return SlideTransition(position: offsetAnimation, child: child);
-    },
-    transitionDuration: const Duration(milliseconds: 300),
-  );
-}
+import 'google_account_setup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -58,6 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _usernameController.dispose();
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
     super.dispose();
@@ -81,6 +65,205 @@ class _LoginScreenState extends State<LoginScreen> {
       return 'Passwords do not match';
     }
     return null;
+  }
+
+  String? _validateUsernameFormat(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Please choose a username';
+    }
+    final normalized = value.trim().toLowerCase();
+    final regex = RegExp(r'^[a-z0-9._-]{3,20}$');
+    if (!regex.hasMatch(normalized)) {
+      return 'Username must be 3-20 characters and can include letters, numbers, ., _, -';
+    }
+    return null;
+  }
+
+  String _normalizeUsername(String value) => value.trim().toLowerCase();
+
+  Future<bool> _isUsernameAvailable(
+    String username, {
+    String? excludeUserId,
+  }) async {
+    final normalized = _normalizeUsername(username);
+    final query = await _firestore
+        .collection('users')
+        .where('username', isEqualTo: normalized)
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) {
+      return true;
+    }
+
+    if (excludeUserId != null && query.docs.first.id == excludeUserId) {
+      return true;
+    }
+
+    return false;
+  }
+
+  String _generateUsernameSuggestion({
+    String? firstName,
+    String? lastName,
+    String? email,
+  }) {
+    final buffer = StringBuffer();
+    if (firstName != null && firstName.isNotEmpty) {
+      buffer.write(firstName.toLowerCase());
+    }
+    if (lastName != null && lastName.isNotEmpty) {
+      if (buffer.isNotEmpty) buffer.write('.');
+      buffer.write(lastName.toLowerCase());
+    }
+    if (buffer.isEmpty && email != null && email.isNotEmpty) {
+      buffer.write(email.split('@').first.toLowerCase());
+    }
+    final suggestion = buffer.toString().replaceAll(
+      RegExp(r'[^a-z0-9._-]'),
+      '',
+    );
+    if (suggestion.length >= 3) {
+      return suggestion;
+    }
+    return 'wishlover${DateTime.now().millisecondsSinceEpoch % 1000}';
+  }
+
+  Future<String?> _promptForUsername({String? initialValue}) async {
+    if (!mounted) return null;
+
+    final controller = TextEditingController(text: initialValue ?? '');
+    String? errorText;
+    bool isChecking = false;
+
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            Future<void> submit() async {
+              final value = controller.text;
+              final validationError = _validateUsernameFormat(value);
+              if (validationError != null) {
+                setState(() {
+                  errorText = validationError;
+                });
+                return;
+              }
+
+              setState(() {
+                errorText = null;
+                isChecking = true;
+              });
+
+              final available = await _isUsernameAvailable(value);
+              if (!available) {
+                setState(() {
+                  isChecking = false;
+                  errorText = 'This username is already taken';
+                });
+                return;
+              }
+
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop(_normalizeUsername(value));
+              }
+            }
+
+            return AlertDialog(
+              title: const Text('Choose a username'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Pick a unique username so your friends can find you easily.',
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => submit(),
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    decoration: InputDecoration(
+                      prefixText: '@',
+                      errorText: errorText,
+                    ),
+                  ),
+                  if (isChecking)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 12),
+                      child: LinearProgressIndicator(),
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isChecking
+                      ? null
+                      : () {
+                          Navigator.of(context).pop();
+                        },
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: isChecking ? null : submit,
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<bool> _ensureUsernameForUser(
+    User user, {
+    String? suggestedUsername,
+  }) async {
+    try {
+      final docRef = _firestore.collection('users').doc(user.uid);
+      final snapshot = await docRef.get();
+      final currentUsername =
+          (snapshot.data()?['username'] as String?)?.trim() ?? '';
+      if (currentUsername.isNotEmpty) {
+        return true;
+      }
+
+      final suggested =
+          suggestedUsername ??
+          _generateUsernameSuggestion(
+            firstName: snapshot.data()?['firstName'] as String?,
+            lastName: snapshot.data()?['lastName'] as String?,
+            email: user.email,
+          );
+
+      final chosenUsername = await _promptForUsername(initialValue: suggested);
+      if (chosenUsername == null) {
+        await _auth.signOut();
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'A username is required to continue.';
+          });
+        }
+        return false;
+      }
+
+      await docRef.set({'username': chosenUsername}, SetOptions(merge: true));
+      return true;
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage =
+              'We could not update your username. Please try again.';
+        });
+      }
+      return false;
+    }
   }
 
   Future<void> _signIn() async {
@@ -118,6 +301,11 @@ class _LoginScreenState extends State<LoginScreen> {
             .doc(userCredential.user!.uid)
             .update({'emailVerified': true});
 
+        final ensured = await _ensureUsernameForUser(userCredential.user!);
+        if (!ensured) {
+          return;
+        }
+
         // User is now signed in, AuthWrapper will automatically navigate to HomeScreen
         // No need to manually navigate as Firebase Auth handles the state
       }
@@ -145,6 +333,12 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {
+        // Ignore sign-out errors and continue with sign-in flow.
+      }
+
       final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         return;
@@ -178,23 +372,61 @@ class _LoginScreenState extends State<LoginScreen> {
       final lastName = nameParts.length > 1
           ? nameParts.sublist(1).join(' ')
           : '';
+      final suggestion = _generateUsernameSuggestion(
+        firstName: firstName,
+        lastName: lastName,
+        email: user.email ?? googleUser.email,
+      );
 
-      if (!userDoc.exists) {
-        await userDocRef.set({
-          'firstName': firstName,
-          'lastName': lastName,
-          'email': user.email ?? googleUser.email,
-          'emailVerified': true,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      } else if (!(userDoc.data()?['emailVerified'] ?? false)) {
-        await userDocRef.update({'emailVerified': true});
+      final currentUsername =
+          (userDoc.data()?['username'] as String?)?.trim() ?? '';
+      final isNewUser = !userDoc.exists;
+
+      if (isNewUser || currentUsername.isEmpty) {
+        if (!mounted) {
+          return;
+        }
+
+        final result = await Navigator.of(context).push<String>(
+          MaterialPageRoute(
+            builder: (context) => GoogleAccountSetupScreen(
+              user: user,
+              firstName: firstName,
+              lastName: lastName,
+              email: user.email ?? googleUser.email,
+              suggestedUsername: suggestion,
+              isNewUser: isNewUser,
+            ),
+          ),
+        );
+
+        if (result == null) {
+          await _auth.signOut();
+          if (mounted) {
+            setState(() {
+              _errorMessage = 'Google account setup was cancelled.';
+            });
+          }
+          return;
+        }
+      } else {
+        if (!(userDoc.data()?['emailVerified'] ?? false)) {
+          await userDocRef.update({'emailVerified': true});
+        }
+
+        final ensured = await _ensureUsernameForUser(
+          user,
+          suggestedUsername: suggestion,
+        );
+        if (!ensured) {
+          return;
+        }
       }
     } on FirebaseAuthException catch (e) {
       setState(() {
         _errorMessage = _getErrorMessage(e.code);
       });
-    } catch (_) {
+    } catch (e) {
       setState(() {
         _errorMessage = 'Google sign-in failed. Please try again.';
       });
@@ -209,20 +441,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String _getErrorMessage(String code) {
     switch (code) {
-      case 'user-not-found':
-        return 'No user found with this email.';
-      case 'wrong-password':
-        return 'Wrong password provided.';
       case 'invalid-email':
-        return 'Invalid email address.';
+        return 'The email address is invalid.';
       case 'user-disabled':
         return 'This account has been disabled.';
+      case 'user-not-found':
+        return 'No user found with these credentials.';
+      case 'wrong-password':
+        return 'Incorrect password. Please try again.';
       case 'email-already-in-use':
-        return 'An account already exists with this email.';
-      case 'account-exists-with-different-credential':
-        return 'An account already exists with a different sign-in method.';
+        return 'This email is already registered.';
       case 'weak-password':
-        return 'The password provided is too weak.';
+        return 'Your password must be at least 6 characters.';
       default:
         return 'An error occurred. Please try again.';
     }
@@ -233,32 +463,49 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    final usernameValidation = _validateUsernameFormat(
+      _usernameController.text.trim(),
+    );
+    if (usernameValidation != null) {
+      setState(() {
+        _errorMessage = usernameValidation;
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // Create user with email and password
+      final username = _normalizeUsername(_usernameController.text);
+      final available = await _isUsernameAvailable(username);
+      if (!available) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'This username is already taken';
+        });
+        return;
+      }
+
       final userCredential = await _auth.createUserWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
 
-      // Send email verification
       await userCredential.user!.sendEmailVerification();
 
-      // Save additional user data to Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'firstName': _firstNameController.text.trim(),
         'lastName': _lastNameController.text.trim(),
         'email': _emailController.text.trim(),
+        'username': username,
         'emailVerified': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
       if (mounted) {
-        // Show verification email sent message
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
@@ -268,11 +515,11 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
 
-        // Clear the form and switch to login mode
         setState(() {
           _isSignUp = false;
           _firstNameController.clear();
           _lastNameController.clear();
+          _usernameController.clear();
           _emailController.clear();
           _passwordController.clear();
           _confirmPasswordController.clear();
@@ -304,6 +551,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (_isSignUp) {
         _firstNameController.clear();
         _lastNameController.clear();
+        _usernameController.clear();
         _confirmPasswordController.clear();
       }
     });
@@ -410,6 +658,29 @@ class _LoginScreenState extends State<LoginScreen> {
                                     }
                                     return null;
                                   },
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Username
+                                TextFormField(
+                                  controller: _usernameController,
+                                  enabled: !_isLoading,
+                                  textInputAction: TextInputAction.next,
+                                  autocorrect: false,
+                                  enableSuggestions: false,
+                                  decoration: InputDecoration(
+                                    labelText: 'Username',
+                                    prefixIcon: const Icon(
+                                      Icons.alternate_email,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.grey[100],
+                                  ),
+                                  validator: _validateUsernameFormat,
                                 ),
                                 const SizedBox(height: 16),
                               ],
