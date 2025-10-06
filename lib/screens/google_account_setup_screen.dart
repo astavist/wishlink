@@ -9,6 +9,8 @@ class GoogleAccountSetupScreen extends StatefulWidget {
   final String? email;
   final String suggestedUsername;
   final bool isNewUser;
+  final ValueChanged<String>? onCompleted;
+  final bool allowCancel;
 
   const GoogleAccountSetupScreen({
     super.key,
@@ -18,6 +20,8 @@ class GoogleAccountSetupScreen extends StatefulWidget {
     this.email,
     required this.suggestedUsername,
     this.isNewUser = false,
+    this.onCompleted,
+    this.allowCancel = true,
   });
 
   @override
@@ -30,13 +34,8 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _usernameController;
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
 
   bool _isSaving = false;
-  bool _obscurePassword = true;
-  bool _obscureConfirmPassword = true;
   String? _errorMessage;
 
   @override
@@ -69,8 +68,6 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _usernameController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -102,23 +99,6 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
     return null;
   }
 
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please create a password';
-    }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
-    }
-    return null;
-  }
-
-  String? _validateConfirmPassword(String? value) {
-    if (value != _passwordController.text) {
-      return 'Passwords do not match';
-    }
-    return null;
-  }
-
   Future<bool> _isUsernameAvailable(String username) async {
     final normalized = _normalizeUsername(username);
     final snapshot = await FirebaseFirestore.instance
@@ -126,9 +106,11 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
         .where('username', isEqualTo: normalized)
         .limit(1)
         .get();
+
     if (snapshot.docs.isEmpty) {
       return true;
     }
+
     return snapshot.docs.first.id == widget.user.uid;
   }
 
@@ -158,9 +140,6 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
         return;
       }
 
-      final password = _passwordController.text.trim();
-      await widget.user.updatePassword(password);
-
       final data = <String, dynamic>{
         'firstName': firstName,
         'lastName': lastName,
@@ -189,21 +168,15 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
         return;
       }
 
-      Navigator.of(context).pop(username);
-    } on FirebaseAuthException catch (e) {
-      String message;
-      switch (e.code) {
-        case 'weak-password':
-          message = 'Password must be at least 6 characters';
-          break;
-        case 'requires-recent-login':
-          message = 'Please sign in again to set your password.';
-          break;
-        default:
-          message = 'Could not complete setup. Please try again.';
+      final onCompleted = widget.onCompleted;
+      if (onCompleted != null) {
+        onCompleted(username);
+      } else {
+        Navigator.of(context).pop(username);
       }
+    } on FirebaseAuthException catch (_) {
       setState(() {
-        _errorMessage = message;
+        _errorMessage = 'Could not complete setup. Please try again.';
         _isSaving = false;
       });
     } catch (_) {
@@ -216,112 +189,72 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Complete your account'),
-        automaticallyImplyLeading: !_isSaving,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Set your name, username, and password to finish creating your account.',
-                ),
-                const SizedBox(height: 24),
-                TextFormField(
-                  controller: _firstNameController,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(labelText: 'First name'),
-                  validator: _validateFirstName,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _lastNameController,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(labelText: 'Last name'),
-                  validator: _validateLastName,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _usernameController,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(
-                    labelText: 'Username',
-                    prefixText: '@',
+    return WillPopScope(
+      onWillPop: () async => widget.allowCancel && !_isSaving,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Hesabını tamamla'),
+          automaticallyImplyLeading: widget.allowCancel && !_isSaving,
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Merhaba! Google ile giriş yaptığın için bilgilerini kaydetmen gerekiyor.\n'
+                    'Bu bilgileri doldurup onayladıktan sonra WishLink macerana devam edebilirsin.',
                   ),
-                  validator: _validateUsername,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
+                  const SizedBox(height: 24),
+                  TextFormField(
+                    controller: _firstNameController,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(labelText: 'Ad'),
+                    validator: _validateFirstName,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _lastNameController,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(labelText: 'Soyad'),
+                    validator: _validateLastName,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _usernameController,
+                    textInputAction: TextInputAction.done,
+                    decoration: const InputDecoration(
+                      labelText: 'Kullanıcı adı',
+                      prefixText: '@',
                     ),
+                    validator: _validateUsername,
                   ),
-                  validator: _validatePassword,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _confirmPasswordController,
-                  obscureText: _obscureConfirmPassword,
-                  textInputAction: TextInputAction.done,
-                  decoration: InputDecoration(
-                    labelText: 'Confirm password',
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureConfirmPassword
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          _obscureConfirmPassword = !_obscureConfirmPassword;
-                        });
-                      },
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      _errorMessage!,
+                      style: const TextStyle(color: Colors.red),
                     ),
-                  ),
-                  validator: _validateConfirmPassword,
-                ),
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: 20),
-                  Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.red),
+                  ],
+                  const Spacer(),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: _isSaving ? null : _submit,
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('Kaydet ve devam et'),
+                    ),
                   ),
                 ],
-                const Spacer(),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isSaving ? null : _submit,
-                    child: _isSaving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Finish'),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
