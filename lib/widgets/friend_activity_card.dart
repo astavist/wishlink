@@ -30,6 +30,7 @@ class FriendActivityCard extends StatefulWidget {
   final Future<int> Function()? onComment;
   final VoidCallback? onShare;
   final VoidCallback? onBuyNow;
+  final VoidCallback? onEdit;
 
   const FriendActivityCard({
     super.key,
@@ -38,6 +39,7 @@ class FriendActivityCard extends StatefulWidget {
     this.onComment,
     this.onShare,
     this.onBuyNow,
+    this.onEdit,
   });
 
   @override
@@ -270,14 +272,14 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                     ),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.more_vert),
-                  onPressed: () {
-                    // Daha fazla seçenek menüsü
-                  },
-                ),
-              ],
-            ),
+                if (_isOwnActivity && widget.onEdit != null)
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined),
+                    tooltip: 'Edit wish',
+                    onPressed: widget.onEdit,
+                  ),
+            ],
+          ),
             const SizedBox(height: 16),
 
             // Ürün görseli

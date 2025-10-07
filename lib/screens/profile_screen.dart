@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/wish_item.dart';
 import 'wish_detail_screen.dart';
+import 'edit_wish_screen.dart';
 import '../services/storage_service.dart';
 import '../models/wish_list.dart';
 import '../services/firestore_service.dart';
@@ -207,6 +208,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = _auth.currentUser;
     if (user != null) {
       await _loadUserData();
+    }
+  }
+
+  Future<void> _openEditWish(WishItem wish) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return;
+    }
+
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EditWishScreen(wish: wish),
+      ),
+    );
+
+    if (updated == true) {
+      await _loadUserWishes(user.uid);
     }
   }
 
@@ -537,6 +555,107 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
               ),
               const SizedBox(height: 8),
+              const SizedBox(height: 24),
+              const Text(
+                'My Wishes',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              if (_userWishes.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Text(
+                    'You have not added any wishes yet.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.black54),
+                  ),
+                )
+              else
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _userWishes.length,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final wish = _userWishes[index];
+                    return Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListTile(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            createRightToLeftSlideRoute(
+                              WishDetailScreen(wish: wish),
+                            ),
+                          );
+                        },
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: wish.imageUrl.isNotEmpty
+                              ? Image.network(
+                                  wish.imageUrl,
+                                  width: 60,
+                                  height: 60,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      _buildWishPlaceholder(),
+                                )
+                              : _buildWishPlaceholder(),
+                        ),
+                        title: Text(
+                          wish.name,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (wish.description.isNotEmpty)
+                              Text(
+                                wish.description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            if (wish.price > 0) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.attach_money,
+                                    color: Colors.green,
+                                    size: 18,
+                                  ),
+                                  Text(
+                                    wish.price.toStringAsFixed(2),
+                                    style: const TextStyle(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.edit_outlined),
+                          tooltip: 'Wish\'i düzenle',
+                          onPressed: () => _openEditWish(wish),
+                        ),
+                      ),
+                    );
+                  },
+                ),
             ],
           ),
         ),
@@ -596,6 +715,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       itemBuilder: (context) => [
         const PopupMenuItem<String>(value: 'delete', child: Text('Delete')),
       ],
+    );
+  }
+
+  Widget _buildWishPlaceholder() {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Icon(Icons.image, color: Colors.grey),
     );
   }
 }

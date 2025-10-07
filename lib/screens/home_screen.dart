@@ -7,6 +7,7 @@ import '../services/firestore_service.dart';
 import '../widgets/friend_activity_card.dart';
 import '../widgets/activity_comments_sheet.dart';
 import 'add_wish_screen.dart';
+import 'edit_wish_screen.dart';
 import 'profile_screen.dart';
 import 'friends_screen.dart';
 import 'notification_screen.dart';
@@ -595,6 +596,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final added = addedCounter.value;
     addedCounter.dispose();
     return added;
+  }
+
+  Future<void> _openEditWish(FriendActivity activity) async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditWishScreen(wish: activity.wishItem),
+      ),
+    );
+
+    if (result == true && mounted) {
+      setState(() {});
+    }
   }
 
   void _shareActivity(FriendActivity activity) {

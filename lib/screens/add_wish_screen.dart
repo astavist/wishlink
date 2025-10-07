@@ -532,6 +532,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
         imageUrl: imageUrl,
         price: price,
         createdAt: DateTime.now(),
+        listId: _selectedListId,
       );
 
       // Add wish to wishes collection
@@ -539,7 +540,6 @@ class _AddWishScreenState extends State<AddWishScreen> {
           .collection('wishes')
           .add({
             ...wishItem.toMap(),
-            if (_selectedListId != null) 'listId': _selectedListId,
           });
 
       // Create friend activity
@@ -557,6 +557,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
           imageUrl: wishItem.imageUrl,
           price: wishItem.price,
           createdAt: wishItem.createdAt,
+          listId: wishItem.listId,
         ),
         activityTime: DateTime.now(),
         activityType: 'added',

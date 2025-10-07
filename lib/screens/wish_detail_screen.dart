@@ -9,6 +9,7 @@ import '../models/friend_activity.dart';
 import '../models/wish_item.dart';
 import '../services/firestore_service.dart';
 import '../widgets/activity_comments_sheet.dart';
+import 'edit_wish_screen.dart';
 
 class WishDetailScreen extends StatefulWidget {
   final WishItem wish;
@@ -32,10 +33,12 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
   int _likesCount = 0;
   int _commentsCount = 0;
   String _ownerAvatarUrl = '';
+  late WishItem _wish;
 
   @override
   void initState() {
     super.initState();
+    _wish = widget.wish;
     _subscribeToActivity();
   }
 
@@ -43,6 +46,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
   void didUpdateWidget(covariant WishDetailScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.wish.id != widget.wish.id) {
+      _wish = widget.wish;
       _activitySubscription?.cancel();
       _activity = null;
       _isLiked = false;
@@ -56,7 +60,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
 
   void _subscribeToActivity() {
     _activitySubscription = _firestoreService
-        .streamActivityForWish(widget.wish.id)
+        .streamActivityForWish(_wish.id)
         .listen((activity) {
           if (!mounted) {
             return;
@@ -76,6 +80,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
               return;
             }
 
+            _wish = activity.wishItem;
             _isOwnActivity =
                 currentUserId != null && activity.userId == currentUserId;
             _isLiked =
@@ -99,6 +104,35 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
   void dispose() {
     _activitySubscription?.cancel();
     super.dispose();
+  }
+
+  Future<void> _reloadWish() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('wishes')
+          .doc(_wish.id)
+          .get();
+      final data = snapshot.data();
+      if (data != null) {
+        setState(() {
+          _wish = WishItem.fromMap(data, snapshot.id);
+        });
+      }
+    } catch (_) {
+      // ignore refresh errors
+    }
+  }
+
+  Future<void> _openEditWish() async {
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => EditWishScreen(wish: _wish),
+      ),
+    );
+
+    if (updated == true) {
+      await _reloadWish();
+    }
   }
 
   Future<void> _launchUrl(String url) async {
@@ -576,7 +610,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final wish = widget.wish;
+    final wish = _wish;
 
     return Scaffold(
       appBar: AppBar(
@@ -586,6 +620,14 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
           onPressed: () => Navigator.of(context).pop(),
           tooltip: 'Back',
         ),
+        actions: [
+          if (_isOwnActivity)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined),
+              tooltip: 'Edit wish',
+              onPressed: _openEditWish,
+            ),
+        ],
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
         elevation: 0,

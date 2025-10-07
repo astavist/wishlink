@@ -8,6 +8,7 @@ class WishItem {
   final String imageUrl;
   final double price;
   final DateTime createdAt;
+  final String? listId;
 
   WishItem({
     required this.id,
@@ -17,9 +18,17 @@ class WishItem {
     required this.imageUrl,
     required this.price,
     required this.createdAt,
+    this.listId,
   });
 
   factory WishItem.fromMap(Map<String, dynamic> data, String id) {
+    final createdAtValue = data['createdAt'];
+    final createdAt = createdAtValue is Timestamp
+        ? createdAtValue.toDate()
+        : createdAtValue is DateTime
+            ? createdAtValue
+            : DateTime.now();
+
     return WishItem(
       id: id,
       name: data['name'] ?? '',
@@ -27,7 +36,8 @@ class WishItem {
       productUrl: data['productUrl'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
       price: (data['price'] ?? 0.0).toDouble(),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
+      createdAt: createdAt,
+      listId: data['listId'] as String?,
     );
   }
 
@@ -39,6 +49,7 @@ class WishItem {
       'imageUrl': imageUrl,
       'price': price,
       'createdAt': createdAt,
+      if (listId != null) 'listId': listId,
     };
   }
 }

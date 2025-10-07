@@ -487,6 +487,83 @@ class FirestoreService {
     });
   }
 
+  Future<void> updateWish({
+    required String wishId,
+    required String name,
+    required String description,
+    required String productUrl,
+    required double price,
+    String? imageUrl,
+    String? listId,
+  }) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('Not authenticated');
+    }
+
+    final wishRef = _firestore.collection('wishes').doc(wishId);
+    final wishSnapshot = await wishRef.get();
+
+    if (!wishSnapshot.exists) {
+      throw Exception('Wish not found');
+    }
+
+    final wishData =
+        Map<String, dynamic>.from(wishSnapshot.data() as Map<String, dynamic>);
+    final updatePayload = <String, dynamic>{
+      'name': name,
+      'description': description,
+      'productUrl': productUrl,
+      'price': price,
+    };
+
+    if (imageUrl != null) {
+      updatePayload['imageUrl'] = imageUrl;
+    }
+    if (listId != null) {
+      updatePayload['listId'] = listId;
+    } else {
+      updatePayload['listId'] = FieldValue.delete();
+    }
+
+    await wishRef.update(updatePayload);
+
+    final activitySnapshot = await _firestore
+        .collection('friend_activities')
+        .where('wishItemId', isEqualTo: wishId)
+        .where('activityType', isEqualTo: 'added')
+        .limit(1)
+        .get();
+
+    if (activitySnapshot.docs.isEmpty) {
+      return;
+    }
+
+    final activityDoc = activitySnapshot.docs.first;
+    final activityData = Map<String, dynamic>.from(activityDoc.data());
+    final existingWishItem =
+        Map<String, dynamic>.from(activityData['wishItem'] ?? {});
+    final createdAt = existingWishItem['createdAt'] ??
+        wishData['createdAt'] ??
+        Timestamp.fromDate(DateTime.now());
+
+    final updatedWishItem = <String, dynamic>{
+      'id': wishId,
+      'name': name,
+      'description': description,
+      'productUrl': productUrl,
+      'imageUrl': imageUrl ?? (existingWishItem['imageUrl'] ?? ''),
+      'price': price,
+      'createdAt': createdAt,
+      if (listId != null) 'listId': listId,
+    };
+
+    await activityDoc.reference.update({
+      'wishItem': updatedWishItem,
+      'wishItemId': wishId,
+    });
+  }
+
   Future<List<DocumentSnapshot>> getWishesByList(String listId) async {
     final snapshot = await _firestore
         .collection('wishes')
