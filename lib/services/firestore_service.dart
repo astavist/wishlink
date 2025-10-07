@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/friend_activity.dart';
 import '../models/friend_activity_comment.dart';
 import '../models/wish_list.dart';
+import '../models/user_private_note.dart';
 
 class FirestoreService {
   static final FirestoreService _instance = FirestoreService._internal();
@@ -571,5 +572,85 @@ class FirestoreService {
         .orderBy('createdAt', descending: true)
         .get();
     return snapshot.docs;
+  }
+
+  Future<List<UserPrivateNote>> getPrivateNotesForUser(
+    String targetUserId,
+  ) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      return <UserPrivateNote>[];
+    }
+
+    final snapshot = await _firestore
+        .collection('user_private_notes')
+        .where('ownerId', isEqualTo: currentUser.uid)
+        .where('targetUserId', isEqualTo: targetUserId)
+        .orderBy('createdAt', descending: true)
+        .get();
+
+    return snapshot.docs
+        .map(
+          (doc) =>
+              UserPrivateNote.fromMap(doc.data() as Map<String, dynamic>, doc.id),
+        )
+        .toList();
+  }
+
+  Future<UserPrivateNote> addPrivateNote({
+    required String targetUserId,
+    required String text,
+    DateTime? noteDate,
+  }) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('Not authenticated');
+    }
+
+    final payload = <String, dynamic>{
+      'ownerId': currentUser.uid,
+      'targetUserId': targetUserId,
+      'text': text,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (noteDate != null) {
+      payload['noteDate'] = Timestamp.fromDate(noteDate);
+    }
+
+    final docRef = await _firestore.collection('user_private_notes').add(payload);
+    final snapshot = await docRef.get();
+
+    return UserPrivateNote.fromMap(
+      snapshot.data() as Map<String, dynamic>,
+      snapshot.id,
+    );
+  }
+
+  Future<void> updatePrivateNote({
+    required String noteId,
+    required String text,
+    DateTime? noteDate,
+  }) async {
+    final updatePayload = <String, dynamic>{
+      'text': text,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (noteDate != null) {
+      updatePayload['noteDate'] = Timestamp.fromDate(noteDate);
+    } else {
+      updatePayload['noteDate'] = FieldValue.delete();
+    }
+
+    await _firestore
+        .collection('user_private_notes')
+        .doc(noteId)
+        .update(updatePayload);
+  }
+
+  Future<void> deletePrivateNote(String noteId) async {
+    await _firestore.collection('user_private_notes').doc(noteId).delete();
   }
 }

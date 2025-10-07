@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/wish_item.dart';
+import '../models/user_private_note.dart';
+import '../services/firestore_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'wish_detail_screen.dart';
 
@@ -22,8 +24,145 @@ class UserProfileScreen extends StatefulWidget {
   State<UserProfileScreen> createState() => _UserProfileScreenState();
 }
 
+class _NoteEditorDialog extends StatefulWidget {
+  const _NoteEditorDialog({
+    required this.formatDate,
+    this.note,
+  });
+
+  final UserPrivateNote? note;
+  final String Function(DateTime) formatDate;
+
+  @override
+  State<_NoteEditorDialog> createState() => _NoteEditorDialogState();
+}
+
+class _NoteEditorDialogState extends State<_NoteEditorDialog> {
+  late final TextEditingController _controller;
+  late DateTime? _selectedDate;
+  bool _canSubmit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.note?.text ?? '');
+    _selectedDate = widget.note?.noteDate;
+    _canSubmit = _controller.text.trim().isNotEmpty;
+    _controller.addListener(_handleTextChanged);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_handleTextChanged);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTextChanged() {
+    final canSubmit = _controller.text.trim().isNotEmpty;
+    if (canSubmit != _canSubmit) {
+      setState(() {
+        _canSubmit = canSubmit;
+      });
+    }
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final initialDate = _selectedDate ?? now;
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(now.year - 50),
+      lastDate: DateTime(now.year + 50),
+    );
+    if (pickedDate != null && mounted) {
+      setState(() {
+        _selectedDate = pickedDate;
+      });
+    }
+  }
+
+  void _clearDate() {
+    setState(() {
+      _selectedDate = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.note == null ? 'Not Ekle' : 'Notu Düzenle'),
+      content: SingleChildScrollView(
+        padding: const EdgeInsets.only(top: 8),
+        child: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: _controller,
+                decoration: const InputDecoration(
+                  labelText: 'Not',
+                  alignLabelWithHint: true,
+                ),
+                autofocus: true,
+                minLines: 2,
+                maxLines: 5,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _pickDate,
+                      icon: const Icon(Icons.calendar_today_outlined),
+                      label: Text(
+                        _selectedDate != null
+                            ? widget.formatDate(_selectedDate!)
+                            : 'Tarih seç (opsiyonel)',
+                      ),
+                    ),
+                  ),
+                  if (_selectedDate != null) ...[
+                    const SizedBox(width: 8),
+                    IconButton(
+                      onPressed: _clearDate,
+                      icon: const Icon(Icons.close),
+                      tooltip: 'Tarihi temizle',
+                    ),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Vazgeç'),
+        ),
+        FilledButton(
+          onPressed: _canSubmit
+              ? () => Navigator.of(context).pop(
+                    <String, dynamic>{
+                      'text': _controller.text.trim(),
+                      'date': _selectedDate,
+                    },
+                  )
+              : null,
+          child: Text(widget.note == null ? 'Ekle' : 'Kaydet'),
+        ),
+      ],
+    );
+  }
+}
+
 class _UserProfileScreenState extends State<UserProfileScreen> {
   final _firestore = FirebaseFirestore.instance;
+  final FirestoreService _firestoreService = FirestoreService();
   bool _isLoading = true;
   String _firstName = '';
   String _lastName = '';
@@ -47,6 +186,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     'Aralık',
   ];
   List<WishItem> _userWishes = [];
+  List<UserPrivateNote> _privateNotes = [];
 
   DateTime? _parseBirthday(dynamic value) {
     if (value is Timestamp) {
@@ -85,6 +225,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return '$day/$month/${date.year}';
   }
 
+  String _formatNoteDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day.$month.${date.year}';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -100,6 +246,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           .get();
       if (userData.exists) {
         final data = userData.data();
+        if (!mounted) {
+          return;
+        }
         setState(() {
           _firstName = data?['firstName'] ?? '';
           _lastName = data?['lastName'] ?? '';
@@ -123,6 +272,12 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
       // Load user's wishes from friend_activities
       await _loadUserWishes(widget.userId);
+
+      await _loadPrivateNotes();
+
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         _isLoading = false;
@@ -154,6 +309,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         return WishItem.fromMap(wishData, wishId);
       }).toList();
 
+      if (!mounted) {
+        return;
+      }
+
       setState(() {
         _userWishes = wishes;
       });
@@ -164,6 +323,264 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         ).showSnackBar(const SnackBar(content: Text('Error loading wishes')));
       }
     }
+  }
+
+  Future<void> _loadPrivateNotes() async {
+    try {
+      final notes =
+          await _firestoreService.getPrivateNotesForUser(widget.userId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _privateNotes = notes;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(
+          const SnackBar(content: Text('Notlar yüklenirken bir hata oluştu')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleAddOrEditNote({UserPrivateNote? note}) async {
+    final result = await _showNoteEditorDialog(note: note);
+    if (result == null) {
+      return;
+    }
+
+    final text = (result['text'] as String).trim();
+    final DateTime? noteDate = result['date'] as DateTime?;
+
+    if (text.isEmpty) {
+      return;
+    }
+
+    try {
+      if (note == null) {
+        await _firestoreService.addPrivateNote(
+          targetUserId: widget.userId,
+          text: text,
+          noteDate: noteDate,
+        );
+      } else {
+        await _firestoreService.updatePrivateNote(
+          noteId: note.id,
+          text: text,
+          noteDate: noteDate,
+        );
+      }
+
+      await _loadPrivateNotes();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(note == null
+                ? 'Not kaydedildi'
+                : 'Not güncellendi'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Not kaydedilemedi')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleDeleteNote(UserPrivateNote note) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Notu Sil'),
+        content: const Text(
+          'Bu notu silmek istediğinden emin misin? Bu işlem geri alınamaz.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Vazgeç'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Sil'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) {
+      return;
+    }
+
+    try {
+      await _firestoreService.deletePrivateNote(note.id);
+      await _loadPrivateNotes();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Not silindi')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Not silinemedi')),
+        );
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>?> _showNoteEditorDialog({
+    UserPrivateNote? note,
+  }) {
+    return showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (dialogContext) {
+        return _NoteEditorDialog(
+          note: note,
+          formatDate: _formatNoteDate,
+        );
+      },
+    );
+  }
+
+  Widget _buildPrivateNotesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'Kişisel Notlarım',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            IconButton(
+              onPressed: () => _handleAddOrEditNote(),
+              tooltip: 'Not ekle',
+              icon: const Icon(Icons.note_add_outlined),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (_privateNotes.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Henüz not eklemedin',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Bu kullanıcı hakkında sadece senin görebileceğin hatırlatıcılar oluşturabilirsin.',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: () => _handleAddOrEditNote(),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Not ekle'),
+                ),
+              ],
+            ),
+          )
+        else
+          ..._privateNotes.map(
+            (note) => Card(
+              margin: const EdgeInsets.only(bottom: 12),
+              child: ListTile(
+                title: Text(
+                  note.text,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: (note.noteDate != null || note.updatedAt != null)
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (note.noteDate != null) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.event,
+                                  size: 16,
+                                  color: Color(0xFFEFB652),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _formatNoteDate(note.noteDate!),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                          if (note.updatedAt != null) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'Son güncelleme: ${_formatNoteDate(note.updatedAt!)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ],
+                      )
+                    : null,
+                isThreeLine: note.noteDate != null || note.updatedAt != null,
+                trailing: PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _handleAddOrEditNote(note: note);
+                    } else if (value == 'delete') {
+                      _handleDeleteNote(note);
+                    }
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem<String>(
+                      value: 'edit',
+                      child: Text('Düzenle'),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'delete',
+                      child: Text('Sil'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 
   Future<void> _refreshPage() async {
@@ -283,6 +700,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: 32),
+
+              _buildPrivateNotesSection(),
               const SizedBox(height: 32),
 
               // User's Wishes Section
