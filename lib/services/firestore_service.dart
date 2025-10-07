@@ -247,23 +247,40 @@ class FirestoreService {
     return friendDocs;
   }
 
-  // Search users
+  // Search users by first name and username (prefix search, minimum 3 chars)
   Future<List<DocumentSnapshot>> searchUsers(String query) async {
-    if (query.length < 3) return [];
+    final trimmedQuery = query.trim();
+    if (trimmedQuery.length < 3) return [];
 
     final currentUser = _auth.currentUser;
     if (currentUser == null) return [];
 
-    final snapshot = await _firestore
+    final firstNameFuture = _firestore
         .collection('users')
-        .where('firstName', isGreaterThanOrEqualTo: query)
-        .where('firstName', isLessThan: '${query}z')
+        .where('firstName', isGreaterThanOrEqualTo: trimmedQuery)
+        .where('firstName', isLessThan: '$trimmedQuery\uf8ff')
+        .limit(10)
         .get();
 
-    return snapshot.docs
-        .where((doc) => doc.id != currentUser.uid)
-        .take(10)
-        .toList();
+    final usernameFuture = _firestore
+        .collection('users')
+        .where('username', isGreaterThanOrEqualTo: trimmedQuery)
+        .where('username', isLessThan: '$trimmedQuery\uf8ff')
+        .limit(10)
+        .get();
+
+    final snapshots = await Future.wait([firstNameFuture, usernameFuture]);
+
+    final uniqueResults = <String, DocumentSnapshot>{};
+
+    for (final snapshot in snapshots) {
+      for (final doc in snapshot.docs) {
+        if (doc.id == currentUser.uid) continue;
+        uniqueResults.putIfAbsent(doc.id, () => doc);
+      }
+    }
+
+    return uniqueResults.values.take(10).toList();
   }
 
   // Get user profile
