@@ -221,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(
-                'assets/images/AppBar.png', // Logo yolunu kendi dosyanýza göre güncelleyin
+                _resolveAppBarAsset(context), // Logo yolunu kendi dosyanýza göre güncelleyin
                 height: 70,
               ),
             ],
@@ -573,6 +573,13 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
     );
+  }
+
+
+  String _resolveAppBarAsset(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? 'assets/images/AppBarDark.png'
+        : 'assets/images/AppBar.png';
   }
 
   Future<int> _showCommentsBottomSheet(FriendActivity activity) async {

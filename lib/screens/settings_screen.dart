@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../theme/theme_controller.dart';
 import 'change_password_screen.dart';
 import 'edit_profile_screen.dart';
 
@@ -67,6 +68,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeController = ThemeControllerProvider.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -90,6 +93,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: const Text('Change Password'),
             trailing: const Icon(Icons.chevron_right),
             onTap: _navigateToChangePassword,
+          ),
+          AnimatedBuilder(
+            animation: themeController,
+            builder: (context, _) {
+              return ListTile(
+                leading: const Icon(Icons.dark_mode),
+                title: const Text('Appearance'),
+                subtitle: Text(_themeModeLabel(themeController.themeMode)),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _selectTheme(themeController),
+              );
+            },
           ),
           ListTile(
             leading: const Icon(Icons.notifications),
@@ -126,5 +141,100 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _selectTheme(ThemeController controller) async {
+    final selectedMode = await showModalBottomSheet<ThemeMode>(
+      context: context,
+      builder: (context) {
+        var pendingSelection = controller.themeMode;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Choose theme',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  RadioListTile<ThemeMode>(
+                    value: ThemeMode.system,
+                    groupValue: pendingSelection,
+                    title: const Text('Match system'),
+                    subtitle: const Text('Automatically follows your device'),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setModalState(() {
+                        pendingSelection = value;
+                      });
+                    },
+                  ),
+                  RadioListTile<ThemeMode>(
+                    value: ThemeMode.light,
+                    groupValue: pendingSelection,
+                    title: const Text('Light'),
+                    subtitle: const Text('Always use the light theme'),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setModalState(() {
+                        pendingSelection = value;
+                      });
+                    },
+                  ),
+                  RadioListTile<ThemeMode>(
+                    value: ThemeMode.dark,
+                    groupValue: pendingSelection,
+                    title: const Text('Dark'),
+                    subtitle: const Text('Always use the dark theme'),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setModalState(() {
+                        pendingSelection = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      const Spacer(),
+                      ElevatedButton(
+                        onPressed: () =>
+                            Navigator.of(context).pop(pendingSelection),
+                        child: const Text('Apply'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted || selectedMode == null) {
+      return;
+    }
+
+    await controller.updateThemeMode(selectedMode);
+  }
+
+  String _themeModeLabel(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 'Light';
+      case ThemeMode.dark:
+        return 'Dark';
+      case ThemeMode.system:
+      default:
+        return 'Match system';
+    }
   }
 }

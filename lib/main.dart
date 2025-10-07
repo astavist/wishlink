@@ -8,46 +8,101 @@ import 'package:wishlink/screens/login_screen.dart';
 import 'package:wishlink/screens/home_screen.dart';
 import 'package:wishlink/screens/email_verification_required_screen.dart';
 import 'package:wishlink/screens/google_account_setup_screen.dart';
+import 'package:wishlink/theme/theme_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  runApp(const MyApp());
+  final themeController = ThemeController();
+  await themeController.loadThemeMode();
+  runApp(MyApp(themeController: themeController));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, required this.themeController});
+
+  final ThemeController themeController;
+
+  static const PageTransitionsTheme _pageTransitionsTheme =
+      PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+    },
+  );
+
+  static const Color _seedColor = Color(0xFFEFB652);
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'WishLink',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-        pageTransitionsTheme: const PageTransitionsTheme(
-          builders: {
-            TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-            TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
-          },
-        ),
+    return ThemeControllerProvider(
+      controller: themeController,
+      child: AnimatedBuilder(
+        animation: themeController,
+        builder: (context, _) {
+          return MaterialApp(
+            title: 'WishLink',
+            theme: _buildLightTheme(),
+            darkTheme: _buildDarkTheme(),
+            themeMode: themeController.themeMode,
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('tr', 'TR'),
+              Locale('en', 'US'),
+              Locale('en'),
+            ],
+            locale: const Locale('tr', 'TR'),
+            home: const AuthWrapper(),
+            routes: {'/home': (context) => const HomeScreen()},
+          );
+        },
       ),
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      supportedLocales: const [
-        Locale('tr', 'TR'),
-        Locale('en', 'US'),
-        Locale('en'),
-      ],
-      locale: const Locale('tr', 'TR'),
-      home: const AuthWrapper(),
-      routes: {'/home': (context) => const HomeScreen()},
+    );
+  }
+
+  ThemeData _buildLightTheme() {
+    return ThemeData(
+      colorScheme: ColorScheme.fromSeed(seedColor: _seedColor),
+      brightness: Brightness.light,
+      useMaterial3: true,
+      visualDensity: VisualDensity.adaptivePlatformDensity,
+      pageTransitionsTheme: _pageTransitionsTheme,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+      ),
+      scaffoldBackgroundColor: const Color(0xFFF7F8FA),
+    );
+  }
+
+  ThemeData _buildDarkTheme() {
+    return ThemeData(
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: _seedColor,
+        brightness: Brightness.dark,
+      ),
+      brightness: Brightness.dark,
+      useMaterial3: true,
+      visualDensity: VisualDensity.adaptivePlatformDensity,
+      pageTransitionsTheme: _pageTransitionsTheme,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF121212),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
+      ),
+      scaffoldBackgroundColor: const Color(0xFF121212),
     );
   }
 }
