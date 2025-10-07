@@ -1,10 +1,13 @@
 // lib/login_screen.dart
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:http/http.dart' as http;
 import 'email_verification_required_screen.dart';
 import 'google_account_setup_screen.dart';
 
@@ -19,7 +22,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
-  final _googleSignIn = GoogleSignIn();
+  final _googleSignIn = GoogleSignIn(
+    scopes: [
+      'email',
+      'profile',
+      'https://www.googleapis.com/auth/user.birthday.read',
+    ],
+  );
 
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
@@ -27,12 +36,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _birthdayController = TextEditingController();
   final _emailFocusNode = FocusNode();
   final _passwordFocusNode = FocusNode();
 
   bool _isLoading = false;
   bool _isSignUp = false;
   String? _errorMessage;
+  DateTime? _selectedBirthday;
 
   @override
   void dispose() {
@@ -42,6 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _usernameController.dispose();
+    _birthdayController.dispose();
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
     super.dispose();
@@ -80,6 +92,39 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   String _normalizeUsername(String value) => value.trim().toLowerCase();
+
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day.$month.${date.year}';
+  }
+
+  Future<void> _pickBirthday() async {
+    FocusScope.of(context).unfocus();
+    final now = DateTime.now();
+    final minSelectable = DateTime(now.year - 120, now.month, now.day);
+    final fallbackInitial = DateTime(now.year - 18, now.month, now.day);
+    final initial = _selectedBirthday ?? fallbackInitial;
+
+    final chosenDate = await showDatePicker(
+      context: context,
+      initialDate: initial.isBefore(minSelectable) ? minSelectable : initial,
+      firstDate: minSelectable,
+      lastDate: now,
+    );
+
+    if (chosenDate != null) {
+      final normalized = DateTime(
+        chosenDate.year,
+        chosenDate.month,
+        chosenDate.day,
+      );
+      setState(() {
+        _selectedBirthday = normalized;
+        _birthdayController.text = _formatDate(normalized);
+      });
+    }
+  }
 
   Future<bool> _isUsernameAvailable(
     String username, {
@@ -127,6 +172,85 @@ class _LoginScreenState extends State<LoginScreen> {
       return suggestion;
     }
     return 'wishlover${DateTime.now().millisecondsSinceEpoch % 1000}';
+  }
+
+  Future<DateTime?> _fetchGoogleBirthday(String? accessToken) async {
+    if (accessToken == null || accessToken.isEmpty) {
+      return null;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'https://people.googleapis.com/v1/people/me?personFields=birthdays',
+        ),
+        headers: {'Authorization': 'Bearer $accessToken'},
+      );
+
+      if (response.statusCode != 200) {
+        return null;
+      }
+
+      final Map<String, dynamic> payload = jsonDecode(response.body);
+      final birthdays = payload['birthdays'];
+      if (birthdays is! List) {
+        return null;
+      }
+
+      Map<String, dynamic>? extractEntry(Map<String, dynamic>? entry) {
+        final date = entry?['date'];
+        if (date is Map<String, dynamic>) {
+          final month = date['month'] as int?;
+          final day = date['day'] as int?;
+          final year = date['year'] as int? ?? 2000;
+          if (month != null && day != null) {
+            return {
+              'year': year,
+              'month': month,
+              'day': day,
+            };
+          }
+        }
+        return null;
+      }
+
+      Map<String, dynamic>? chosen;
+      for (final raw in birthdays) {
+        if (raw is Map<String, dynamic>) {
+          final metadata = raw['metadata'];
+          if (metadata is Map && metadata['primary'] == true) {
+            chosen = extractEntry(raw);
+            if (chosen != null) {
+              break;
+            }
+          }
+        }
+      }
+
+      chosen ??= () {
+        for (final raw in birthdays) {
+          if (raw is Map<String, dynamic>) {
+            final extracted = extractEntry(raw);
+            if (extracted != null) {
+              return extracted;
+            }
+          }
+        }
+        return null;
+      }();
+
+      if (chosen == null) {
+        return null;
+      }
+
+      final year = chosen['year'] as int;
+      final month = chosen['month'] as int;
+      final day = chosen['day'] as int;
+
+      return DateTime(year, month, day);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<String?> _promptForUsername({String? initialValue}) async {
@@ -345,6 +469,9 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       final googleAuth = await googleUser.authentication;
+      final googleBirthday = await _fetchGoogleBirthday(
+        googleAuth.accessToken,
+      );
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -380,6 +507,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final currentUsername =
           (userDoc.data()?['username'] as String?)?.trim() ?? '';
+      final existingBirthday = userDoc.data()?['birthday'];
       final isNewUser = !userDoc.exists;
 
       if (isNewUser || currentUsername.isEmpty) {
@@ -396,6 +524,7 @@ class _LoginScreenState extends State<LoginScreen> {
               email: user.email ?? googleUser.email,
               suggestedUsername: suggestion,
               isNewUser: isNewUser,
+              initialBirthday: googleBirthday,
             ),
           ),
         );
@@ -412,6 +541,16 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         if (!(userDoc.data()?['emailVerified'] ?? false)) {
           await userDocRef.update({'emailVerified': true});
+        }
+
+        final hasStoredBirthday = existingBirthday != null &&
+            (existingBirthday is! String ||
+                existingBirthday.trim().isNotEmpty);
+        if (!hasStoredBirthday && googleBirthday != null) {
+          await userDocRef.set(
+            {'birthday': Timestamp.fromDate(googleBirthday)},
+            SetOptions(merge: true),
+          );
         }
 
         final ensured = await _ensureUsernameForUser(
@@ -479,6 +618,14 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      if (_selectedBirthday == null) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Please select your birth date';
+        });
+        return;
+      }
+
       final username = _normalizeUsername(_usernameController.text);
       final available = await _isUsernameAvailable(username);
       if (!available) {
@@ -501,6 +648,8 @@ class _LoginScreenState extends State<LoginScreen> {
         'lastName': _lastNameController.text.trim(),
         'email': _emailController.text.trim(),
         'username': username,
+        'birthday': Timestamp.fromDate(_selectedBirthday!),
+        'birthdayDisplay': 'dayMonthYear',
         'emailVerified': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -523,6 +672,8 @@ class _LoginScreenState extends State<LoginScreen> {
           _emailController.clear();
           _passwordController.clear();
           _confirmPasswordController.clear();
+          _birthdayController.clear();
+          _selectedBirthday = null;
         });
       }
     } on FirebaseAuthException catch (e) {
@@ -553,6 +704,8 @@ class _LoginScreenState extends State<LoginScreen> {
         _lastNameController.clear();
         _usernameController.clear();
         _confirmPasswordController.clear();
+        _birthdayController.clear();
+        _selectedBirthday = null;
       }
     });
   }
@@ -658,6 +811,29 @@ class _LoginScreenState extends State<LoginScreen> {
                                     }
                                     return null;
                                   },
+                                ),
+                                const SizedBox(height: 16),
+                                TextFormField(
+                                  controller: _birthdayController,
+                                  readOnly: true,
+                                  enabled: !_isLoading,
+                                  decoration: InputDecoration(
+                                    labelText: 'Birth Date',
+                                    prefixIcon: const Icon(Icons.cake_outlined),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    filled: true,
+                                    fillColor: Colors.grey[100],
+                                  ),
+                                  validator: (_) {
+                                    if (_selectedBirthday == null) {
+                                      return 'Please select your birth date';
+                                    }
+                                    return null;
+                                  },
+                                  onTap: _isLoading ? null : _pickBirthday,
                                 ),
                                 const SizedBox(height: 16),
 

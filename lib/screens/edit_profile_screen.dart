@@ -23,6 +23,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final TextEditingController _firstNameController = TextEditingController();
   final TextEditingController _lastNameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _birthdayController = TextEditingController();
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -31,6 +32,47 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   File? _selectedImageFile;
   Uint8List? _selectedImageBytes;
   String _currentUsername = '';
+  DateTime? _selectedBirthday;
+  String _birthdayDisplayPreference = 'dayMonthYear';
+
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day.$month.${date.year}';
+  }
+
+  Future<void> _pickBirthday() async {
+    FocusScope.of(context).unfocus();
+    final now = DateTime.now();
+    final minSelectable = DateTime(now.year - 120, now.month, now.day);
+    final fallbackInitial = DateTime(now.year - 18, now.month, now.day);
+    final initial = _selectedBirthday ?? fallbackInitial;
+
+    final chosenDate = await showDatePicker(
+      context: context,
+      initialDate: initial.isBefore(minSelectable) ? minSelectable : initial,
+      firstDate: minSelectable,
+      lastDate: now,
+    );
+    if (chosenDate != null) {
+      final normalized = DateTime(
+        chosenDate.year,
+        chosenDate.month,
+        chosenDate.day,
+      );
+      setState(() {
+        _selectedBirthday = normalized;
+        _birthdayController.text = _formatDate(normalized);
+      });
+    }
+  }
+
+  void _clearBirthday() {
+    setState(() {
+      _selectedBirthday = null;
+      _birthdayController.clear();
+    });
+  }
 
   @override
   void initState() {
@@ -43,6 +85,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _usernameController.dispose();
+    _birthdayController.dispose();
     super.dispose();
   }
 
@@ -67,6 +110,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             (data['username'] as String?)?.trim().toLowerCase() ?? '';
         _currentUsername = _usernameController.text;
         _profilePhotoUrl = (data['profilePhotoUrl'] as String?)?.trim();
+
+        final birthdayData = data['birthday'];
+        DateTime? birthday;
+        if (birthdayData is Timestamp) {
+          birthday = birthdayData.toDate();
+        } else if (birthdayData is String && birthdayData.isNotEmpty) {
+          try {
+            birthday = DateTime.parse(birthdayData);
+          } catch (_) {
+            birthday = null;
+          }
+        } else if (birthdayData is Map) {
+          final year = birthdayData['year'];
+          final month = birthdayData['month'];
+          final day = birthdayData['day'];
+          if (year is int && month is int && day is int) {
+            birthday = DateTime(year, month, day);
+          }
+        }
+        if (birthday != null) {
+          final normalized = DateTime(birthday.year, birthday.month, birthday.day);
+          _selectedBirthday = normalized;
+          _birthdayController.text = _formatDate(normalized);
+        } else {
+          _selectedBirthday = null;
+          _birthdayController.clear();
+        }
+
+        final displayPreference =
+            (data['birthdayDisplay'] as String?) ?? 'dayMonthYear';
+        if (displayPreference == 'dayMonth' ||
+            displayPreference == 'dayMonthYear') {
+          _birthdayDisplayPreference = displayPreference;
+        } else {
+          _birthdayDisplayPreference = 'dayMonthYear';
+        }
       }
 
       setState(() {
@@ -258,6 +337,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         updates['username'] = normalizedUsername;
       }
 
+      if (_selectedBirthday != null) {
+        updates['birthday'] = Timestamp.fromDate(_selectedBirthday!);
+      } else {
+        updates['birthday'] = FieldValue.delete();
+      }
+      updates['birthdayDisplay'] = _birthdayDisplayPreference;
+
       await _firestore.collection('users').doc(user.uid).update(updates);
 
       final displayName = [
@@ -408,7 +494,58 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               TextFormField(
                 controller: _lastNameController,
                 decoration: const InputDecoration(labelText: 'Last name'),
-                textInputAction: TextInputAction.done,
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _birthdayController,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Birth date',
+                  prefixIcon: Icon(Icons.cake_outlined),
+                ),
+                onTap: _isSaving ? null : _pickBirthday,
+              ),
+              if (_selectedBirthday != null) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _isSaving ? null : _clearBirthday,
+                    child: const Text('Remove birth date'),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+              InputDecorator(
+                decoration: const InputDecoration(
+                  labelText: 'Birth date display',
+                  border: OutlineInputBorder(),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: _birthdayDisplayPreference,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'dayMonthYear',
+                        child: Text('Show day / month / year (dd.mm.yyyy)'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'dayMonth',
+                        child: Text('Show only day / month (dd.mm)'),
+                      ),
+                    ],
+                    onChanged: _isSaving
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              setState(() {
+                                _birthdayDisplayPreference = value;
+                              });
+                            }
+                          },
+                  ),
+                ),
               ),
               const SizedBox(height: 32),
               SizedBox(

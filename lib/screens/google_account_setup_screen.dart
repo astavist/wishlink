@@ -11,6 +11,7 @@ class GoogleAccountSetupScreen extends StatefulWidget {
   final bool isNewUser;
   final ValueChanged<String>? onCompleted;
   final bool allowCancel;
+  final DateTime? initialBirthday;
 
   const GoogleAccountSetupScreen({
     super.key,
@@ -22,6 +23,7 @@ class GoogleAccountSetupScreen extends StatefulWidget {
     this.isNewUser = false,
     this.onCompleted,
     this.allowCancel = true,
+    this.initialBirthday,
   });
 
   @override
@@ -34,6 +36,8 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _usernameController;
+  late final TextEditingController _birthdayController;
+  DateTime? _selectedBirthday;
 
   bool _isSaving = false;
   String? _errorMessage;
@@ -61,6 +65,10 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
     _usernameController = TextEditingController(
       text: widget.suggestedUsername.toLowerCase(),
     );
+    _selectedBirthday = widget.initialBirthday;
+    _birthdayController = TextEditingController(
+      text: _selectedBirthday != null ? _formatDate(_selectedBirthday!) : '',
+    );
   }
 
   @override
@@ -68,7 +76,41 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _usernameController.dispose();
+    _birthdayController.dispose();
     super.dispose();
+  }
+
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day.$month.${date.year}';
+  }
+
+  Future<void> _pickBirthday() async {
+    FocusScope.of(context).unfocus();
+    final now = DateTime.now();
+    final minSelectable = DateTime(now.year - 120, now.month, now.day);
+    final fallbackInitial = DateTime(now.year - 18, now.month, now.day);
+    final initial = _selectedBirthday ?? fallbackInitial;
+
+    final chosenDate = await showDatePicker(
+      context: context,
+      initialDate: initial.isBefore(minSelectable) ? minSelectable : initial,
+      firstDate: minSelectable,
+      lastDate: now,
+    );
+
+    if (chosenDate != null) {
+      final normalized = DateTime(
+        chosenDate.year,
+        chosenDate.month,
+        chosenDate.day,
+      );
+      setState(() {
+        _selectedBirthday = normalized;
+        _birthdayController.text = _formatDate(normalized);
+      });
+    }
   }
 
   String _normalizeUsername(String value) => value.trim().toLowerCase();
@@ -131,6 +173,14 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
     final username = _normalizeUsername(_usernameController.text);
 
     try {
+      if (_selectedBirthday == null) {
+        setState(() {
+          _errorMessage = 'Please select your birth date';
+          _isSaving = false;
+        });
+        return;
+      }
+
       final available = await _isUsernameAvailable(username);
       if (!available) {
         setState(() {
@@ -146,6 +196,8 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
         'email': widget.email ?? widget.user.email ?? '',
         'username': username,
         'emailVerified': true,
+        'birthday': Timestamp.fromDate(_selectedBirthday!),
+        'birthdayDisplay': 'dayMonthYear',
       };
       if (widget.isNewUser) {
         data['createdAt'] = FieldValue.serverTimestamp();
@@ -221,6 +273,22 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
                     textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(labelText: 'Soyad'),
                     validator: _validateLastName,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _birthdayController,
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Birth date',
+                      prefixIcon: Icon(Icons.cake_outlined),
+                    ),
+                    validator: (_) {
+                      if (_selectedBirthday == null) {
+                        return 'Please select your birth date';
+                      }
+                      return null;
+                    },
+                    onTap: _isSaving ? null : _pickBirthday,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(

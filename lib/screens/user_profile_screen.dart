@@ -30,7 +30,60 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String _email = '';
   String _username = '';
   String _profilePhotoUrl = '';
+  DateTime? _birthday;
+  String _birthdayDisplayPreference = 'dayMonthYear';
+  static const List<String> _turkishMonths = [
+    'Ocak',
+    'Şubat',
+    'Mart',
+    'Nisan',
+    'Mayıs',
+    'Haziran',
+    'Temmuz',
+    'Ağustos',
+    'Eylül',
+    'Ekim',
+    'Kasım',
+    'Aralık',
+  ];
   List<WishItem> _userWishes = [];
+
+  DateTime? _parseBirthday(dynamic value) {
+    if (value is Timestamp) {
+      final date = value.toDate();
+      return DateTime(date.year, date.month, date.day);
+    }
+    if (value is DateTime) {
+      return DateTime(value.year, value.month, value.day);
+    }
+    if (value is String && value.isNotEmpty) {
+      try {
+        final parsed = DateTime.parse(value);
+        return DateTime(parsed.year, parsed.month, parsed.day);
+      } catch (_) {
+        return null;
+      }
+    }
+    if (value is Map) {
+      final year = value['year'];
+      final month = value['month'];
+      final day = value['day'];
+      if (year is int && month is int && day is int) {
+        return DateTime(year, month, day);
+      }
+    }
+    return null;
+  }
+
+  String _formatBirthday(DateTime date) {
+    if (_birthdayDisplayPreference == 'dayMonth') {
+      final monthName = _turkishMonths[date.month - 1];
+      return '${date.day} $monthName';
+    }
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
+  }
 
   @override
   void initState() {
@@ -46,15 +99,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           .doc(widget.userId)
           .get();
       if (userData.exists) {
+        final data = userData.data();
         setState(() {
-          _firstName = userData.data()?['firstName'] ?? '';
-          _lastName = userData.data()?['lastName'] ?? '';
-          _email = userData.data()?['email'] ?? '';
+          _firstName = data?['firstName'] ?? '';
+          _lastName = data?['lastName'] ?? '';
+          _email = data?['email'] ?? '';
           _username =
-              (userData.data()?['username'] as String?)?.trim() ??
+              (data?['username'] as String?)?.trim() ??
               widget.userUsername ??
               '';
-          _profilePhotoUrl = userData.data()?['profilePhotoUrl'] ?? '';
+          _profilePhotoUrl = data?['profilePhotoUrl'] ?? '';
+          _birthday = _parseBirthday(data?['birthday']);
+          final displayPreference =
+              (data?['birthdayDisplay'] as String?) ?? 'dayMonthYear';
+          if (displayPreference == 'dayMonth' ||
+              displayPreference == 'dayMonthYear') {
+            _birthdayDisplayPreference = displayPreference;
+          } else {
+            _birthdayDisplayPreference = 'dayMonthYear';
+          }
         });
       }
 
@@ -196,6 +259,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           color: Colors.grey[600],
                         ),
                       ),
+                    if (_birthday != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.cake_outlined,
+                            size: 18,
+                            color: Colors.grey[600],
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _formatBirthday(_birthday!),
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
