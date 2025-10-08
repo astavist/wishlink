@@ -511,6 +511,7 @@ class FirestoreService {
     required String description,
     required String productUrl,
     required double price,
+    required String currency,
     String? imageUrl,
     String? listId,
   }) async {
@@ -533,6 +534,7 @@ class FirestoreService {
       'description': description,
       'productUrl': productUrl,
       'price': price,
+      'currency': currency.toUpperCase(),
     };
 
     if (imageUrl != null) {
@@ -572,6 +574,7 @@ class FirestoreService {
       'productUrl': productUrl,
       'imageUrl': imageUrl ?? (existingWishItem['imageUrl'] ?? ''),
       'price': price,
+      'currency': currency.toUpperCase(),
       'createdAt': createdAt,
       if (listId != null) 'listId': listId,
     };

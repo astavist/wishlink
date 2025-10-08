@@ -7,6 +7,7 @@ class WishItem {
   final String productUrl;
   final String imageUrl;
   final double price;
+  final String currency;
   final DateTime createdAt;
   final String? listId;
 
@@ -17,6 +18,7 @@ class WishItem {
     required this.productUrl,
     required this.imageUrl,
     required this.price,
+    required this.currency,
     required this.createdAt,
     this.listId,
   });
@@ -36,6 +38,7 @@ class WishItem {
       productUrl: data['productUrl'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
       price: (data['price'] ?? 0.0).toDouble(),
+      currency: (data['currency'] as String?)?.toUpperCase() ?? 'TRY',
       createdAt: createdAt,
       listId: data['listId'] as String?,
     );
@@ -48,6 +51,7 @@ class WishItem {
       'productUrl': productUrl,
       'imageUrl': imageUrl,
       'price': price,
+      'currency': currency,
       'createdAt': createdAt,
       if (listId != null) 'listId': listId,
     };

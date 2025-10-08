@@ -5,6 +5,7 @@ import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
 import '../screens/user_profile_screen.dart';
 import '../screens/wish_detail_screen.dart';
+import '../utils/currency_utils.dart';
 
 // Custom page route for right-to-left slide animation (for user profiles)
 PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
@@ -360,14 +361,29 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                       padding: const EdgeInsets.only(bottom: 16.0),
                       child: Row(
                         children: [
-                          const Icon(
-                            Icons.attach_money,
-                            color: Colors.green,
-                            size: 20,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              currencySymbol(
+                                widget.activity.wishItem.currency,
+                              ),
+                              style: const TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            widget.activity.wishItem.price.toStringAsFixed(2),
+                            formatAmount(widget.activity.wishItem.price),
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
@@ -483,3 +499,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     );
   }
 }
+
+
+
+

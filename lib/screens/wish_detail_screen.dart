@@ -10,6 +10,7 @@ import '../models/wish_item.dart';
 import '../services/firestore_service.dart';
 import '../widgets/activity_comments_sheet.dart';
 import 'edit_wish_screen.dart';
+import '../utils/currency_utils.dart';
 
 class WishDetailScreen extends StatefulWidget {
   final WishItem wish;
@@ -438,8 +439,17 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     if (wish.price > 0) {
       chips.add(
         Chip(
-          avatar: const Icon(Icons.attach_money, size: 18),
-          label: Text('Fiyat ${wish.price.toStringAsFixed(2)}'),
+          avatar: CircleAvatar(
+            backgroundColor: Colors.green.withOpacity(0.1),
+            child: Text(
+              currencySymbol(wish.currency),
+              style: const TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          label: Text('Fiyat ${formatAmount(wish.price)}'),
         ),
       );
     }
@@ -669,3 +679,6 @@ PageRouteBuilder<dynamic> createRightToLeftSlideRoute(Widget page) {
     transitionDuration: const Duration(milliseconds: 300),
   );
 }
+
+
+

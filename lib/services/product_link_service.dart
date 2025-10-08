@@ -17,6 +17,18 @@ class ProductLinkImageResult {
   final String? contentType;
 }
 
+class ProductLinkMetadata {
+  const ProductLinkMetadata({
+    this.image,
+    this.price,
+    this.currency,
+  });
+
+  final ProductLinkImageResult? image;
+  final double? price;
+  final String? currency;
+}
+
 class ProductLinkService {
   ProductLinkService({http.Client? client}) : _client = client ?? http.Client();
 
@@ -33,6 +45,11 @@ class ProductLinkService {
   bool supportsUrl(String url) => _parseUri(url) != null;
 
   Future<ProductLinkImageResult?> fetchPrimaryImage(String url) async {
+    final metadata = await fetchMetadata(url);
+    return metadata?.image;
+  }
+
+  Future<ProductLinkMetadata?> fetchMetadata(String url) async {
     final uri = _parseUri(url);
     if (uri == null) {
       return null;
@@ -49,36 +66,45 @@ class ProductLinkService {
     final document = html_parser.parse(body);
 
     final imageUrl = _extractImageUrl(document, uri);
-    if (imageUrl == null) {
-      return null;
-    }
+    ProductLinkImageResult? imageResult;
 
-    if (_isDataUrl(imageUrl)) {
-      final dataBytes = _decodeDataUrl(imageUrl);
-      if (dataBytes != null) {
-        return ProductLinkImageResult(
+    if (imageUrl != null) {
+      if (_isDataUrl(imageUrl)) {
+        final dataBytes = _decodeDataUrl(imageUrl);
+        if (dataBytes != null) {
+          imageResult = ProductLinkImageResult(
+            imageUrl: imageUrl,
+            imageBytes: dataBytes.bytes,
+            contentType: dataBytes.contentType,
+          );
+        } else {
+          throw Exception('Failed to decode inline image data');
+        }
+      } else {
+        final imageResponse = await _client.get(
+          Uri.parse(imageUrl),
+          headers: _requestHeaders,
+        );
+        if (imageResponse.statusCode != 200) {
+          throw Exception(
+            'Failed to load product image (${imageResponse.statusCode})',
+          );
+        }
+
+        imageResult = ProductLinkImageResult(
           imageUrl: imageUrl,
-          imageBytes: dataBytes.bytes,
-          contentType: dataBytes.contentType,
+          imageBytes: imageResponse.bodyBytes,
+          contentType: imageResponse.headers['content-type'],
         );
       }
-      throw Exception('Failed to decode inline image data');
     }
 
-    final imageResponse = await _client.get(
-      Uri.parse(imageUrl),
-      headers: _requestHeaders,
-    );
-    if (imageResponse.statusCode != 200) {
-      throw Exception(
-        'Failed to load product image (${imageResponse.statusCode})',
-      );
-    }
+    final priceResult = _extractPrice(document);
 
-    return ProductLinkImageResult(
-      imageUrl: imageUrl,
-      imageBytes: imageResponse.bodyBytes,
-      contentType: imageResponse.headers['content-type'],
+    return ProductLinkMetadata(
+      image: imageResult,
+      price: priceResult?.amount,
+      currency: priceResult?.currency,
     );
   }
 
@@ -508,6 +534,376 @@ class ProductLinkService {
     return null;
   }
 
+  _PriceExtractionResult? _extractPrice(dom.Document document) {
+    double? amount;
+    String? currency;
+
+    final metaTags = document.getElementsByTagName('meta');
+    for (final meta in metaTags) {
+      final attributes = meta.attributes;
+      final property = (attributes['property'] ??
+              attributes['itemprop'] ??
+              attributes['name'] ??
+              '')
+          .toLowerCase();
+      final content = (attributes['content'] ?? attributes['value'] ?? '')
+          .trim();
+      if (content.isEmpty) {
+        continue;
+      }
+
+      if (property.contains('price')) {
+        final parsed = _parsePriceValue(content);
+        if (parsed != null && amount == null) {
+          amount = parsed;
+        }
+        if (currency == null) {
+          currency = _detectCurrencyInText(content);
+        }
+      }
+
+      if (property.contains('currency')) {
+        final normalized = _normalizeCurrencyCode(content);
+        if (normalized != null && currency == null) {
+          currency = normalized;
+        }
+      }
+
+      if (amount != null && currency != null) {
+        break;
+      }
+    }
+
+    if (amount != null && currency != null) {
+      return _PriceExtractionResult(amount: amount, currency: currency);
+    }
+
+    final priceElements = document.querySelectorAll('[itemprop=price]');
+    for (final element in priceElements) {
+      final rawValue = (element.attributes['content'] ??
+              element.attributes['value'] ??
+              element.text)
+          .trim();
+      if (rawValue.isEmpty) {
+        continue;
+      }
+
+      final parsed = _parsePriceValue(rawValue);
+      if (parsed == null) {
+        continue;
+      }
+
+      amount ??= parsed;
+
+      final currencyCandidate =
+          element.attributes['pricecurrency'] ??
+              element.attributes['data-currency'] ??
+              element.attributes['currency'] ??
+              '';
+      final normalizedCurrency = _normalizeCurrencyCode(currencyCandidate);
+      if (normalizedCurrency != null && currency == null) {
+        currency = normalizedCurrency;
+      } else if (currency == null) {
+        currency = _detectCurrencyInText(rawValue) ??
+            _detectCurrencyInText(element.text);
+      }
+
+      if (amount != null && currency != null) {
+        break;
+      }
+    }
+
+    if (amount != null && currency != null) {
+      return _PriceExtractionResult(amount: amount, currency: currency);
+    }
+
+    final scriptTags = document.getElementsByTagName('script');
+    for (final script in scriptTags) {
+      final typeAttr = script.attributes['type']?.toLowerCase();
+      if (typeAttr != null &&
+          !typeAttr.contains('ld+json') &&
+          typeAttr != 'application/json') {
+        continue;
+      }
+
+      final rawJson = script.text.trim();
+      if (rawJson.isEmpty) {
+        continue;
+      }
+
+      dynamic decoded;
+      try {
+        decoded = jsonDecode(rawJson);
+      } catch (_) {
+        final normalized = rawJson.replaceAll(RegExp(r'}\s*{'), '},{');
+        final wrapped = '[$normalized]';
+        try {
+          decoded = jsonDecode(wrapped);
+        } catch (_) {
+          continue;
+        }
+      }
+
+      final Iterable<dynamic> candidates =
+          decoded is List ? decoded : <dynamic>[decoded];
+
+      for (final candidate in candidates) {
+        final result = _extractPriceFromJson(candidate);
+        if (result == null) {
+          continue;
+        }
+        amount ??= result.amount;
+        currency ??= result.currency;
+        if (amount != null && currency != null) {
+          return _PriceExtractionResult(amount: amount, currency: currency);
+        }
+      }
+    }
+
+    if (amount != null) {
+      return _PriceExtractionResult(amount: amount, currency: currency);
+    }
+
+    return null;
+  }
+
+  _PriceExtractionResult? _extractPriceFromJson(dynamic data) {
+    if (data is List) {
+      for (final item in data) {
+        final result = _extractPriceFromJson(item);
+        if (result != null) {
+          return result;
+        }
+      }
+      return null;
+    }
+
+    if (data is Map) {
+      final lowerKeyed = <String, dynamic>{};
+      data.forEach((key, value) {
+        lowerKeyed[key.toString().toLowerCase()] = value;
+      });
+
+      if (lowerKeyed.containsKey('@graph')) {
+        final graphResult = _extractPriceFromJson(lowerKeyed['@graph']);
+        if (graphResult != null) {
+          return graphResult;
+        }
+      }
+
+      if (lowerKeyed.containsKey('offers')) {
+        final offersResult = _extractPriceFromJson(lowerKeyed['offers']);
+        if (offersResult != null) {
+          return offersResult;
+        }
+      }
+
+      if (lowerKeyed.containsKey('pricespecification')) {
+        final specResult =
+            _extractPriceFromJson(lowerKeyed['pricespecification']);
+        if (specResult != null) {
+          return specResult;
+        }
+      }
+
+      double? amount;
+      String? currency;
+
+      final priceCandidate = lowerKeyed['price'] ??
+          lowerKeyed['lowprice'] ??
+          lowerKeyed['highprice'] ??
+          lowerKeyed['priceamount'];
+      if (priceCandidate != null) {
+        final parsed = _parsePriceValue(_stringifyJsonValue(priceCandidate));
+        if (parsed != null) {
+          amount = parsed;
+          currency = _detectCurrencyInText(_stringifyJsonValue(priceCandidate));
+        }
+      }
+
+      if (amount == null && lowerKeyed['amount'] != null) {
+        final parsed = _parsePriceValue(_stringifyJsonValue(lowerKeyed['amount']));
+        if (parsed != null) {
+          amount = parsed;
+        }
+      }
+
+      if (lowerKeyed.containsKey('pricecurrency')) {
+        final normalized = _normalizeCurrencyCode(
+          _stringifyJsonValue(lowerKeyed['pricecurrency']),
+        );
+        if (normalized != null) {
+          currency ??= normalized;
+        }
+      }
+
+      if (lowerKeyed.containsKey('currency')) {
+        final normalized =
+            _normalizeCurrencyCode(_stringifyJsonValue(lowerKeyed['currency']));
+        if (normalized != null) {
+          currency ??= normalized;
+        }
+      }
+
+      if (lowerKeyed.containsKey('currenciesaccepted')) {
+        final normalized = _normalizeCurrencyCode(
+          _stringifyJsonValue(lowerKeyed['currenciesaccepted']),
+        );
+        if (normalized != null) {
+          currency ??= normalized;
+        }
+      }
+
+      if (amount != null) {
+        return _PriceExtractionResult(amount: amount, currency: currency);
+      }
+
+      return null;
+    }
+
+    if (data is String) {
+      final parsed = _parsePriceValue(data);
+      if (parsed != null) {
+        return _PriceExtractionResult(
+          amount: parsed,
+          currency: _detectCurrencyInText(data),
+        );
+      }
+    }
+
+    return null;
+  }
+
+  String _stringifyJsonValue(dynamic value) {
+    if (value == null) {
+      return '';
+    }
+    if (value is String) {
+      return value;
+    }
+    if (value is num) {
+      return value.toString();
+    }
+    if (value is List && value.isNotEmpty) {
+      return _stringifyJsonValue(value.first);
+    }
+    return value.toString();
+  }
+
+  double? _parsePriceValue(String? raw) {
+    if (raw == null) {
+      return null;
+    }
+    var sanitized = raw.replaceAll(RegExp(r'[^0-9,.-]'), '');
+    if (sanitized.isEmpty) {
+      return null;
+    }
+
+    final lastComma = sanitized.lastIndexOf(',');
+    final lastDot = sanitized.lastIndexOf('.');
+
+    if (lastComma != -1 && lastDot != -1) {
+      if (lastComma > lastDot) {
+        sanitized = sanitized.replaceAll('.', '');
+        sanitized = sanitized.replaceAll(',', '.');
+      } else {
+        sanitized = sanitized.replaceAll(',', '');
+      }
+    } else if (lastComma != -1) {
+      final decimals = sanitized.length - lastComma - 1;
+      if (decimals > 0 && decimals <= 2) {
+        sanitized =
+            sanitized.replaceRange(lastComma, lastComma + 1, '.');
+      }
+      sanitized = sanitized.replaceAll(',', '');
+    } else if (lastDot != -1) {
+      final decimals = sanitized.length - lastDot - 1;
+      if (decimals > 2) {
+        sanitized = sanitized.replaceAll('.', '');
+      }
+    }
+
+    sanitized = sanitized.replaceAll('--', '-');
+
+    return double.tryParse(sanitized);
+  }
+
+  String? _normalizeCurrencyCode(String? raw) {
+    if (raw == null) {
+      return null;
+    }
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+
+    final symbolMap = <String, String>{
+      '\u20BA': 'TRY',
+      'TRY': 'TRY',
+      'TL': 'TRY',
+      '\u20A4': 'GBP',
+      '\u00A3': 'GBP',
+      '\u20AC': 'EUR',
+      'EUR': 'EUR',
+      r'US$': 'USD',
+      'USD': 'USD',
+      r'$': 'USD',
+      'CAD': 'CAD',
+      r'C$': 'CAD',
+      r'CA$': 'CAD',
+      'AUD': 'AUD',
+      r'A$': 'AUD',
+      r'AU$': 'AUD',
+      '\u20BD': 'RUB',
+      'RUB': 'RUB',
+      '\u00A5': 'JPY',
+      'JPY': 'JPY',
+      '\u20A9': 'KRW',
+      'KRW': 'KRW',
+      '\u20B9': 'INR',
+      'INR': 'INR',
+    };
+
+    for (final entry in symbolMap.entries) {
+      if (trimmed.contains(entry.key)) {
+        return entry.value;
+      }
+      if (trimmed.toUpperCase() == entry.key) {
+        return entry.value;
+      }
+    }
+
+    final lettersOnly =
+        trimmed.toUpperCase().replaceAll(RegExp(r'[^A-Z]'), '');
+    if (lettersOnly.isEmpty) {
+      return null;
+    }
+    if (lettersOnly == 'TL') {
+      return 'TRY';
+    }
+    if (lettersOnly.length == 3) {
+      return lettersOnly;
+    }
+
+    final match = RegExp(r'[A-Z]{3}').firstMatch(lettersOnly);
+    if (match != null) {
+      final code = match.group(0);
+      if (code == 'TL') {
+        return 'TRY';
+      }
+      return code;
+    }
+
+    return null;
+  }
+
+  String? _detectCurrencyInText(String? raw) {
+    if (raw == null || raw.trim().isEmpty) {
+      return null;
+    }
+    return _normalizeCurrencyCode(raw);
+  }
+
   String? _normalizeImageUrl(Uri pageUri, String? rawUrl) {
     if (rawUrl == null) {
       return null;
@@ -606,4 +1002,11 @@ class _DataUrlResult {
 
   final Uint8List bytes;
   final String contentType;
+}
+
+class _PriceExtractionResult {
+  const _PriceExtractionResult({required this.amount, this.currency});
+
+  final double amount;
+  final String? currency;
 }

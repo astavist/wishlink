@@ -37,6 +37,10 @@ class _EditWishScreenState extends State<EditWishScreen> {
   String? _selectedImageName;
   String? _overrideImageUrl;
   String? _selectedListId;
+  static const List<String> _defaultCurrencyOptions = ['TRY', 'USD', 'EUR', 'GBP'];
+  List<String> _availableCurrencies =
+      List<String>.from(_defaultCurrencyOptions);
+  String _selectedCurrency = 'TRY';
   List<WishList> _lists = [];
 
   @override
@@ -91,8 +95,19 @@ class _EditWishScreenState extends State<EditWishScreen> {
         return;
       }
 
+      final initialCurrency = widget.wish.currency.toUpperCase();
+
       setState(() {
         _lists = lists;
+        _selectedCurrency = initialCurrency;
+        if (!_availableCurrencies.contains(initialCurrency)) {
+          _availableCurrencies = [
+            initialCurrency,
+            ..._availableCurrencies.where(
+              (currency) => currency != initialCurrency,
+            ),
+          ];
+        }
         _isInitializing = false;
       });
     } catch (error) {
@@ -218,7 +233,8 @@ class _EditWishScreenState extends State<EditWishScreen> {
         imageUrlForUpdate = await _uploadSelectedImage(user.uid);
       }
 
-      final priceText = _priceController.text.trim();
+      final priceText =
+          _priceController.text.trim().replaceAll(',', '.');
       final parsedPrice = double.tryParse(priceText) ?? 0;
 
       await _firestoreService.updateWish(
@@ -227,6 +243,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
         description: _descriptionController.text.trim(),
         productUrl: _productUrlController.text.trim(),
         price: parsedPrice,
+        currency: _selectedCurrency.toUpperCase(),
         imageUrl: imageUrlForUpdate,
         listId: _selectedListId,
       );
@@ -426,23 +443,66 @@ class _EditWishScreenState extends State<EditWishScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _priceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Fiyat *',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Lütfen fiyat girin';
-                    }
-                    final parsed = double.tryParse(value.trim());
-                    if (parsed == null || parsed <= 0) {
-                      return 'Please enter a valid price greater than 0';
-                    }
-                    return null;
-                  },
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        controller: _priceController,
+                        decoration: const InputDecoration(
+                          labelText: 'Fiyat *',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'L�tfen fiyat girin';
+                          }
+                          final normalized =
+                              value.trim().replaceAll(',', '.');
+                          final parsed = double.tryParse(normalized);
+                          if (parsed == null || parsed <= 0) {
+                            return 'Please enter a valid price greater than 0';
+                          }
+                          return null;
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      width: 120,
+                      child: DropdownButtonFormField<String>(
+                        value: _availableCurrencies.contains(_selectedCurrency)
+                            ? _selectedCurrency
+                            : (_availableCurrencies.isNotEmpty
+                                ? _availableCurrencies.first
+                                : _selectedCurrency),
+                        decoration: const InputDecoration(
+                          labelText: 'Para Birimi',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: _availableCurrencies
+                            .map(
+                              (currency) => DropdownMenuItem<String>(
+                                value: currency,
+                                child: Text(currency),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: _isSaving
+                            ? null
+                            : (value) {
+                                if (value == null) {
+                                  return;
+                                }
+                                setState(() {
+                                  _selectedCurrency = value;
+                                });
+                              },
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
                 Container(
@@ -532,3 +592,5 @@ class _EditWishScreenState extends State<EditWishScreen> {
     );
   }
 }
+
+

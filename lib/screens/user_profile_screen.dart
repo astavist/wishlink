@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/wish_item.dart';
+import '../utils/currency_utils.dart';
 import '../models/user_private_note.dart';
 import '../services/firestore_service.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -811,14 +812,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    const Icon(
-                                      Icons.attach_money,
-                                      color: Colors.green,
-                                      size: 16,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 3,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        currencySymbol(wish.currency),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.green,
+                                        ),
+                                      ),
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      wish.price.toStringAsFixed(2),
+                                      formatAmount(wish.price),
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: Colors.green,
@@ -856,3 +869,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 }
+
+
+
+
+

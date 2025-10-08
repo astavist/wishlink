@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/wish_item.dart';
+import '../utils/currency_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class WishCardDialog extends StatefulWidget {
@@ -21,6 +22,9 @@ class _WishCardDialogState extends State<WishCardDialog> {
   late TextEditingController _productUrlController;
   late TextEditingController _imageUrlController;
   late TextEditingController _priceController;
+  static const List<String> _defaultCurrencyOptions = ['TRY', 'USD', 'EUR', 'GBP'];
+  late List<String> _availableCurrencies;
+  late String _selectedCurrency;
   bool _isEditing = false;
   bool _isLoading = false;
 
@@ -33,9 +37,16 @@ class _WishCardDialogState extends State<WishCardDialog> {
     );
     _productUrlController = TextEditingController(text: widget.wish.productUrl);
     _imageUrlController = TextEditingController(text: widget.wish.imageUrl);
-    _priceController = TextEditingController(
-      text: widget.wish.price.toString(),
-    );
+        final initialPrice =
+        widget.wish.price > 0 ? widget.wish.price.toStringAsFixed(2) : '';
+    _priceController = TextEditingController(text: initialPrice);
+    _selectedCurrency = widget.wish.currency.toUpperCase();
+    _availableCurrencies = [
+      _selectedCurrency,
+      ..._defaultCurrencyOptions.where(
+        (currency) => currency != _selectedCurrency,
+      ),
+    ];
   }
 
   @override
@@ -75,13 +86,17 @@ class _WishCardDialogState extends State<WishCardDialog> {
       if (currentUser == null) return;
 
       // Update the wish item
+      final normalizedPrice =
+          _priceController.text.trim().replaceAll(',', '.');
+      final parsedPrice = double.tryParse(normalizedPrice) ?? 0.0;
       final updatedWish = WishItem(
         id: widget.wish.id,
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
         productUrl: _productUrlController.text.trim(),
         imageUrl: _imageUrlController.text.trim(),
-        price: double.tryParse(_priceController.text.trim()) ?? 0.0,
+        price: parsedPrice,
+        currency: _selectedCurrency.toUpperCase(),
         createdAt: widget.wish.createdAt,
       );
 
@@ -140,7 +155,15 @@ class _WishCardDialogState extends State<WishCardDialog> {
         _descriptionController.text = widget.wish.description;
         _productUrlController.text = widget.wish.productUrl;
         _imageUrlController.text = widget.wish.imageUrl;
-        _priceController.text = widget.wish.price.toString();
+        _priceController.text =
+            widget.wish.price > 0 ? widget.wish.price.toStringAsFixed(2) : '';
+        _selectedCurrency = widget.wish.currency.toUpperCase();
+        _availableCurrencies = [
+          _selectedCurrency,
+          ..._defaultCurrencyOptions.where(
+            (currency) => currency != _selectedCurrency,
+          ),
+        ];
       }
     });
   }
@@ -299,10 +322,24 @@ class _WishCardDialogState extends State<WishCardDialog> {
         if (widget.wish.price > 0) ...[
           Row(
             children: [
-              const Icon(Icons.attach_money, color: Colors.green, size: 24),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  currencySymbol(widget.wish.currency),
+                  style: const TextStyle(
+                    color: Colors.green,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
               const SizedBox(width: 8),
               Text(
-                '${widget.wish.price.toStringAsFixed(2)}',
+                formatAmount(widget.wish.price),
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -398,23 +435,65 @@ class _WishCardDialogState extends State<WishCardDialog> {
             keyboardType: TextInputType.url,
           ),
           const SizedBox(height: 16),
-          TextFormField(
-            controller: _priceController,
-            decoration: const InputDecoration(
-              labelText: 'Price *',
-              border: OutlineInputBorder(),
-            ),
-            keyboardType: TextInputType.number,
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Please enter a price';
-              }
-              final price = double.tryParse(value.trim());
-              if (price == null || price <= 0) {
-                return 'Please enter a valid price greater than 0';
-              }
-              return null;
-            },
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _priceController,
+                  decoration: const InputDecoration(
+                    labelText: 'Price *',
+                    border: OutlineInputBorder(),
+                  ),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter a price';
+                    }
+                    final normalized = value.trim().replaceAll(',', '.');
+                    final price = double.tryParse(normalized);
+                    if (price == null || price <= 0) {
+                      return 'Please enter a valid price greater than 0';
+                    }
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 120,
+                child: DropdownButtonFormField<String>(
+                  value: _availableCurrencies.contains(_selectedCurrency)
+                      ? _selectedCurrency
+                      : (_availableCurrencies.isNotEmpty
+                          ? _availableCurrencies.first
+                          : _selectedCurrency),
+                  decoration: const InputDecoration(
+                    labelText: 'Currency',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: _availableCurrencies
+                      .map(
+                        (currency) => DropdownMenuItem<String>(
+                          value: currency,
+                          child: Text(currency),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: _isLoading
+                      ? null
+                      : (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setState(() {
+                            _selectedCurrency = value;
+                          });
+                        },
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -425,3 +504,11 @@ class _WishCardDialogState extends State<WishCardDialog> {
     return '${date.day}/${date.month}/${date.year}';
   }
 }
+
+
+
+
+
+
+
+

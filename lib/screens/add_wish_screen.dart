@@ -31,17 +31,24 @@ class _AddWishScreenState extends State<AddWishScreen> {
   final ImagePicker _imagePicker = ImagePicker();
 
   Timer? _productUrlDebounce;
-  bool _isFetchingImagePreview = false;
-  String? _autoImageErrorMessage;
+  bool _isFetchingMetadata = false;
+  String? _autoMetadataErrorMessage;
   Uint8List? _autoFetchedImageBytes;
   String? _autoFetchedImageContentType;
   String? _autoFetchedProductUrl;
   String? _autoFetchedSourceImageUrl;
+  double? _autoFetchedPrice;
+  String? _autoFetchedCurrency;
   Uint8List? _selectedLocalImageBytes;
   String? _selectedLocalImageContentType;
   String? _selectedLocalImageName;
   int _urlRequestId = 0;
   bool _isLoading = false;
+  bool _priceManuallyEdited = false;
+  bool _currencyManuallySelected = false;
+  static const List<String> _defaultCurrencyOptions = ['TRY', 'USD', 'EUR', 'GBP'];
+  List<String> _availableCurrencies = List<String>.from(_defaultCurrencyOptions);
+  String _selectedCurrency = 'TRY';
   String? _selectedListId;
   List<WishList> _lists = [];
 
@@ -125,30 +132,39 @@ class _AddWishScreenState extends State<AddWishScreen> {
 
     if (rawUrl.isEmpty) {
       if (_autoFetchedImageBytes != null ||
-          _autoImageErrorMessage != null ||
-          _isFetchingImagePreview ||
-          _selectedLocalImageBytes != null) {
+          _autoMetadataErrorMessage != null ||
+          _isFetchingMetadata ||
+          _selectedLocalImageBytes != null ||
+          _autoFetchedPrice != null ||
+          _autoFetchedCurrency != null) {
         setState(() {
           _autoFetchedImageBytes = null;
           _autoFetchedImageContentType = null;
           _autoFetchedProductUrl = null;
           _autoFetchedSourceImageUrl = null;
-          _autoImageErrorMessage = null;
-          _isFetchingImagePreview = false;
+          _autoFetchedPrice = null;
+          _autoFetchedCurrency = null;
+          _autoMetadataErrorMessage = null;
+          _isFetchingMetadata = false;
           _selectedLocalImageBytes = null;
           _selectedLocalImageContentType = null;
           _selectedLocalImageName = null;
+          _priceManuallyEdited = false;
+          _currencyManuallySelected = false;
+          _availableCurrencies = List<String>.from(_defaultCurrencyOptions);
         });
       }
       return;
     }
 
     _productUrlDebounce = Timer(const Duration(milliseconds: 800), () {
-      _fetchImageForProductUrl(rawUrl);
+      _priceManuallyEdited = false;
+      _currencyManuallySelected = false;
+      _fetchMetadataForProductUrl(rawUrl);
     });
   }
 
-  Future<void> _fetchImageForProductUrl(String url) async {
+  Future<void> _fetchMetadataForProductUrl(String url) async {
     final trimmedUrl = url.trim();
     if (trimmedUrl.isEmpty) {
       return;
@@ -156,68 +172,127 @@ class _AddWishScreenState extends State<AddWishScreen> {
 
     if (!_productLinkService.supportsUrl(trimmedUrl)) {
       setState(() {
-        _autoImageErrorMessage =
+        _autoMetadataErrorMessage =
             'Please enter a valid product link that starts with http or https.';
         _autoFetchedImageBytes = null;
         _autoFetchedImageContentType = null;
         _autoFetchedProductUrl = null;
         _autoFetchedSourceImageUrl = null;
+        _autoFetchedPrice = null;
+        _autoFetchedCurrency = null;
       });
-      return;
-    }
-
-    if (_autoFetchedProductUrl == trimmedUrl &&
-        _autoFetchedImageBytes != null) {
       return;
     }
 
     final currentRequestId = ++_urlRequestId;
 
     setState(() {
-      _isFetchingImagePreview = true;
-      _autoImageErrorMessage = null;
+      _isFetchingMetadata = true;
+      _autoMetadataErrorMessage = null;
       _autoFetchedProductUrl = trimmedUrl;
     });
 
     try {
-      final result = await _productLinkService.fetchPrimaryImage(trimmedUrl);
+      final result = await _productLinkService.fetchMetadata(trimmedUrl);
       if (!mounted || currentRequestId != _urlRequestId) {
         return;
       }
 
       if (result == null) {
+        final shouldClearPrice = !_priceManuallyEdited;
         setState(() {
-          _autoImageErrorMessage =
-              'We could not find a product photo for this link. You can select one from your gallery.';
+          _autoMetadataErrorMessage =
+              'We could not fetch product details for this link. You can enter them manually.';
           _autoFetchedImageBytes = null;
           _autoFetchedImageContentType = null;
           _autoFetchedSourceImageUrl = null;
+          _autoFetchedPrice = null;
+          _autoFetchedCurrency = null;
         });
+        if (shouldClearPrice) {
+          _priceController.clear();
+        }
         return;
       }
 
+      final imageResult = result.image;
+      final fetchedPrice = result.price;
+      final fetchedCurrency = result.currency?.toUpperCase();
+
       setState(() {
-        _autoFetchedImageBytes = result.imageBytes;
-        _autoFetchedImageContentType = result.contentType;
-        _autoFetchedProductUrl = trimmedUrl;
-        _autoFetchedSourceImageUrl = result.imageUrl;
-        _autoImageErrorMessage = null;
+        if (imageResult != null) {
+          _autoFetchedImageBytes = imageResult.imageBytes;
+          _autoFetchedImageContentType = imageResult.contentType;
+          _autoFetchedSourceImageUrl = imageResult.imageUrl;
+          _autoMetadataErrorMessage = null;
+        } else if (_selectedLocalImageBytes == null) {
+          _autoFetchedImageBytes = null;
+          _autoFetchedImageContentType = null;
+          _autoFetchedSourceImageUrl = null;
+          _autoMetadataErrorMessage =
+              'We could not find a product photo for this link. You can select one from your gallery.';
+        }
+
+        _autoFetchedPrice = fetchedPrice;
+
+        if (fetchedCurrency != null) {
+          _autoFetchedCurrency = fetchedCurrency;
+          if (!_availableCurrencies.contains(fetchedCurrency)) {
+            _availableCurrencies = [
+              fetchedCurrency,
+              ..._availableCurrencies.where(
+                (currency) => currency != fetchedCurrency,
+              ),
+            ];
+          }
+          if (!_currencyManuallySelected) {
+            _selectedCurrency = fetchedCurrency;
+          }
+        } else {
+          _autoFetchedCurrency = null;
+          if (!_currencyManuallySelected) {
+            final fallback = _defaultCurrencyOptions.first;
+            _selectedCurrency = fallback;
+            if (!_availableCurrencies.contains(fallback)) {
+              _availableCurrencies = [
+                fallback,
+                ..._availableCurrencies,
+              ];
+            }
+          }
+        }
+
+        if (fetchedPrice == null && !_priceManuallyEdited) {
+          _autoMetadataErrorMessage ??=
+              'We could not detect the price for this link. Please enter it manually.';
+        }
       });
+
+      if (fetchedPrice != null && !_priceManuallyEdited) {
+        _priceController.text = fetchedPrice.toStringAsFixed(2);
+      } else if (fetchedPrice == null && !_priceManuallyEdited) {
+        _priceController.clear();
+      }
     } catch (_) {
       if (!mounted || currentRequestId != _urlRequestId) {
         return;
       }
       setState(() {
-        _autoImageErrorMessage =
-            'We could not fetch a product photo for this link right now.';
+        _autoMetadataErrorMessage =
+            'We could not fetch product details for this link right now.';
         _autoFetchedImageBytes = null;
         _autoFetchedImageContentType = null;
         _autoFetchedSourceImageUrl = null;
+        _autoFetchedPrice = null;
+        _autoFetchedCurrency = null;
       });
+      if (!_priceManuallyEdited) {
+        _priceController.clear();
+      }
     } finally {
       if (mounted && currentRequestId == _urlRequestId) {
         setState(() {
-          _isFetchingImagePreview = false;
+          _isFetchingMetadata = false;
         });
       }
     }
@@ -252,7 +327,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
         _autoFetchedImageContentType = null;
         _autoFetchedProductUrl = null;
         _autoFetchedSourceImageUrl = null;
-        _autoImageErrorMessage = null;
+        _autoMetadataErrorMessage = null;
       });
     } catch (error) {
       if (!mounted) {
@@ -510,7 +585,8 @@ class _AddWishScreenState extends State<AddWishScreen> {
           (userData?['profilePhotoUrl'] as String?)?.trim() ?? '';
 
       final productUrl = _productUrlController.text.trim();
-      final price = double.tryParse(_priceController.text.trim()) ?? 0.0;
+      final priceInput = _priceController.text.trim().replaceAll(',', '.');
+      final price = double.tryParse(priceInput) ?? 0.0;
 
       final preparedImageUrl = await _prepareImageUpload(
         userId: currentUser.uid,
@@ -531,6 +607,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
         productUrl: productUrl,
         imageUrl: imageUrl,
         price: price,
+        currency: _selectedCurrency.toUpperCase(),
         createdAt: DateTime.now(),
         listId: _selectedListId,
       );
@@ -556,6 +633,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
           productUrl: wishItem.productUrl,
           imageUrl: wishItem.imageUrl,
           price: wishItem.price,
+          currency: wishItem.currency,
           createdAt: wishItem.createdAt,
           listId: wishItem.listId,
         ),
@@ -700,7 +778,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  if (_isFetchingImagePreview)
+                  if (_isFetchingMetadata)
                     Row(
                       children: const [
                         SizedBox(
@@ -711,18 +789,18 @@ class _AddWishScreenState extends State<AddWishScreen> {
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Fetching product photo...',
+                            'Fetching product details...',
                             style: TextStyle(fontSize: 13),
                           ),
                         ),
                       ],
                     ),
-                  if (_isFetchingImagePreview) const SizedBox(height: 12),
-                  if (_autoImageErrorMessage != null)
+                  if (_isFetchingMetadata) const SizedBox(height: 12),
+                  if (_autoMetadataErrorMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(top: 4, bottom: 12),
                       child: Text(
-                        _autoImageErrorMessage!,
+                        _autoMetadataErrorMessage!,
                         style: const TextStyle(
                           color: Colors.redAccent,
                           fontSize: 13,
@@ -737,24 +815,96 @@ class _AddWishScreenState extends State<AddWishScreen> {
                     label: const Text('Select photo from gallery'),
                   ),
                   const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _priceController,
-                    decoration: const InputDecoration(
-                      labelText: 'Price *',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter a price';
-                      }
-                      final price = double.tryParse(value.trim());
-                      if (price == null || price <= 0) {
-                        return 'Please enter a valid price greater than 0';
-                      }
-                      return null;
-                    },
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _priceController,
+                          decoration: const InputDecoration(
+                            labelText: 'Price *',
+                            border: OutlineInputBorder(),
+                          ),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          onChanged: (value) {
+                            if (!_priceManuallyEdited) {
+                              setState(() {
+                                _priceManuallyEdited = true;
+                              });
+                            }
+                          },
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Please enter a price';
+                            }
+                            final normalized = value.trim().replaceAll(',', '.');
+                            final price = double.tryParse(normalized);
+                            if (price == null || price <= 0) {
+                              return 'Please enter a valid price greater than 0';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      SizedBox(
+                        width: 120,
+                        child: DropdownButtonFormField<String>(
+                          value: _availableCurrencies.contains(_selectedCurrency)
+                              ? _selectedCurrency
+                              : (_availableCurrencies.isNotEmpty
+                                  ? _availableCurrencies.first
+                                  : _selectedCurrency),
+                          decoration: const InputDecoration(
+                            labelText: 'Currency',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: _availableCurrencies
+                              .map(
+                                (currency) => DropdownMenuItem<String>(
+                                  value: currency,
+                                  child: Text(currency),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: _isLoading
+                              ? null
+                              : (value) {
+                                  if (value == null) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    _selectedCurrency = value;
+                                    _currencyManuallySelected = true;
+                                  });
+                                },
+                        ),
+                      ),
+                    ],
                   ),
+                  if (_autoFetchedPrice != null && !_priceManuallyEdited)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'Price fetched automatically from the link.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green.shade700,
+                        ),
+                      ),
+                    ),
+                  if (_autoFetchedCurrency != null && !_currencyManuallySelected)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Currency detected as $_autoFetchedCurrency.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green.shade700,
+                        ),
+                      ),
+                    ),
                   const SizedBox(height: 32),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _saveWish,
