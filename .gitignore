@@ -47,3 +47,5 @@ firebase.json
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 lib/firebase_options.dart
+assets/ui_ux_guidelines.md
+assets/fonts/WishLinkFont.ttf
