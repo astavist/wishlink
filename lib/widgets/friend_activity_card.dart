@@ -6,6 +6,7 @@ import '../services/firestore_service.dart';
 import '../screens/user_profile_screen.dart';
 import '../screens/wish_detail_screen.dart';
 import '../utils/currency_utils.dart';
+import 'wishlink_card.dart';
 
 // Custom page route for right-to-left slide animation (for user profiles)
 PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
@@ -164,23 +165,74 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final displayName = widget.activity.userName.isNotEmpty
         ? widget.activity.userName
         : 'Unknown User';
     final handle = widget.activity.userUsername;
 
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Kullanıcı bilgisi ve zaman
-            Row(
-              children: [
-                GestureDetector(
+    return WishLinkCard(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Kullanıcı bilgisi ve zaman
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    _createSlideRoute(
+                      UserProfileScreen(
+                        userId: widget.activity.userId,
+                        userName: widget.activity.userName,
+                        userUsername: handle.isNotEmpty ? handle : null,
+                      ),
+                    ),
+                  );
+                },
+                child: FutureBuilder<DocumentSnapshot?>(
+                  future: _firestoreService.getUserProfile(
+                    widget.activity.userId,
+                  ),
+                  builder: (context, userSnapshot) {
+                    if (userSnapshot.hasData && userSnapshot.data != null) {
+                      final userData =
+                          userSnapshot.data!.data() as Map<String, dynamic>?;
+                      final profilePhotoUrl =
+                          userData?['profilePhotoUrl'] ?? '';
+
+                      if (profilePhotoUrl.isNotEmpty) {
+                        return CircleAvatar(
+                          backgroundImage: NetworkImage(profilePhotoUrl),
+                          radius: 20,
+                        );
+                      }
+                    }
+
+                    // Fallback to default avatar
+                    return CircleAvatar(
+                      backgroundColor: theme.colorScheme.primary.withOpacity(
+                        0.14,
+                      ),
+                      radius: 24,
+                      child: Text(
+                        displayName.isNotEmpty
+                            ? displayName[0].toUpperCase()
+                            : 'U',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: GestureDetector(
                   onTap: () {
                     Navigator.push(
                       context,
@@ -193,108 +245,67 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                       ),
                     );
                   },
-                  child: FutureBuilder<DocumentSnapshot?>(
-                    future: _firestoreService.getUserProfile(
-                      widget.activity.userId,
-                    ),
-                    builder: (context, userSnapshot) {
-                      if (userSnapshot.hasData && userSnapshot.data != null) {
-                        final userData =
-                            userSnapshot.data!.data() as Map<String, dynamic>?;
-                        final profilePhotoUrl =
-                            userData?['profilePhotoUrl'] ?? '';
-
-                        if (profilePhotoUrl.isNotEmpty) {
-                          return CircleAvatar(
-                            backgroundImage: NetworkImage(profilePhotoUrl),
-                            radius: 20,
-                          );
-                        }
-                      }
-
-                      // Fallback to default avatar
-                      return CircleAvatar(
-                        backgroundColor: Colors.lightGreen[200],
-                        radius: 20,
-                        child: Text(
-                          displayName.isNotEmpty
-                              ? displayName[0].toUpperCase()
-                              : 'U',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        displayName,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
                         ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        _createSlideRoute(
-                          UserProfileScreen(
-                            userId: widget.activity.userId,
-                            userName: widget.activity.userName,
-                            userUsername: handle.isNotEmpty ? handle : null,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          displayName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                        if (handle.isNotEmpty)
-                          Text(
-                            '@$handle',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 13,
+                      ),
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          if (handle.isNotEmpty)
+                            _InfoPill(
+                              label: '@$handle',
+                              background: theme.colorScheme.primary.withOpacity(
+                                0.14,
+                              ),
+                              foreground: theme.colorScheme.primary,
                             ),
+                          _InfoPill(
+                            label: widget.activity.timeAgo,
+                            background: theme.colorScheme.surface.withOpacity(
+                              0.6,
+                            ),
+                            foreground:
+                                theme.textTheme.bodySmall?.color ??
+                                theme.colorScheme.onSurface,
                           ),
-                        Text(
-                          widget.activity.timeAgo,
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                if (_isOwnActivity && widget.onEdit != null)
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined),
-                    tooltip: 'Edit wish',
-                    onPressed: widget.onEdit,
-                  ),
+              ),
+              if (_isOwnActivity && widget.onEdit != null)
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Edit wish',
+                  onPressed: widget.onEdit,
+                ),
             ],
           ),
-            const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-            // Ürün görseli
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    createRightToLeftSlideRoute(
-                      WishDetailScreen(wish: widget.activity.wishItem),
-                    ),
-                  );
-                },
+          // Ürün görseli
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  createRightToLeftSlideRoute(
+                    WishDetailScreen(wish: widget.activity.wishItem),
+                  ),
+                );
+              },
+              child: AspectRatio(
+                aspectRatio: 16 / 10,
                 child: widget.activity.wishItem.imageUrl.isNotEmpty
                     ? Image.network(
                         widget.activity.wishItem.imageUrl,
@@ -305,11 +316,12 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                           return Container(
                             width: double.infinity,
                             height: 200,
-                            color: Colors.grey[300],
-                            child: const Icon(
+                            color: theme.colorScheme.primary.withOpacity(0.06),
+                            alignment: Alignment.center,
+                            child: Icon(
                               Icons.image_not_supported,
-                              size: 50,
-                              color: Colors.grey,
+                              size: 48,
+                              color: theme.colorScheme.primary.withOpacity(0.4),
                             ),
                           );
                         },
@@ -317,189 +329,244 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                     : Container(
                         width: double.infinity,
                         height: 200,
-                        color: Colors.grey[300],
-                        child: const Icon(
-                          Icons.image,
-                          size: 50,
-                          color: Colors.grey,
+                        color: theme.colorScheme.primary.withOpacity(0.06),
+                        alignment: Alignment.center,
+                        child: Icon(
+                          Icons.image_outlined,
+                          size: 48,
+                          color: theme.colorScheme.primary.withOpacity(0.4),
                         ),
                       ),
               ),
             ),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 16),
 
-            // Ürün bilgileri (tıklanabilir)
-            InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  createRightToLeftSlideRoute(
-                    WishDetailScreen(wish: widget.activity.wishItem),
-                  ),
-                );
-              },
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.activity.wishItem.name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.activity.wishItem.description,
-                    style: const TextStyle(color: Colors.grey, fontSize: 14),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Fiyat
-                  if (widget.activity.wishItem.price > 0)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              currencySymbol(
-                                widget.activity.wishItem.currency,
-                              ),
-                              style: const TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            formatAmount(widget.activity.wishItem.price),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-
-            // Satın Al butonu
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: widget.onBuyNow,
-                icon: const Icon(Icons.shopping_cart),
-                label: const Text('Buy Now'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromARGB(255, 211, 79, 11),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+          // Ürün bilgileri (tıklanabilir)
+          InkWell(
+            onTap: () {
+              Navigator.push(
+                context,
+                createRightToLeftSlideRoute(
+                  WishDetailScreen(wish: widget.activity.wishItem),
                 ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Etkileşim butonları
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              );
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(
-                        _isLiked ? Icons.favorite : Icons.favorite_border,
-                        color: _isLiked ? Colors.red : null,
+                Text(
+                  widget.activity.wishItem.name,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  widget.activity.wishItem.description,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.85),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Fiyat
+                if (widget.activity.wishItem.price > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
                       ),
-                      onPressed: (!_isOwnActivity && !_isProcessingLike)
-                          ? _handleLike
-                          : null,
-                    ),
-                    if (!_isOwnActivity && _likesCount > 0)
-                      Text(
-                        _likesCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.secondary.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Text(
+                        formatPrice(
+                          widget.activity.wishItem.price,
+                          widget.activity.wishItem.currency,
+                        ),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.secondary,
                         ),
                       ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chat_bubble_outline),
-                      onPressed: !_isOwnActivity ? _handleCommentPressed : null,
                     ),
-                    if (!_isOwnActivity && _commentsCount > 0)
-                      Text(
-                        _commentsCount.toString(),
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
-                  ],
+                  ),
+              ],
+            ),
+          ),
+
+          // Satın Al butonu
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: widget.onBuyNow,
+              icon: const Icon(Icons.card_giftcard_outlined),
+              label: const Text('Hediyeyi satın al'),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Etkileşim butonları
+          Row(
+            children: [
+              Expanded(
+                child: _ActionPillButton(
+                  icon: _isLiked ? Icons.favorite : Icons.favorite_border,
+                  label: _likesCount > 0 ? _likesCount.toString() : 'Beğen',
+                  isActive: _isLiked,
+                  onTap: (!_isOwnActivity && !_isProcessingLike)
+                      ? _handleLike
+                      : null,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.share),
-                  onPressed: widget.onShare,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ActionPillButton(
+                  icon: Icons.chat_bubble_outline,
+                  label: _commentsCount > 0
+                      ? _commentsCount.toString()
+                      : 'Yorum',
+                  onTap: !_isOwnActivity ? _handleCommentPressed : null,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ActionPillButton(
+                  icon: Icons.share_outlined,
+                  label: 'Paylaş',
+                  onTap: widget.onShare,
+                ),
+              ),
+            ],
+          ),
+
+          // Etkinlik açıklaması
+          if (widget.activity.activityDescription != null)
+            Column(
+              children: [
+                const Divider(),
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: handle.isNotEmpty
+                              ? '$displayName (@$handle) '
+                              : '$displayName ',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        TextSpan(
+                          text: widget.activity.activityDescription!,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
+        ],
+      ),
+    );
+  }
+}
 
-            // Etkinlik açıklaması
-            if (widget.activity.activityDescription != null)
-              Column(
-                children: [
-                  const Divider(),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: handle.isNotEmpty
-                                ? '$displayName (@$handle) '
-                                : '$displayName ',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          TextSpan(
-                            text: widget.activity.activityDescription!,
-                            style: const TextStyle(color: Colors.black),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-          ],
+class _InfoPill extends StatelessWidget {
+  const _InfoPill({
+    required this.label,
+    required this.background,
+    required this.foreground,
+  });
+
+  final String label;
+  final Color background;
+  final Color? foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.primary.withOpacity(0.08),
+          width: 1.1,
+        ),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: foreground,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
 }
 
+class _ActionPillButton extends StatelessWidget {
+  const _ActionPillButton({
+    required this.icon,
+    required this.label,
+    this.onTap,
+    this.isActive = false,
+  });
 
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final bool isActive;
 
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final enabled = onTap != null;
+    final activeColor = isActive
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurface.withOpacity(enabled ? 0.85 : 0.35);
+    final backgroundColor = isActive
+        ? theme.colorScheme.primary.withOpacity(0.16)
+        : theme.colorScheme.surface.withOpacity(enabled ? 0.7 : 0.45);
 
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: theme.colorScheme.primary.withOpacity(0.1),
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 20, color: activeColor),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: activeColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

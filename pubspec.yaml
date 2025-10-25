@@ -45,6 +45,17 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+  fonts:
+    - family: HelveticaNeue
+      fonts:
+        - asset: assets/fonts/HelveticaNeueLight.otf
+          weight: 300
+        - asset: assets/fonts/HelveticaNeueRoman.otf
+          weight: 400
+        - asset: assets/fonts/HelveticaNeueBold.otf
+          weight: 700
+        - asset: assets/fonts/HelveticaNeueBlack.otf
+          weight: 900
 
 flutter_launcher_icons:
   android: "launcher_icon"
