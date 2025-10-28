@@ -8,6 +8,8 @@ import '../screens/wish_detail_screen.dart';
 import '../utils/currency_utils.dart';
 import 'wishlink_card.dart';
 
+const Color _brandColor = Color(0xFFEFB652);
+
 // Custom page route for right-to-left slide animation (for user profiles)
 PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
   return PageRouteBuilder<dynamic>(
@@ -262,10 +264,9 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                           if (handle.isNotEmpty)
                             _InfoPill(
                               label: '@$handle',
-                              background: theme.colorScheme.primary.withOpacity(
-                                0.14,
-                              ),
-                              foreground: theme.colorScheme.primary,
+                              background: _brandColor.withOpacity(0.18),
+                              foreground: _brandColor,
+                              borderColor: _brandColor.withOpacity(0.5),
                             ),
                           _InfoPill(
                             label: widget.activity.timeAgo,
@@ -380,8 +381,12 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.secondary.withOpacity(0.18),
+                        color: _brandColor.withOpacity(0.16),
                         borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: _brandColor.withOpacity(0.4),
+                          width: 1.2,
+                        ),
                       ),
                       child: Text(
                         formatPrice(
@@ -390,7 +395,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                         ),
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: theme.colorScheme.secondary,
+                          color: _brandColor,
                         ),
                       ),
                     ),
@@ -403,6 +408,15 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _brandColor,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(26),
+                ),
+              ),
               onPressed: widget.onBuyNow,
               icon: const Icon(Icons.card_giftcard_outlined),
               label: const Text('Hediyeyi satın al'),
@@ -483,11 +497,13 @@ class _InfoPill extends StatelessWidget {
     required this.label,
     required this.background,
     required this.foreground,
+    this.borderColor,
   });
 
   final String label;
   final Color background;
   final Color? foreground;
+  final Color? borderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -498,7 +514,7 @@ class _InfoPill extends StatelessWidget {
         color: background,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.08),
+          color: borderColor ?? theme.colorScheme.primary.withOpacity(0.08),
           width: 1.1,
         ),
       ),

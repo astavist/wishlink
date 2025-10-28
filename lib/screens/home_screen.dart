@@ -214,6 +214,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
+      backgroundColor: Theme.of(context).appBarTheme.backgroundColor ??
+          Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -222,7 +225,9 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset(
-                _resolveAppBarAsset(context), // Logo yolunu kendi dosyanýza göre güncelleyin
+                _resolveAppBarAsset(
+                  context,
+                ), // Logo yolunu kendi dosyanï¿½za gï¿½re gï¿½ncelleyin
                 height: 70,
               ),
             ],
@@ -366,7 +371,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           // Home
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -449,6 +454,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         }
 
                         return ListView.builder(
+                          padding: const EdgeInsets.only(bottom: 160),
                           itemCount: activities.length,
                           itemBuilder: (context, index) {
                             final activity = activities[index];
@@ -485,97 +491,208 @@ class _HomeScreenState extends State<HomeScreen> {
           const ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Stack(
-              children: [
-                const Icon(Icons.people),
-                if (_hasFriendRequests)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 8,
-                        minHeight: 8,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            label: 'Friends',
-          ),
-          BottomNavigationBarItem(
-            icon: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFEFB652),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.add, color: Colors.white, size: 40),
-            ),
-            label: '',
-          ),
-          BottomNavigationBarItem(
-            icon: Stack(
-              children: [
-                const Icon(Icons.notifications),
-                if (_unreadNotificationsCount > 0)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      constraints: const BoxConstraints(
-                        minWidth: 8,
-                        minHeight: 8,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            label: 'Notifications',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        onTap: (index) async {
-          if (index == 2) {
-            // Add Wish button - navigate to AddWishScreen
-            Navigator.push(
-              context,
-              _createBottomToTopSlideRoute(const AddWishScreen()),
-            );
-            return;
-          }
 
-          final targetPage = _bottomIndexToPageIndex(index);
-          _pageController.animateToPage(
-            targetPage,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
+      bottomNavigationBar: Builder(
+        builder: (context) {
+          const double navBarHeight = 88;
+          const double stackExtraSpace = 34;
+          const double addButtonSize = 60;
+          final double bottomInset = MediaQuery.paddingOf(context).bottom;
+          final double stackHeight =
+              navBarHeight + stackExtraSpace + bottomInset;
+          final double containerHeight = navBarHeight + bottomInset;
+          final double addButtonBottomOffset =
+              (navBarHeight / 2) - (addButtonSize / 2);
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: SizedBox(
+              height: stackHeight,
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.bottomCenter,
+                children: [
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      height: containerHeight,
+                      padding: EdgeInsets.fromLTRB(32, 0, 32, bottomInset),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? const Color(0xFF1F1F1F)
+                            : Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(navBarHeight / 2),
+                          topRight: Radius.circular(navBarHeight / 2),
+                          bottomLeft: Radius.zero,
+                          bottomRight: Radius.zero,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? 0.35
+                                  : 0.15,
+                            ),
+                            blurRadius: 35,
+                            offset: const Offset(0, 22),
+                          ),
+                          BoxShadow(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withOpacity(0.08)
+                                : const Color(0x66FFFFFF),
+                            blurRadius: 6,
+                            offset: const Offset(0, -2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildBottomNavItem(
+                            icon: Icons.home_rounded,
+                            index: 0,
+                          ),
+                          _buildBottomNavItem(
+                            icon: Icons.group_outlined,
+                            index: 1,
+                            showBadge: _hasFriendRequests,
+                          ),
+                          const SizedBox(width: 70),
+                          _buildBottomNavItem(
+                            icon: Icons.notifications_none_rounded,
+                            index: 3,
+                            showBadge: _unreadNotificationsCount > 0,
+                          ),
+                          _buildBottomNavItem(
+                            icon: Icons.person_outline_rounded,
+                            index: 4,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: bottomInset + addButtonBottomOffset,
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          _createBottomToTopSlideRoute(const AddWishScreen()),
+                        );
+                      },
+                      child: Container(
+                        width: addButtonSize,
+                        height: addButtonSize,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: LinearGradient(
+                            colors: [Color(0xFFFDD27B), Color(0xFFF6A441)],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x66F6A441),
+                              blurRadius: 30,
+                              offset: Offset(0, 18),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           );
         },
       ),
     );
   }
 
+  void _handleBottomNavTap(int index) {
+    if (index == 2) {
+      Navigator.push(
+        context,
+        _createBottomToTopSlideRoute(const AddWishScreen()),
+      );
+      return;
+    }
+
+    final targetPage = _bottomIndexToPageIndex(index);
+    setState(() {
+      _selectedIndex = index;
+    });
+    _pageController.animateToPage(
+      targetPage,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  Widget _buildBottomNavItem({
+    required IconData icon,
+    required int index,
+    bool showBadge = false,
+  }) {
+    final theme = Theme.of(context);
+    final bool isSelected = _selectedIndex == index;
+    final Color activeColor = theme.brightness == Brightness.dark
+        ? Colors.white
+        : const Color(0xFF1F1F1F);
+    final Color inactiveColor = theme.brightness == Brightness.dark
+        ? Colors.white.withOpacity(0.5)
+        : Colors.grey[500]!;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => _handleBottomNavTap(index),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? activeColor.withOpacity(
+                      theme.brightness == Brightness.dark ? 0.18 : 0.1,
+                    )
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Icon(
+              icon,
+              size: 26,
+              color: isSelected ? activeColor : inactiveColor,
+            ),
+          ),
+          if (showBadge)
+            Positioned(
+              right: 4,
+              top: 4,
+              child: Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Colors.redAccent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   String _resolveAppBarAsset(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark

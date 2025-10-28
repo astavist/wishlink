@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 /// Centralised design tokens inspired by the reference product mockups.
 class WishLinkTheme {
   WishLinkTheme._();
@@ -211,7 +212,7 @@ class WishLinkTheme {
         onTertiary: Colors.black,
         tertiaryContainer: Color(0xFF244531),
         onTertiaryContainer: _textPrimaryDark,
-        primaryContainer: Color(0xFF5C431C),
+        primaryContainer: Color(0xFFEFB652),
         onPrimaryContainer: _textPrimaryDark,
         secondaryContainer: Color(0xFF692E15),
         onSecondaryContainer: _textPrimaryDark,
@@ -235,7 +236,10 @@ class WishLinkTheme {
         shadowColor: Colors.black.withValues(alpha: 0.32),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(22),
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.08), width: 1.0),
+          side: BorderSide(
+            color: Colors.white.withValues(alpha: 0.08),
+            width: 1.0,
+          ),
         ),
         color: _surfaceDark,
         margin: const EdgeInsets.all(12),
@@ -258,7 +262,10 @@ class WishLinkTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: _primaryDark,
-          side: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1.2),
+          side: BorderSide(
+            color: Colors.white.withValues(alpha: 0.2),
+            width: 1.2,
+          ),
           padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(18),

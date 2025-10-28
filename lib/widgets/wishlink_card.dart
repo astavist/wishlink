@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:wishlink/theme/app_theme.dart';
 
+const Color _brandBorderColor = Color(0xFFEFB652);
+
 /// Rounded pastel card aligned with the new WishLink design language.
 class WishLinkCard extends StatelessWidget {
   const WishLinkCard({
@@ -27,8 +29,8 @@ class WishLinkCard extends StatelessWidget {
       gradient: gradient ?? gradients?.secondary,
       borderRadius: BorderRadius.circular(24),
       border: Border.all(
-        color: Theme.of(context).colorScheme.primary.withOpacity(
-          Theme.of(context).brightness == Brightness.dark ? 0.22 : 0.12,
+        color: _brandBorderColor.withOpacity(
+          Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.18,
         ),
         width: 1.4,
       ),
