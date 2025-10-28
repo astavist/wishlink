@@ -1104,15 +1104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               : () => print('Continue with Apple'),
                         ),
                       ],
-                      const SizedBox(height: 16),
-                      _SocialLoginButton(
-                        icon: FontAwesomeIcons.facebookF,
-                        text: 'Continue with Facebook',
-                        backgroundColor: Colors.blue[700]!,
-                        onPressed: _isLoading
-                            ? null
-                            : () => print('Continue with Facebook'),
-                      ),
+                      
                     ],
                   ],
                 ),
