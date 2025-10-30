@@ -1,5 +1,6 @@
 // lib/login_screen.dart
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +9,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:http/http.dart' as http;
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:crypto/crypto.dart';
 import 'email_verification_required_screen.dart';
 import 'google_account_setup_screen.dart';
 
@@ -57,6 +60,20 @@ class _LoginScreenState extends State<LoginScreen> {
     _emailFocusNode.dispose();
     _passwordFocusNode.dispose();
     super.dispose();
+  }
+
+  String _generateNonce([int length = 32]) {
+    const charset =
+        '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
+    final random = Random.secure();
+    return List.generate(length, (_) => charset[random.nextInt(charset.length)])
+        .join();
+  }
+
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
   }
 
   String? _validatePassword(String? value) {
@@ -568,6 +585,133 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       setState(() {
         _errorMessage = 'Google sign-in failed. Please try again.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _signInWithApple() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final rawNonce = _generateNonce();
+      final nonce = _sha256ofString(rawNonce);
+
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: nonce,
+      );
+
+      final oauthCredential = OAuthProvider('apple.com').credential(
+        idToken: appleCredential.identityToken,
+        rawNonce: rawNonce,
+      );
+
+      final userCredential = await _auth.signInWithCredential(oauthCredential);
+      final user = userCredential.user;
+      if (user == null) {
+        throw FirebaseAuthException(
+          code: 'user-not-found',
+          message: 'No user returned from Apple sign-in.',
+        );
+      }
+
+      final userDocRef = _firestore.collection('users').doc(user.uid);
+      final userDoc = await userDocRef.get();
+
+      final firstName = (appleCredential.givenName ?? '').trim();
+      final lastName = (appleCredential.familyName ?? '').trim();
+      final email = user.email; // May be a private relay
+
+      final suggestion = _generateUsernameSuggestion(
+        firstName: firstName.isNotEmpty ? firstName : null,
+        lastName: lastName.isNotEmpty ? lastName : null,
+        email: email,
+      );
+
+      final currentUsername =
+          (userDoc.data()?['username'] as String?)?.trim() ?? '';
+      final isNewUser = !userDoc.exists;
+
+      if (isNewUser || currentUsername.isEmpty) {
+        // Pre-fill minimal info for new users, then show setup screen
+        await userDocRef.set({
+          if (firstName.isNotEmpty) 'firstName': firstName,
+          if (lastName.isNotEmpty) 'lastName': lastName,
+          if (email != null) 'email': email,
+          'emailVerified': true,
+          if (isNewUser) 'createdAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+
+        if (!mounted) return;
+        final result = await Navigator.of(context).push<String>(
+          MaterialPageRoute(
+            builder: (context) => GoogleAccountSetupScreen(
+              user: user,
+              firstName: firstName.isNotEmpty ? firstName : null,
+              lastName: lastName.isNotEmpty ? lastName : null,
+              email: email,
+              suggestedUsername: suggestion,
+              isNewUser: isNewUser,
+              initialBirthday: null,
+            ),
+          ),
+        );
+
+        if (result == null) {
+          await _auth.signOut();
+          if (mounted) {
+            setState(() {
+              _errorMessage = 'Apple account setup was cancelled.';
+            });
+          }
+          return;
+        }
+      } else {
+        // Existing user: ensure flags and username
+        if (!(userDoc.data()?['emailVerified'] ?? false)) {
+          await userDocRef.update({'emailVerified': true});
+        }
+        if (firstName.isNotEmpty || lastName.isNotEmpty) {
+          await userDocRef.set({
+            if (firstName.isNotEmpty) 'firstName': firstName,
+            if (lastName.isNotEmpty) 'lastName': lastName,
+          }, SetOptions(merge: true));
+        }
+        final ensured = await _ensureUsernameForUser(
+          user,
+          suggestedUsername: suggestion,
+        );
+        if (!ensured) {
+          return;
+        }
+      }
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        // User canceled; just stop loading without error message.
+      } else {
+        setState(() {
+          _errorMessage = 'Apple sign-in failed. Please try again.';
+        });
+      }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _errorMessage = _getErrorMessage(e.code);
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Apple sign-in failed. Please try again.';
       });
     } finally {
       if (mounted) {
@@ -1099,9 +1243,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           text: 'Continue with Apple',
                           backgroundColor: Colors.black,
                           textColor: Colors.white,
-                          onPressed: _isLoading
-                              ? null
-                              : () => print('Continue with Apple'),
+                          onPressed:
+                              _isLoading ? null : _signInWithApple,
                         ),
                       ],
                       
