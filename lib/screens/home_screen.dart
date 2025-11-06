@@ -117,6 +117,8 @@ class _HomeScreenState extends State<HomeScreen> {
       // Get read notifications
       final readNotificationsSnapshot = await FirebaseFirestore.instance
           .collection('notifications')
+          .doc(currentUserId)
+          .collection('items')
           .where('isRead', isEqualTo: true)
           .get();
       final readNotificationIds = readNotificationsSnapshot.docs
@@ -169,6 +171,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final readNotificationsSnapshot = await FirebaseFirestore.instance
           .collection('notifications')
+          .doc(currentUserId)
+          .collection('items')
           .where('isRead', isEqualTo: true)
           .get();
       final readNotificationIds = readNotificationsSnapshot.docs
@@ -180,6 +184,8 @@ class _HomeScreenState extends State<HomeScreen> {
         if (!readNotificationIds.contains(request.id)) {
           await FirebaseFirestore.instance
               .collection('notifications')
+              .doc(currentUserId)
+              .collection('items')
               .doc(request.id)
               .set({'isRead': true, 'timestamp': FieldValue.serverTimestamp()});
         }
@@ -197,6 +203,8 @@ class _HomeScreenState extends State<HomeScreen> {
             !readNotificationIds.contains(activity.id)) {
           await FirebaseFirestore.instance
               .collection('notifications')
+              .doc(currentUserId)
+              .collection('items')
               .doc(activity.id)
               .set({'isRead': true, 'timestamp': FieldValue.serverTimestamp()});
         }

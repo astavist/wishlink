@@ -104,7 +104,11 @@ class _WishCardDialogState extends State<WishCardDialog> {
       await FirebaseFirestore.instance
           .collection('wishes')
           .doc(widget.wish.id)
-          .update(updatedWish.toMap());
+          .update({
+            ...updatedWish.toMap(),
+            // ensure legacy wishes have ownerId stamped for rules
+            'ownerId': currentUser.uid,
+          });
 
       // Update in friend_activities collection
       final activitySnapshot = await FirebaseFirestore.instance

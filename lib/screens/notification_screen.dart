@@ -66,6 +66,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
         _firestoreService.getFriendIds(),
         _firestore
             .collection('notifications')
+            .doc(currentUserId)
+            .collection('items')
             .where('isRead', isEqualTo: true)
             .get(),
         _firestore
@@ -291,7 +293,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Future<void> _markAsRead(String notificationId) async {
     try {
       // Mark as read in Firestore
-      await _firestore.collection('notifications').doc(notificationId).update({
+      final currentUserId = _auth.currentUser?.uid;
+      if (currentUserId == null) return;
+
+      final __uid = _auth.currentUser?.uid;
+      if (__uid == null) return;
+
+      await _firestore
+          .collection('notifications')
+          .doc(__uid)
+          .collection('items')
+          .doc(notificationId)
+          .update({
         'isRead': true,
       });
 
@@ -302,10 +315,16 @@ class _NotificationScreenState extends State<NotificationScreen> {
           _notifications[index] = _notifications[index].copyWith(isRead: true);
         }
       });
-    } catch (e) {
-      // If notification document doesn't exist, create it
-      try {
-        await _firestore.collection('notifications').doc(notificationId).set({
+      } catch (e) {
+        // If notification document doesn't exist, create it
+        try {
+        final __uid2 = _auth.currentUser?.uid; if (__uid2 == null) return;
+        await _firestore
+            .collection('notifications')
+            .doc(__uid2)
+            .collection('items')
+            .doc(notificationId)
+            .set({
           'isRead': true,
           'timestamp': FieldValue.serverTimestamp(),
         });

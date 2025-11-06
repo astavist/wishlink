@@ -617,6 +617,8 @@ class _AddWishScreenState extends State<AddWishScreen> {
           .collection('wishes')
           .add({
             ...wishItem.toMap(),
+            // Security rules: ensure wish ownership is enforced
+            'ownerId': currentUser.uid,
           });
 
       // Create friend activity

@@ -18,30 +18,31 @@ class FirestoreService {
     final currentUser = _auth.currentUser;
     if (currentUser == null) return [];
 
-    // Get all friendships where current user is either userId or friendId
-    final snapshot = await _firestore
+    // Query is split in two so rules can be enforced server-side
+    final qsA = await _firestore
         .collection('friendships')
         .where('status', isEqualTo: 'accepted')
         .where('type', isEqualTo: 'friendship')
+        .where('userId', isEqualTo: currentUser.uid)
         .get();
 
-    // Filter to get only mutual friendships and extract friend IDs
+    final qsB = await _firestore
+        .collection('friendships')
+        .where('status', isEqualTo: 'accepted')
+        .where('type', isEqualTo: 'friendship')
+        .where('friendId', isEqualTo: currentUser.uid)
+        .get();
+
     final friendIds = <String>{};
-
-    for (final doc in snapshot.docs) {
+    for (final doc in qsA.docs) {
       final data = doc.data();
-      final userId = data['userId'] as String;
-      final friendId = data['friendId'] as String;
-
-      // Current user must be one of the parties
-      if (userId == currentUser.uid || friendId == currentUser.uid) {
-        // Add the other user's ID
-        if (userId == currentUser.uid) {
-          friendIds.add(friendId);
-        } else {
-          friendIds.add(userId);
-        }
-      }
+      final friendId = data['friendId'] as String?;
+      if (friendId != null && friendId.isNotEmpty) friendIds.add(friendId);
+    }
+    for (final doc in qsB.docs) {
+      final data = doc.data();
+      final userId = data['userId'] as String?;
+      if (userId != null && userId.isNotEmpty) friendIds.add(userId);
     }
 
     return friendIds.toList();
@@ -500,8 +501,14 @@ class FirestoreService {
     required String wishId,
     required String listId,
   }) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('Not authenticated');
+    }
     await _firestore.collection('wishes').doc(wishId).update({
       'listId': listId,
+      // ensure legacy docs gain ownership field
+      'ownerId': currentUser.uid,
     });
   }
 
@@ -544,6 +551,12 @@ class FirestoreService {
       updatePayload['listId'] = listId;
     } else {
       updatePayload['listId'] = FieldValue.delete();
+    }
+
+    // If legacy doc misses ownerId, stamp it now
+    final existingOwner = (wishData['ownerId'] as String?)?.trim();
+    if (existingOwner == null || existingOwner.isEmpty) {
+      updatePayload['ownerId'] = currentUser.uid;
     }
 
     await wishRef.update(updatePayload);

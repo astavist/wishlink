@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/wish_item.dart';
 import '../models/wish_list.dart';
@@ -10,8 +11,13 @@ class WishListDetailScreen extends StatelessWidget {
   const WishListDetailScreen({super.key, required this.wishList});
 
   Future<List<WishItem>> _loadWishes() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return [];
+
+    // Align with rules: restrict by ownerId
     final snapshot = await FirebaseFirestore.instance
         .collection('wishes')
+        .where('ownerId', isEqualTo: uid)
         .where('listId', isEqualTo: wishList.id)
         .orderBy('createdAt', descending: true)
         .get();

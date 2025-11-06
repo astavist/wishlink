@@ -49,3 +49,5 @@ ios/Runner/GoogleService-Info.plist
 lib/firebase_options.dart
 assets/ui_ux_guidelines.md
 assets/fonts/WishLinkFont.ttf
+storage.rules
+firestore.rules
