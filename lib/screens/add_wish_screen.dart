@@ -12,6 +12,7 @@ import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
 import '../services/product_link_service.dart';
 import '../models/wish_list.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 
 class AddWishScreen extends StatefulWidget {
   const AddWishScreen({super.key});
@@ -21,6 +22,7 @@ class AddWishScreen extends StatefulWidget {
 }
 
 class _AddWishScreenState extends State<AddWishScreen> {
+  AppLocalizations get l10n => context.l10n;
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -46,8 +48,15 @@ class _AddWishScreenState extends State<AddWishScreen> {
   bool _isLoading = false;
   bool _priceManuallyEdited = false;
   bool _currencyManuallySelected = false;
-  static const List<String> _defaultCurrencyOptions = ['TRY', 'USD', 'EUR', 'GBP'];
-  List<String> _availableCurrencies = List<String>.from(_defaultCurrencyOptions);
+  static const List<String> _defaultCurrencyOptions = [
+    'TRY',
+    'USD',
+    'EUR',
+    'GBP',
+  ];
+  List<String> _availableCurrencies = List<String>.from(
+    _defaultCurrencyOptions,
+  );
   String _selectedCurrency = 'TRY';
   String? _selectedListId;
   List<WishList> _lists = [];
@@ -85,22 +94,23 @@ class _AddWishScreenState extends State<AddWishScreen> {
 
   Future<void> _createNewListFlow() async {
     final controller = TextEditingController();
+    final l10n = context.l10n;
     final name = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Yeni Liste Oluştur'),
+        title: Text(l10n.t('addWish.newListTitle')),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(hintText: 'Liste adı'),
+          decoration: InputDecoration(hintText: l10n.t('addWish.newListHint')),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('İptal'),
+            child: Text(l10n.t('common.cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: const Text('Oluştur'),
+            child: Text(l10n.t('common.create')),
           ),
         ],
       ),
@@ -119,9 +129,9 @@ class _AddWishScreenState extends State<AddWishScreen> {
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Liste oluşturulamadı')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.t('addWish.listCreateFailed'))),
+        );
       }
     }
   }
@@ -172,8 +182,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
 
     if (!_productLinkService.supportsUrl(trimmedUrl)) {
       setState(() {
-        _autoMetadataErrorMessage =
-            'Please enter a valid product link that starts with http or https.';
+        _autoMetadataErrorMessage = l10n.t('addWish.invalidLink');
         _autoFetchedImageBytes = null;
         _autoFetchedImageContentType = null;
         _autoFetchedProductUrl = null;
@@ -201,8 +210,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
       if (result == null) {
         final shouldClearPrice = !_priceManuallyEdited;
         setState(() {
-          _autoMetadataErrorMessage =
-              'We could not fetch product details for this link. You can enter them manually.';
+          _autoMetadataErrorMessage = l10n.t('addWish.metadataUnavailable');
           _autoFetchedImageBytes = null;
           _autoFetchedImageContentType = null;
           _autoFetchedSourceImageUrl = null;
@@ -229,8 +237,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
           _autoFetchedImageBytes = null;
           _autoFetchedImageContentType = null;
           _autoFetchedSourceImageUrl = null;
-          _autoMetadataErrorMessage =
-              'We could not find a product photo for this link. You can select one from your gallery.';
+          _autoMetadataErrorMessage = l10n.t('addWish.noPhotoFromLink');
         }
 
         _autoFetchedPrice = fetchedPrice;
@@ -254,17 +261,13 @@ class _AddWishScreenState extends State<AddWishScreen> {
             final fallback = _defaultCurrencyOptions.first;
             _selectedCurrency = fallback;
             if (!_availableCurrencies.contains(fallback)) {
-              _availableCurrencies = [
-                fallback,
-                ..._availableCurrencies,
-              ];
+              _availableCurrencies = [fallback, ..._availableCurrencies];
             }
           }
         }
 
         if (fetchedPrice == null && !_priceManuallyEdited) {
-          _autoMetadataErrorMessage ??=
-              'We could not detect the price for this link. Please enter it manually.';
+          _autoMetadataErrorMessage ??= l10n.t('addWish.noPriceFromLink');
         }
       });
 
@@ -278,8 +281,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
         return;
       }
       setState(() {
-        _autoMetadataErrorMessage =
-            'We could not fetch product details for this link right now.';
+        _autoMetadataErrorMessage = l10n.t('addWish.metadataFetchFailed');
         _autoFetchedImageBytes = null;
         _autoFetchedImageContentType = null;
         _autoFetchedSourceImageUrl = null;
@@ -333,9 +335,13 @@ class _AddWishScreenState extends State<AddWishScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to select photo: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            l10n.t('addWish.photoPickFailed', params: {'error': '$error'}),
+          ),
+        ),
+      );
     }
   }
 
@@ -351,6 +357,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
   }
 
   Widget _buildImagePreview() {
+    final l10n = this.l10n;
     final manualBytes = _selectedLocalImageBytes;
     final autoBytes = _autoFetchedImageBytes;
     final hasImage = manualBytes != null || autoBytes != null;
@@ -365,9 +372,9 @@ class _AddWishScreenState extends State<AddWishScreen> {
           border: Border.all(color: Colors.grey.shade300),
           color: Colors.grey.shade100,
         ),
-        child: const Text(
-          'No product photo selected yet.',
-          style: TextStyle(fontSize: 14, color: Colors.black54),
+        child: Text(
+          l10n.t('addWish.noPhotoSelected'),
+          style: const TextStyle(fontSize: 14, color: Colors.black54),
         ),
       );
     }
@@ -395,7 +402,9 @@ class _AddWishScreenState extends State<AddWishScreen> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                isManual ? 'Gallery photo' : 'From product link',
+                isManual
+                    ? l10n.t('addWish.galleryPhoto')
+                    : l10n.t('addWish.linkPhoto'),
                 style: const TextStyle(color: Colors.white, fontSize: 12),
               ),
             ),
@@ -409,7 +418,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
                 shape: const CircleBorder(),
                 child: IconButton(
                   icon: const Icon(Icons.close, color: Colors.white, size: 18),
-                  tooltip: 'Remove photo',
+                  tooltip: l10n.t('addWish.removePhotoTooltip'),
                   onPressed: _clearManualImage,
                 ),
               ),
@@ -625,7 +634,9 @@ class _AddWishScreenState extends State<AddWishScreen> {
       final friendActivity = FriendActivity(
         id: '', // Will be set by Firestore
         userId: currentUser.uid,
-        userName: userName.isNotEmpty ? userName : 'Unknown User',
+        userName: userName.isNotEmpty
+            ? userName
+            : l10n.t('wishDetail.unknownUser'),
         userUsername: userUsername,
         userAvatarUrl: userAvatarUrl,
         wishItem: WishItem(
@@ -641,7 +652,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
         ),
         activityTime: DateTime.now(),
         activityType: 'added',
-        activityDescription: 'added a new wish',
+        activityDescription: l10n.t('addWish.activityDescription'),
       );
 
       // Add friend activity
@@ -649,16 +660,18 @@ class _AddWishScreenState extends State<AddWishScreen> {
       await firestoreService.addFriendActivity(friendActivity);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Wish added successfully!')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.t('addWish.success'))));
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error adding wish: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.t('addWish.error', params: {'error': '$e'})),
+          ),
+        );
       }
     } finally {
       if (mounted) {
@@ -671,9 +684,10 @@ class _AddWishScreenState extends State<AddWishScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = this.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Wish'),
+        title: Text(l10n.t('addWish.title')),
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
         elevation: 0,
@@ -687,7 +701,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
           backgroundColor: const Color(0xFFEFB652),
           foregroundColor: Colors.white,
           mini: true,
-          tooltip: 'Close Keyboard',
+          tooltip: l10n.t('addWish.closeKeyboard'),
           child: const Icon(Icons.keyboard_hide),
         ),
       ),
@@ -706,14 +720,14 @@ class _AddWishScreenState extends State<AddWishScreen> {
                 children: [
                   DropdownButtonFormField<String?>(
                     value: _selectedListId,
-                    decoration: const InputDecoration(
-                      labelText: 'Assign to List',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.t('addWish.assignList'),
+                      border: const OutlineInputBorder(),
                     ),
                     items: [
-                      const DropdownMenuItem<String?>(
+                      DropdownMenuItem<String?>(
                         value: null,
-                        child: Text('No list'),
+                        child: Text(l10n.t('addWish.noList')),
                       ),
                       ..._lists.map(
                         (l) => DropdownMenuItem<String?>(
@@ -721,9 +735,9 @@ class _AddWishScreenState extends State<AddWishScreen> {
                           child: Text(l.name),
                         ),
                       ),
-                      const DropdownMenuItem<String?>(
+                      DropdownMenuItem<String?>(
                         value: '__create__',
-                        child: Text('? Create new list'),
+                        child: Text(l10n.t('addWish.createListOption')),
                       ),
                     ],
                     onChanged: (value) {
@@ -740,13 +754,13 @@ class _AddWishScreenState extends State<AddWishScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Wish Name *',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.t('addWish.wishNameLabel'),
+                      border: const OutlineInputBorder(),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter a wish name';
+                        return l10n.t('addWish.wishNameValidation');
                       }
                       return null;
                     },
@@ -754,27 +768,27 @@ class _AddWishScreenState extends State<AddWishScreen> {
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _descriptionController,
-                    decoration: const InputDecoration(
-                      labelText: 'Description',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.t('addWish.descriptionLabel'),
+                      border: const OutlineInputBorder(),
                     ),
                     maxLines: 3,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _productUrlController,
-                    decoration: const InputDecoration(
-                      labelText: 'Product URL *',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.t('addWish.productUrlLabel'),
+                      border: const OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.url,
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter a product URL';
+                        return l10n.t('addWish.productUrlRequired');
                       }
                       final uri = Uri.tryParse(value.trim());
                       if (uri == null || !uri.hasAbsolutePath) {
-                        return 'Please enter a valid URL';
+                        return l10n.t('addWish.productUrlInvalid');
                       }
                       return null;
                     },
@@ -782,17 +796,17 @@ class _AddWishScreenState extends State<AddWishScreen> {
                   const SizedBox(height: 12),
                   if (_isFetchingMetadata)
                     Row(
-                      children: const [
-                        SizedBox(
+                      children: [
+                        const SizedBox(
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
-                        SizedBox(width: 8),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Fetching product details...',
-                            style: TextStyle(fontSize: 13),
+                            l10n.t('addWish.fetchingMetadata'),
+                            style: const TextStyle(fontSize: 13),
                           ),
                         ),
                       ],
@@ -814,7 +828,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
                   OutlinedButton.icon(
                     onPressed: _isLoading ? null : _pickImageFromGallery,
                     icon: const Icon(Icons.photo_library_outlined),
-                    label: const Text('Select photo from gallery'),
+                    label: Text(l10n.t('addWish.selectPhotoButton')),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -822,9 +836,9 @@ class _AddWishScreenState extends State<AddWishScreen> {
                       Expanded(
                         child: TextFormField(
                           controller: _priceController,
-                          decoration: const InputDecoration(
-                            labelText: 'Price *',
-                            border: OutlineInputBorder(),
+                          decoration: InputDecoration(
+                            labelText: l10n.t('addWish.priceLabel'),
+                            border: const OutlineInputBorder(),
                           ),
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
@@ -838,12 +852,15 @@ class _AddWishScreenState extends State<AddWishScreen> {
                           },
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return 'Please enter a price';
+                              return l10n.t('addWish.priceRequired');
                             }
-                            final normalized = value.trim().replaceAll(',', '.');
+                            final normalized = value.trim().replaceAll(
+                              ',',
+                              '.',
+                            );
                             final price = double.tryParse(normalized);
                             if (price == null || price <= 0) {
-                              return 'Please enter a valid price greater than 0';
+                              return l10n.t('addWish.priceInvalid');
                             }
                             return null;
                           },
@@ -853,14 +870,15 @@ class _AddWishScreenState extends State<AddWishScreen> {
                       SizedBox(
                         width: 120,
                         child: DropdownButtonFormField<String>(
-                          value: _availableCurrencies.contains(_selectedCurrency)
+                          value:
+                              _availableCurrencies.contains(_selectedCurrency)
                               ? _selectedCurrency
                               : (_availableCurrencies.isNotEmpty
-                                  ? _availableCurrencies.first
-                                  : _selectedCurrency),
-                          decoration: const InputDecoration(
-                            labelText: 'Currency',
-                            border: OutlineInputBorder(),
+                                    ? _availableCurrencies.first
+                                    : _selectedCurrency),
+                          decoration: InputDecoration(
+                            labelText: l10n.t('addWish.currencyLabel'),
+                            border: const OutlineInputBorder(),
                           ),
                           items: _availableCurrencies
                               .map(
@@ -889,18 +907,22 @@ class _AddWishScreenState extends State<AddWishScreen> {
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        'Price fetched automatically from the link.',
+                        l10n.t('addWish.priceFetched'),
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.green.shade700,
                         ),
                       ),
                     ),
-                  if (_autoFetchedCurrency != null && !_currencyManuallySelected)
+                  if (_autoFetchedCurrency != null &&
+                      !_currencyManuallySelected)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        'Currency detected as $_autoFetchedCurrency.',
+                        l10n.t(
+                          'addWish.currencyDetected',
+                          params: {'currency': _autoFetchedCurrency!},
+                        ),
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.green.shade700,
@@ -917,9 +939,9 @@ class _AddWishScreenState extends State<AddWishScreen> {
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'Add Wish',
-                            style: TextStyle(fontSize: 18),
+                        : Text(
+                            l10n.t('addWish.submit'),
+                            style: const TextStyle(fontSize: 18),
                           ),
                   ),
                   const SizedBox(height: 24),

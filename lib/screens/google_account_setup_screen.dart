@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 
 class GoogleAccountSetupScreen extends StatefulWidget {
   final User user;
@@ -117,26 +118,26 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
 
   String? _validateFirstName(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Please enter your first name';
+      return context.l10n.t('login.validation.firstNameRequired');
     }
     return null;
   }
 
   String? _validateLastName(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Please enter your last name';
+      return context.l10n.t('login.validation.lastNameRequired');
     }
     return null;
   }
 
   String? _validateUsername(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Please choose a username';
+      return context.l10n.t('login.validation.usernameRequired');
     }
     final normalized = _normalizeUsername(value);
     final regex = RegExp(r'^[a-z0-9._-]{3,20}$');
     if (!regex.hasMatch(normalized)) {
-      return '3-20 characters using letters, numbers, ., _, -';
+      return context.l10n.t('login.validation.usernameRules');
     }
     return null;
   }
@@ -171,11 +172,12 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
     final firstName = _firstNameController.text.trim();
     final lastName = _lastNameController.text.trim();
     final username = _normalizeUsername(_usernameController.text);
+    final l10n = context.l10n;
 
     try {
       if (_selectedBirthday == null) {
         setState(() {
-          _errorMessage = 'Please select your birth date';
+          _errorMessage = l10n.t('login.validation.birthDateRequired');
           _isSaving = false;
         });
         return;
@@ -184,7 +186,7 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
       final available = await _isUsernameAvailable(username);
       if (!available) {
         setState(() {
-          _errorMessage = 'This username is already taken';
+          _errorMessage = l10n.t('login.validation.usernameTaken');
           _isSaving = false;
         });
         return;
@@ -228,12 +230,12 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
       }
     } on FirebaseAuthException catch (_) {
       setState(() {
-        _errorMessage = 'Could not complete setup. Please try again.';
+        _errorMessage = l10n.t('accountSetup.saveFailed');
         _isSaving = false;
       });
     } catch (_) {
       setState(() {
-        _errorMessage = 'Could not complete setup. Please try again.';
+        _errorMessage = l10n.t('accountSetup.saveFailed');
         _isSaving = false;
       });
     }
@@ -284,7 +286,9 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
                     ),
                     validator: (_) {
                       if (_selectedBirthday == null) {
-                        return 'Please select your birth date';
+                        return context.l10n.t(
+                          'login.validation.birthDateRequired',
+                        );
                       }
                       return null;
                     },

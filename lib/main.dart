@@ -9,60 +9,71 @@ import 'package:wishlink/screens/home_screen.dart';
 import 'package:wishlink/screens/email_verification_required_screen.dart';
 import 'package:wishlink/screens/google_account_setup_screen.dart';
 import 'package:wishlink/theme/theme_controller.dart';
+import 'package:wishlink/locale/locale_controller.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   final themeController = ThemeController();
   await themeController.loadThemeMode();
-  runApp(MyApp(themeController: themeController));
+  final localeController = LocaleController();
+  await localeController.loadPreferredLocale();
+  runApp(
+    MyApp(themeController: themeController, localeController: localeController),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key, required this.themeController});
+  const MyApp({
+    super.key,
+    required this.themeController,
+    required this.localeController,
+  });
 
   final ThemeController themeController;
+  final LocaleController localeController;
 
   static const PageTransitionsTheme _pageTransitionsTheme =
       PageTransitionsTheme(
-    builders: {
-      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
-    },
-  );
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+        },
+      );
 
   static const Color _seedColor = Color(0xFFEFB652);
 
   @override
   Widget build(BuildContext context) {
-    return ThemeControllerProvider(
-      controller: themeController,
-      child: AnimatedBuilder(
-        animation: themeController,
-        builder: (context, _) {
-          return MaterialApp(
-            title: 'WishLink',
-            theme: _buildLightTheme(),
-            darkTheme: _buildDarkTheme(),
-            themeMode: themeController.themeMode,
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            supportedLocales: const [
-              Locale('tr', 'TR'),
-              Locale('en', 'US'),
-              Locale('en'),
-            ],
-            locale: const Locale('tr', 'TR'),
-            home: const AuthWrapper(),
-            routes: {'/home': (context) => const HomeScreen()},
-          );
-        },
+    return LocaleControllerProvider(
+      controller: localeController,
+      child: ThemeControllerProvider(
+        controller: themeController,
+        child: AnimatedBuilder(
+          animation: Listenable.merge([themeController, localeController]),
+          builder: (context, _) {
+            return MaterialApp(
+              title: 'WishLink',
+              theme: _buildLightTheme(),
+              darkTheme: _buildDarkTheme(),
+              themeMode: themeController.themeMode,
+              localizationsDelegates: const [
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+                AppLocalizations.delegate,
+              ],
+              supportedLocales: LocaleController.supportedLocales,
+              locale: localeController.locale,
+              home: const AuthWrapper(),
+              routes: {'/home': (context) => const HomeScreen()},
+            );
+          },
+        ),
       ),
     );
   }

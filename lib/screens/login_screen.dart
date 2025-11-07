@@ -13,6 +13,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:crypto/crypto.dart';
 import 'email_verification_required_screen.dart';
 import 'google_account_setup_screen.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -48,6 +49,8 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _errorMessage;
   DateTime? _selectedBirthday;
 
+  AppLocalizations get l10n => context.l10n;
+
   @override
   void dispose() {
     _firstNameController.dispose();
@@ -66,8 +69,10 @@ class _LoginScreenState extends State<LoginScreen> {
     const charset =
         '0123456789ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvwxyz-._';
     final random = Random.secure();
-    return List.generate(length, (_) => charset[random.nextInt(charset.length)])
-        .join();
+    return List.generate(
+      length,
+      (_) => charset[random.nextInt(charset.length)],
+    ).join();
   }
 
   String _sha256ofString(String input) {
@@ -78,32 +83,32 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Please enter a password';
+      return l10n.t('login.validation.passwordRequired');
     }
     if (value.length < 6) {
-      return 'Password must be at least 6 characters';
+      return l10n.t('login.validation.passwordTooShort');
     }
     return null;
   }
 
   String? _validateConfirmPassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Please confirm your password';
+      return l10n.t('login.validation.confirmPasswordRequired');
     }
     if (value != _passwordController.text) {
-      return 'Passwords do not match';
+      return l10n.t('login.validation.passwordsMismatch');
     }
     return null;
   }
 
   String? _validateUsernameFormat(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Please choose a username';
+      return l10n.t('login.validation.usernameRequired');
     }
     final normalized = value.trim().toLowerCase();
     final regex = RegExp(r'^[a-z0-9._-]{3,20}$');
     if (!regex.hasMatch(normalized)) {
-      return 'Username must be 3-20 characters and can include letters, numbers, ., _, -';
+      return l10n.t('login.validation.usernameRules');
     }
     return null;
   }
@@ -221,11 +226,7 @@ class _LoginScreenState extends State<LoginScreen> {
           final day = date['day'] as int?;
           final year = date['year'] as int? ?? 2000;
           if (month != null && day != null) {
-            return {
-              'year': year,
-              'month': month,
-              'day': day,
-            };
+            return {'year': year, 'month': month, 'day': day};
           }
         }
         return null;
@@ -302,7 +303,7 @@ class _LoginScreenState extends State<LoginScreen> {
               if (!available) {
                 setState(() {
                   isChecking = false;
-                  errorText = 'This username is already taken';
+                  errorText = l10n.t('login.validation.usernameTaken');
                 });
                 return;
               }
@@ -313,14 +314,12 @@ class _LoginScreenState extends State<LoginScreen> {
             }
 
             return AlertDialog(
-              title: const Text('Choose a username'),
+              title: Text(l10n.t('login.chooseUsernameTitle')),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Pick a unique username so your friends can find you easily.',
-                  ),
+                  Text(l10n.t('login.chooseUsernameDescription')),
                   const SizedBox(height: 16),
                   TextField(
                     controller: controller,
@@ -348,11 +347,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       : () {
                           Navigator.of(context).pop();
                         },
-                  child: const Text('Cancel'),
+                  child: Text(l10n.t('common.cancel')),
                 ),
                 TextButton(
                   onPressed: isChecking ? null : submit,
-                  child: const Text('Save'),
+                  child: Text(l10n.t('common.save')),
                 ),
               ],
             );
@@ -388,7 +387,7 @@ class _LoginScreenState extends State<LoginScreen> {
         await _auth.signOut();
         if (mounted) {
           setState(() {
-            _errorMessage = 'A username is required to continue.';
+            _errorMessage = l10n.t('login.usernameRequired');
           });
         }
         return false;
@@ -399,8 +398,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage =
-              'We could not update your username. Please try again.';
+          _errorMessage = l10n.t('login.usernameUpdateFailed');
         });
       }
       return false;
@@ -456,7 +454,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'An error occurred. Please try again.';
+        _errorMessage = l10n.t('common.tryAgain');
       });
     } finally {
       if (mounted) {
@@ -486,9 +484,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       final googleAuth = await googleUser.authentication;
-      final googleBirthday = await _fetchGoogleBirthday(
-        googleAuth.accessToken,
-      );
+      final googleBirthday = await _fetchGoogleBirthday(googleAuth.accessToken);
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -499,7 +495,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user == null) {
         throw FirebaseAuthException(
           code: 'user-not-found',
-          message: 'No user returned from Google sign-in.',
+          message: l10n.t('login.googleNoUser'),
         );
       }
 
@@ -550,7 +546,7 @@ class _LoginScreenState extends State<LoginScreen> {
           await _auth.signOut();
           if (mounted) {
             setState(() {
-              _errorMessage = 'Google account setup was cancelled.';
+              _errorMessage = l10n.t('login.googleSetupCancelled');
             });
           }
           return;
@@ -560,14 +556,13 @@ class _LoginScreenState extends State<LoginScreen> {
           await userDocRef.update({'emailVerified': true});
         }
 
-        final hasStoredBirthday = existingBirthday != null &&
-            (existingBirthday is! String ||
-                existingBirthday.trim().isNotEmpty);
+        final hasStoredBirthday =
+            existingBirthday != null &&
+            (existingBirthday is! String || existingBirthday.trim().isNotEmpty);
         if (!hasStoredBirthday && googleBirthday != null) {
-          await userDocRef.set(
-            {'birthday': Timestamp.fromDate(googleBirthday)},
-            SetOptions(merge: true),
-          );
+          await userDocRef.set({
+            'birthday': Timestamp.fromDate(googleBirthday),
+          }, SetOptions(merge: true));
         }
 
         final ensured = await _ensureUsernameForUser(
@@ -584,7 +579,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Google sign-in failed. Please try again.';
+        _errorMessage = l10n.t('login.googleFailed');
       });
     } finally {
       if (mounted) {
@@ -613,17 +608,16 @@ class _LoginScreenState extends State<LoginScreen> {
         nonce: nonce,
       );
 
-      final oauthCredential = OAuthProvider('apple.com').credential(
-        idToken: appleCredential.identityToken,
-        rawNonce: rawNonce,
-      );
+      final oauthCredential = OAuthProvider(
+        'apple.com',
+      ).credential(idToken: appleCredential.identityToken, rawNonce: rawNonce);
 
       final userCredential = await _auth.signInWithCredential(oauthCredential);
       final user = userCredential.user;
       if (user == null) {
         throw FirebaseAuthException(
           code: 'user-not-found',
-          message: 'No user returned from Apple sign-in.',
+          message: l10n.t('login.appleNoUser'),
         );
       }
 
@@ -673,7 +667,7 @@ class _LoginScreenState extends State<LoginScreen> {
           await _auth.signOut();
           if (mounted) {
             setState(() {
-              _errorMessage = 'Apple account setup was cancelled.';
+              _errorMessage = l10n.t('login.appleSetupCancelled');
             });
           }
           return;
@@ -702,7 +696,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // User canceled; just stop loading without error message.
       } else {
         setState(() {
-          _errorMessage = 'Apple sign-in failed. Please try again.';
+          _errorMessage = l10n.t('login.appleFailed');
         });
       }
     } on FirebaseAuthException catch (e) {
@@ -711,7 +705,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Apple sign-in failed. Please try again.';
+        _errorMessage = l10n.t('login.appleFailed');
       });
     } finally {
       if (mounted) {
@@ -725,19 +719,21 @@ class _LoginScreenState extends State<LoginScreen> {
   String _getErrorMessage(String code) {
     switch (code) {
       case 'invalid-email':
-        return 'The email address is invalid.';
+        return l10n.t('login.error.invalidEmail');
       case 'user-disabled':
-        return 'This account has been disabled.';
+        return l10n.t('login.error.userDisabled');
       case 'user-not-found':
-        return 'No user found with these credentials.';
+        return l10n.t('login.error.userNotFound');
+      case 'invalid-credential':
+      case 'invalid-login-credentials':
       case 'wrong-password':
-        return 'Incorrect password. Please try again.';
+        return l10n.t('login.error.wrongPassword');
       case 'email-already-in-use':
-        return 'This email is already registered.';
+        return l10n.t('login.error.emailInUse');
       case 'weak-password':
-        return 'Your password must be at least 6 characters.';
+        return l10n.t('login.error.weakPassword');
       default:
-        return 'An error occurred. Please try again.';
+        return l10n.t('common.tryAgain');
     }
   }
 
@@ -765,7 +761,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (_selectedBirthday == null) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Please select your birth date';
+          _errorMessage = l10n.t('login.validation.birthDateRequired');
         });
         return;
       }
@@ -775,7 +771,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!available) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'This username is already taken';
+          _errorMessage = l10n.t('login.validation.usernameTaken');
         });
         return;
       }
@@ -800,11 +796,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Verification email sent. Please check your inbox and verify your email before logging in.',
-            ),
-            duration: Duration(seconds: 5),
+          SnackBar(
+            content: Text(l10n.t('login.signupVerificationSent')),
+            duration: const Duration(seconds: 5),
           ),
         );
 
@@ -826,7 +820,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'An error occurred. Please try again.';
+        _errorMessage = l10n.t('common.tryAgain');
       });
     } finally {
       if (mounted) {
@@ -913,7 +907,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   controller: _firstNameController,
                                   enabled: !_isLoading,
                                   decoration: InputDecoration(
-                                    labelText: 'First Name',
+                                    labelText: l10n.t('login.label.firstName'),
                                     prefixIcon: const Icon(
                                       Icons.person_outline,
                                     ),
@@ -926,7 +920,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'Please enter your first name';
+                                      return l10n.t(
+                                        'login.validation.firstNameRequired',
+                                      );
                                     }
                                     return null;
                                   },
@@ -938,7 +934,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   controller: _lastNameController,
                                   enabled: !_isLoading,
                                   decoration: InputDecoration(
-                                    labelText: 'Last Name',
+                                    labelText: l10n.t('login.label.lastName'),
                                     prefixIcon: const Icon(
                                       Icons.person_outline,
                                     ),
@@ -951,7 +947,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'Please enter your last name';
+                                      return l10n.t(
+                                        'login.validation.lastNameRequired',
+                                      );
                                     }
                                     return null;
                                   },
@@ -962,7 +960,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   readOnly: true,
                                   enabled: !_isLoading,
                                   decoration: InputDecoration(
-                                    labelText: 'Birth Date',
+                                    labelText: l10n.t('login.label.birthDate'),
                                     prefixIcon: const Icon(Icons.cake_outlined),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
@@ -973,7 +971,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                   validator: (_) {
                                     if (_selectedBirthday == null) {
-                                      return 'Please select your birth date';
+                                      return l10n.t(
+                                        'login.validation.birthDateRequired',
+                                      );
                                     }
                                     return null;
                                   },
@@ -989,7 +989,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   autocorrect: false,
                                   enableSuggestions: false,
                                   decoration: InputDecoration(
-                                    labelText: 'Username',
+                                    labelText: l10n.t('login.label.username'),
                                     prefixIcon: const Icon(
                                       Icons.alternate_email,
                                     ),
@@ -1012,8 +1012,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 enabled: !_isLoading,
                                 keyboardType: TextInputType.emailAddress,
                                 decoration: InputDecoration(
-                                  labelText: 'Email',
-                                  hintText: 'you@example.com',
+                                  labelText: l10n.t('login.label.email'),
+                                  hintText: l10n.t('login.hint.email'),
                                   prefixIcon: const Icon(Icons.email_outlined),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(8),
@@ -1024,11 +1024,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'Please enter your email';
+                                    return l10n.t(
+                                      'login.validation.emailRequired',
+                                    );
                                   }
                                   if (!value.contains('@') ||
                                       !value.contains('.')) {
-                                    return 'Please enter a valid email';
+                                    return l10n.t(
+                                      'login.validation.emailInvalid',
+                                    );
                                   }
                                   return null;
                                 },
@@ -1042,7 +1046,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 enabled: !_isLoading,
                                 obscureText: true,
                                 decoration: InputDecoration(
-                                  labelText: 'Password',
+                                  labelText: l10n.t('login.label.password'),
                                   hintText: '••••••••',
                                   prefixIcon: const Icon(Icons.lock_outline),
                                   border: OutlineInputBorder(
@@ -1063,7 +1067,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   enabled: !_isLoading,
                                   obscureText: true,
                                   decoration: InputDecoration(
-                                    labelText: 'Confirm Password',
+                                    labelText: l10n.t(
+                                      'login.label.confirmPassword',
+                                    ),
                                     prefixIcon: const Icon(Icons.lock_outline),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(8),
@@ -1105,9 +1111,11 @@ class _LoginScreenState extends State<LoginScreen> {
                                   label: Text(
                                     _isLoading
                                         ? (_isSignUp
-                                              ? 'Creating Account...'
-                                              : 'Logging in...')
-                                        : (_isSignUp ? 'Sign Up' : 'Login'),
+                                              ? l10n.t('login.creatingAccount')
+                                              : l10n.t('login.loggingIn'))
+                                        : (_isSignUp
+                                              ? l10n.t('login.signUp')
+                                              : l10n.t('login.login')),
                                     style: const TextStyle(fontSize: 18),
                                   ),
                                   style: ElevatedButton.styleFrom(
@@ -1137,8 +1145,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                                 .trim()
                                                 .isEmpty) {
                                               setState(() {
-                                                _errorMessage =
-                                                    'Please enter your email address first.';
+                                                _errorMessage = l10n.t(
+                                                  'login.resetEmailInputRequired',
+                                                );
                                               });
                                               return;
                                             }
@@ -1152,23 +1161,28 @@ class _LoginScreenState extends State<LoginScreen> {
                                                 ScaffoldMessenger.of(
                                                   context,
                                                 ).showSnackBar(
-                                                  const SnackBar(
+                                                  SnackBar(
                                                     content: Text(
-                                                      'Password reset email sent. Please check your inbox.',
+                                                      l10n.t(
+                                                        'login.resetEmailSent',
+                                                      ),
                                                     ),
                                                   ),
                                                 );
                                               }
                                             } catch (e) {
                                               setState(() {
-                                                _errorMessage =
-                                                    'Could not send password reset email. Please try again.';
+                                                _errorMessage = l10n.t(
+                                                  'login.resetEmailFailed',
+                                                );
                                               });
                                             }
                                           },
-                                    child: const Text(
-                                      'Forgot Password?',
-                                      style: TextStyle(color: Colors.blue),
+                                    child: Text(
+                                      l10n.t('login.forgotPassword'),
+                                      style: const TextStyle(
+                                        color: Colors.blue,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -1184,7 +1198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       horizontal: 16.0,
                                     ),
                                     child: Text(
-                                      'OR',
+                                      l10n.t('login.orDivider'),
                                       style: TextStyle(color: Colors.grey[600]),
                                     ),
                                   ),
@@ -1199,8 +1213,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 children: [
                                   Text(
                                     _isSignUp
-                                        ? "Already have an account? "
-                                        : "Don't have an account? ",
+                                        ? l10n.t('login.alreadyHaveAccount')
+                                        : l10n.t('login.dontHaveAccount'),
                                     style: TextStyle(
                                       color: Colors.grey[700],
                                       fontSize: 16,
@@ -1209,7 +1223,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   TextButton(
                                     onPressed: _isLoading ? null : _toggleMode,
                                     child: Text(
-                                      _isSignUp ? 'Login' : 'Sign Up',
+                                      _isSignUp
+                                          ? l10n.t('login.login')
+                                          : l10n.t('login.signUp'),
                                       style: const TextStyle(
                                         color: Color(0xFFEFB652),
                                         fontSize: 16,
@@ -1231,7 +1247,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       // Sosyal Medya Butonları
                       _SocialLoginButton(
                         icon: FontAwesomeIcons.google,
-                        text: 'Continue with Google',
+                        text: l10n.t('login.continueWithGoogle'),
                         backgroundColor: Colors.white,
                         textColor: Colors.black,
                         onPressed: _isLoading ? null : _signInWithGoogle,
@@ -1240,14 +1256,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 16),
                         _SocialLoginButton(
                           icon: FontAwesomeIcons.apple,
-                          text: 'Continue with Apple',
+                          text: l10n.t('login.continueWithApple'),
                           backgroundColor: Colors.black,
                           textColor: Colors.white,
-                          onPressed:
-                              _isLoading ? null : _signInWithApple,
+                          onPressed: _isLoading ? null : _signInWithApple,
                         ),
                       ],
-                      
                     ],
                   ],
                 ),

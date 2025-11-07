@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/wish_item.dart';
 import '../utils/currency_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 
 class WishCardDialog extends StatefulWidget {
   final WishItem wish;
@@ -22,7 +23,12 @@ class _WishCardDialogState extends State<WishCardDialog> {
   late TextEditingController _productUrlController;
   late TextEditingController _imageUrlController;
   late TextEditingController _priceController;
-  static const List<String> _defaultCurrencyOptions = ['TRY', 'USD', 'EUR', 'GBP'];
+  static const List<String> _defaultCurrencyOptions = [
+    'TRY',
+    'USD',
+    'EUR',
+    'GBP',
+  ];
   late List<String> _availableCurrencies;
   late String _selectedCurrency;
   bool _isEditing = false;
@@ -37,8 +43,9 @@ class _WishCardDialogState extends State<WishCardDialog> {
     );
     _productUrlController = TextEditingController(text: widget.wish.productUrl);
     _imageUrlController = TextEditingController(text: widget.wish.imageUrl);
-        final initialPrice =
-        widget.wish.price > 0 ? widget.wish.price.toStringAsFixed(2) : '';
+    final initialPrice = widget.wish.price > 0
+        ? widget.wish.price.toStringAsFixed(2)
+        : '';
     _priceController = TextEditingController(text: initialPrice);
     _selectedCurrency = widget.wish.currency.toUpperCase();
     _availableCurrencies = [
@@ -66,9 +73,9 @@ class _WishCardDialogState extends State<WishCardDialog> {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Could not open link')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.l10n.t('common.couldNotOpenLink'))),
+          );
         }
       }
     }
@@ -86,8 +93,7 @@ class _WishCardDialogState extends State<WishCardDialog> {
       if (currentUser == null) return;
 
       // Update the wish item
-      final normalizedPrice =
-          _priceController.text.trim().replaceAll(',', '.');
+      final normalizedPrice = _priceController.text.trim().replaceAll(',', '.');
       final parsedPrice = double.tryParse(normalizedPrice) ?? 0.0;
       final updatedWish = WishItem(
         id: widget.wish.id,
@@ -159,8 +165,9 @@ class _WishCardDialogState extends State<WishCardDialog> {
         _descriptionController.text = widget.wish.description;
         _productUrlController.text = widget.wish.productUrl;
         _imageUrlController.text = widget.wish.imageUrl;
-        _priceController.text =
-            widget.wish.price > 0 ? widget.wish.price.toStringAsFixed(2) : '';
+        _priceController.text = widget.wish.price > 0
+            ? widget.wish.price.toStringAsFixed(2)
+            : '';
         _selectedCurrency = widget.wish.currency.toUpperCase();
         _availableCurrencies = [
           _selectedCurrency,
@@ -471,8 +478,8 @@ class _WishCardDialogState extends State<WishCardDialog> {
                   value: _availableCurrencies.contains(_selectedCurrency)
                       ? _selectedCurrency
                       : (_availableCurrencies.isNotEmpty
-                          ? _availableCurrencies.first
-                          : _selectedCurrency),
+                            ? _availableCurrencies.first
+                            : _selectedCurrency),
                   decoration: const InputDecoration(
                     labelText: 'Currency',
                     border: OutlineInputBorder(),
@@ -508,11 +515,3 @@ class _WishCardDialogState extends State<WishCardDialog> {
     return '${date.day}/${date.month}/${date.year}';
   }
 }
-
-
-
-
-
-
-
-

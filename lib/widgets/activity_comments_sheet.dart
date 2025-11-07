@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/friend_activity.dart';
 import '../models/friend_activity_comment.dart';
 import '../services/firestore_service.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 
 class ActivityCommentsSheet extends StatefulWidget {
   final FriendActivity activity;
@@ -57,9 +58,7 @@ class _ActivityCommentsSheetState extends State<ActivityCommentsSheet> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not add comment. Please try again.'),
-          ),
+          SnackBar(content: Text(context.l10n.t('comments.addFailed'))),
         );
       }
     } finally {
@@ -69,20 +68,6 @@ class _ActivityCommentsSheetState extends State<ActivityCommentsSheet> {
         });
       }
     }
-  }
-
-  String _formatTimeAgo(DateTime timestamp) {
-    final difference = DateTime.now().difference(timestamp);
-    if (difference.inDays >= 1) {
-      return '\${difference.inDays}d';
-    }
-    if (difference.inHours >= 1) {
-      return '\${difference.inHours}h';
-    }
-    if (difference.inMinutes >= 1) {
-      return '\${difference.inMinutes}m';
-    }
-    return 'now';
   }
 
   @override
@@ -112,7 +97,7 @@ class _ActivityCommentsSheetState extends State<ActivityCommentsSheet> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Text(
-                  'Comments',
+                  context.l10n.t('comments.title'),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
@@ -128,18 +113,18 @@ class _ActivityCommentsSheetState extends State<ActivityCommentsSheet> {
                     }
 
                     if (snapshot.hasError) {
-                      return const Center(
-                        child: Text('Unable to load comments right now.'),
+                      return Center(
+                        child: Text(context.l10n.t('comments.unableToLoad')),
                       );
                     }
 
                     final comments = snapshot.data ?? <FriendActivityComment>[];
 
                     if (comments.isEmpty) {
-                      return const Center(
+                      return Center(
                         child: Text(
-                          'No comments yet. Be the first to comment!',
-                          style: TextStyle(color: Colors.grey),
+                          context.l10n.t('comments.empty'),
+                          style: const TextStyle(color: Colors.grey),
                         ),
                       );
                     }
@@ -208,7 +193,9 @@ class _ActivityCommentsSheetState extends State<ActivityCommentsSheet> {
                                             ),
                                           ),
                                         Text(
-                                          _formatTimeAgo(comment.createdAt),
+                                          context.l10n.relativeTime(
+                                            comment.createdAt,
+                                          ),
                                           style: TextStyle(
                                             color: Colors.grey[500],
                                             fontSize: 12,
@@ -239,9 +226,9 @@ class _ActivityCommentsSheetState extends State<ActivityCommentsSheet> {
                         controller: _commentController,
                         minLines: 1,
                         maxLines: 4,
-                        decoration: const InputDecoration(
-                          hintText: 'Add a comment...',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          hintText: context.l10n.t('comments.hint'),
+                          border: const OutlineInputBorder(),
                           isDense: true,
                         ),
                       ),

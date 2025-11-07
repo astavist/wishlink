@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 
 import '../models/friend_activity.dart';
 import '../models/wish_item.dart';
@@ -126,9 +127,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
 
   Future<void> _openEditWish() async {
     final updated = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => EditWishScreen(wish: _wish),
-      ),
+      MaterialPageRoute(builder: (_) => EditWishScreen(wish: _wish)),
     );
 
     if (updated == true) {
@@ -146,9 +145,9 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Could not open link')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.t('common.couldNotOpenLink'))),
+        );
       }
     }
   }
@@ -181,7 +180,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     if (user == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please sign in to like wishes.')),
+          SnackBar(content: Text(context.l10n.t('common.signInToLike'))),
         );
       }
       return;
@@ -220,7 +219,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update like. Try again.')),
+          SnackBar(content: Text(context.l10n.t('common.likeFailed'))),
         );
       }
     } finally {
@@ -306,6 +305,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
 
   Widget _buildOwnerSection(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final decoration = BoxDecoration(
       color: theme.colorScheme.surface,
       borderRadius: BorderRadius.circular(16),
@@ -323,17 +323,17 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
         padding: const EdgeInsets.all(16),
         decoration: decoration,
         child: Row(
-          children: const [
-            SizedBox(
+          children: [
+            const SizedBox(
               width: 44,
               height: 44,
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
-            SizedBox(width: 16),
+            const SizedBox(width: 16),
             Expanded(
               child: Text(
-                'Yükleniyor...',
-                style: TextStyle(color: Colors.grey),
+                l10n.t('wishDetail.ownerLoading'),
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
           ],
@@ -348,13 +348,13 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
         padding: const EdgeInsets.all(16),
         decoration: decoration,
         child: Row(
-          children: const [
-            Icon(Icons.person_outline, size: 28, color: Colors.grey),
-            SizedBox(width: 12),
+          children: [
+            const Icon(Icons.person_outline, size: 28, color: Colors.grey),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Sahip bilgisi bulunamadı.',
-                style: TextStyle(color: Colors.grey),
+                l10n.t('wishDetail.ownerMissing'),
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
           ],
@@ -369,7 +369,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     final hasAvatar = avatarUrl.isNotEmpty;
     final displayName = activity.userName.isNotEmpty
         ? activity.userName
-        : 'Unknown User';
+        : l10n.t('wishDetail.unknownUser');
     final handle = activity.userUsername;
     final initials = displayName.isNotEmpty
         ? displayName.trim()[0].toUpperCase()
@@ -378,12 +378,14 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     final baseBodyColor = theme.textTheme.bodyMedium?.color ?? Colors.grey;
     final subtleColor = baseBodyColor.withValues(alpha: 0.6);
     final title = _isOwnActivity
-        ? 'Bu dilek sana ait'
+        ? l10n.t('wishDetail.ownWish')
         : handle.isNotEmpty
         ? '$displayName (@$handle)'
-        : "$displayName's wish";
-    final subtitle =
-        "Added ${activity.timeAgo == 'Just now' ? 'moments ago' : activity.timeAgo}";
+        : l10n.t('wishDetail.ownerWish', params: {'owner': displayName});
+    final subtitle = l10n.t(
+      'wishDetail.addedLabel',
+      params: {'time': l10n.relativeTime(activity.activityTime)},
+    );
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -432,6 +434,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
 
   Widget _buildWishInfoCard(BuildContext context, WishItem wish) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final createdLabel =
         '${wish.createdAt.day}.${wish.createdAt.month}.${wish.createdAt.year}';
 
@@ -449,14 +452,21 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
               ),
             ),
           ),
-          label: Text('Fiyat ${formatAmount(wish.price)}'),
+          label: Text(
+            l10n.t(
+              'wishDetail.priceLabel',
+              params: {'amount': formatAmount(wish.price)},
+            ),
+          ),
         ),
       );
     }
     chips.add(
       Chip(
         avatar: const Icon(Icons.event_outlined, size: 18),
-        label: Text('Oluşturuldu $createdLabel'),
+        label: Text(
+          l10n.t('wishDetail.createdLabel', params: {'date': createdLabel}),
+        ),
       ),
     );
 
@@ -487,7 +497,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => _launchUrl(wish.productUrl),
                   icon: const Icon(Icons.link),
-                  label: const Text('Ürünü Gör'),
+                  label: Text(l10n.t('wishDetail.viewProduct')),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -565,6 +575,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
 
   Widget _buildEngagementSection(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
 
     if (!_hasLoadedActivity) {
       return Padding(
@@ -598,7 +609,9 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
               context: context,
               icon: _isLiked ? Icons.favorite : Icons.favorite_border,
               iconColor: _isLiked ? Colors.red : null,
-              label: _isLiked ? 'Beğenildi' : 'Beğen',
+              label: _isLiked
+                  ? l10n.t('wishDetail.liked')
+                  : l10n.t('wishDetail.like'),
               onTap: _isProcessingLike ? null : _handleLike,
               count: _likesCount,
             ),
@@ -608,7 +621,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
             child: _buildEngagementButton(
               context: context,
               icon: Icons.chat_bubble_outline,
-              label: 'Yorumlar',
+              label: l10n.t('wishDetail.comments'),
               onTap: _openComments,
               count: _commentsCount,
             ),
@@ -621,20 +634,21 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final wish = _wish;
+    final l10n = context.l10n;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Wish Details'),
+        title: Text(l10n.t('wishDetail.title')),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
-          tooltip: 'Back',
+          tooltip: l10n.t('wishDetail.backTooltip'),
         ),
         actions: [
           if (_isOwnActivity)
             IconButton(
               icon: const Icon(Icons.edit_outlined),
-              tooltip: 'Edit wish',
+              tooltip: l10n.t('wishDetail.editTooltip'),
               onPressed: _openEditWish,
             ),
         ],
@@ -679,6 +693,3 @@ PageRouteBuilder<dynamic> createRightToLeftSlideRoute(Widget page) {
     transitionDuration: const Duration(milliseconds: 300),
   );
 }
-
-
-

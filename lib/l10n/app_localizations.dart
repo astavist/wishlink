@@ -1,0 +1,934 @@
+import 'package:flutter/widgets.dart';
+
+class AppLocalizations {
+  AppLocalizations(this.locale);
+
+  final Locale locale;
+
+  static const supportedLocales = [Locale('en', 'US'), Locale('tr', 'TR')];
+
+  static const _localizedValues = <String, Map<String, String>>{
+    // General
+    'common.cancel': {'en': 'Cancel', 'tr': 'İptal'},
+    'common.apply': {'en': 'Apply', 'tr': 'Uygula'},
+    'common.ok': {'en': 'OK', 'tr': 'Tamam'},
+    'common.save': {'en': 'Save', 'tr': 'Kaydet'},
+    'common.add': {'en': 'Add', 'tr': 'Ekle'},
+    'common.create': {'en': 'Create', 'tr': 'Oluştur'},
+    'common.delete': {'en': 'Delete', 'tr': 'Sil'},
+    'common.tryAgain': {
+      'en': 'An error occurred. Please try again.',
+      'tr': 'Bir hata oluştu. Lütfen tekrar deneyin.',
+    },
+    'common.error': {
+      'en': 'Something went wrong',
+      'tr': 'Bir şeyler ters gitti',
+    },
+    'common.loading': {'en': 'Loading...', 'tr': 'Yükleniyor...'},
+    'common.backToLogin': {'en': 'Back to Login', 'tr': 'Girişe Dön'},
+    'common.useDifferentAccount': {
+      'en': 'Use Different Account',
+      'tr': 'Farklı Hesap Kullan',
+    },
+    'common.viewProduct': {'en': 'View Product', 'tr': 'Ürünü Gör'},
+    'common.signOut': {'en': 'Sign Out', 'tr': 'Çıkış Yap'},
+    'common.language': {'en': 'Language', 'tr': 'Dil'},
+    'common.languagePrompt': {'en': 'Choose language', 'tr': 'Dil seç'},
+    'common.english': {'en': 'English', 'tr': 'İngilizce'},
+    'common.turkish': {'en': 'Turkish', 'tr': 'Türkçe'},
+    'common.linkOpenFailed': {
+      'en': 'Link could not be opened',
+      'tr': 'Link açılamadı',
+    },
+    'common.couldNotOpenLink': {
+      'en': 'Could not open link',
+      'tr': 'Link açılamadı',
+    },
+    'common.signInToLike': {
+      'en': 'Please sign in to like wishes.',
+      'tr': 'Beğenmek için lütfen giriş yap.',
+    },
+    'common.likeFailed': {
+      'en': 'Failed to update like. Try again.',
+      'tr': 'Beğeni güncellenemedi. Lütfen tekrar dene.',
+    },
+    // Settings
+    'settings.title': {'en': 'Settings', 'tr': 'Ayarlar'},
+    'settings.editProfile': {'en': 'Edit Profile', 'tr': 'Profili Düzenle'},
+    'settings.changePassword': {
+      'en': 'Change Password',
+      'tr': 'Şifreyi Değiştir',
+    },
+    // Edit Profile
+    'editProfile.loadFailed': {
+      'en': 'Failed to load profile: {error}',
+      'tr': 'Profil yüklenemedi: {error}',
+    },
+    'editProfile.photoPickFailed': {
+      'en': 'Failed to pick image: {error}',
+      'tr': 'Fotoğraf seçilemedi: {error}',
+    },
+    'editProfile.saveFailed': {
+      'en': 'Failed to save profile: {error}',
+      'tr': 'Profil kaydedilemedi: {error}',
+    },
+    // Change Password
+    'changePassword.updateSuccess': {
+      'en': 'Password updated successfully',
+      'tr': 'Şifre başarıyla güncellendi',
+    },
+    'changePassword.updateFailed': {
+      'en': 'Failed to update password',
+      'tr': 'Şifre güncellenemedi',
+    },
+    'settings.appearance': {'en': 'Appearance', 'tr': 'Görünüm'},
+    'settings.appearance.matchSystem': {
+      'en': 'Match system',
+      'tr': 'Sistemi takip et',
+    },
+    'settings.appearance.matchSystemDesc': {
+      'en': 'Automatically follows your device',
+      'tr': 'Cihazın temasını otomatik takip eder',
+    },
+    'settings.appearance.light': {'en': 'Light', 'tr': 'Açık'},
+    'settings.appearance.lightDesc': {
+      'en': 'Always use the light theme',
+      'tr': 'Her zaman açık temayı kullan',
+    },
+    'settings.appearance.dark': {'en': 'Dark', 'tr': 'Koyu'},
+    'settings.appearance.darkDesc': {
+      'en': 'Always use the dark theme',
+      'tr': 'Her zaman koyu temayı kullan',
+    },
+    'settings.appearance.chooseTheme': {'en': 'Choose theme', 'tr': 'Tema seç'},
+    'settings.notifications': {
+      'en': 'Notification Settings',
+      'tr': 'Bildirim Ayarları',
+    },
+    'settings.notificationsComing': {
+      'en': 'Notifications - Coming Soon',
+      'tr': 'Bildirimler - Yakında',
+    },
+    'settings.privacy': {'en': 'Privacy Settings', 'tr': 'Gizlilik Ayarları'},
+    'settings.privacyComing': {
+      'en': 'Privacy Settings - Coming Soon',
+      'tr': 'Gizlilik Ayarları - Yakında',
+    },
+    'settings.help': {'en': 'Help & Support', 'tr': 'Yardım ve Destek'},
+    'settings.helpComing': {
+      'en': 'Help & Support - Coming Soon',
+      'tr': 'Yardım & Destek - Yakında',
+    },
+    'settings.errorSigningOut': {
+      'en': 'Error signing out',
+      'tr': 'Çıkış yapılırken hata oluştu',
+    },
+    'settings.profileUpdated': {
+      'en': 'Profile updated',
+      'tr': 'Profil güncellendi',
+    },
+    // Email verification
+    'emailVerification.title': {
+      'en': 'Email Verification Required',
+      'tr': 'E-posta Doğrulaması Gerekli',
+    },
+    'emailVerification.subtitle': {
+      'en':
+          'To verify your account, please send a verification email to:\n{email}',
+      'tr':
+          'Hesabını doğrulamak için lütfen şu adrese doğrulama e-postası gönder:\n{email}',
+    },
+    'emailVerification.instructions': {
+      'en':
+          'Click the button below to send a verification email, then check your inbox and click the verification link.',
+      'tr':
+          'Aşağıdaki butona basarak doğrulama e-postası gönder, ardından gelen kutunu kontrol edip bağlantıya tıkla.',
+    },
+    'emailVerification.sendButton': {
+      'en': 'Send Verification Email',
+      'tr': 'Doğrulama E-postası Gönder',
+    },
+    'emailVerification.postSendInfo': {
+      'en':
+          'After sending and verifying your email, you\'ll be automatically redirected.',
+      'tr':
+          'E-postayı gönderip doğruladıktan sonra otomatik olarak yönlendirileceksin.',
+    },
+    'emailVerification.resendSuccess': {
+      'en': 'Verification email resent successfully!',
+      'tr': 'Doğrulama e-postası yeniden gönderildi!',
+    },
+    'emailVerification.resendError': {
+      'en': 'Error resending email: {error}',
+      'tr': 'E-posta tekrar gönderilirken hata: {error}',
+    },
+    // Login
+    'login.validation.passwordRequired': {
+      'en': 'Please enter a password',
+      'tr': 'Lütfen bir şifre gir',
+    },
+    'login.validation.passwordTooShort': {
+      'en': 'Password must be at least 6 characters',
+      'tr': 'Şifre en az 6 karakter olmalı',
+    },
+    'login.validation.confirmPasswordRequired': {
+      'en': 'Please confirm your password',
+      'tr': 'Lütfen şifreni doğrula',
+    },
+    'login.validation.passwordsMismatch': {
+      'en': 'Passwords do not match',
+      'tr': 'Şifreler eşleşmiyor',
+    },
+    'login.validation.usernameRequired': {
+      'en': 'Please choose a username',
+      'tr': 'Lütfen bir kullanıcı adı seç',
+    },
+    'login.validation.usernameRules': {
+      'en':
+          'Username must be 3-20 characters and can include letters, numbers, ., _, -',
+      'tr':
+          'Kullanıcı adı 3-20 karakter olmalı ve harf, rakam, ., _, - içerebilir',
+    },
+    'login.validation.usernameTaken': {
+      'en': 'This username is already taken',
+      'tr': 'Bu kullanıcı adı zaten kullanımda',
+    },
+    'login.validation.firstNameRequired': {
+      'en': 'Please enter your first name',
+      'tr': 'Lütfen adını gir',
+    },
+    'login.validation.lastNameRequired': {
+      'en': 'Please enter your last name',
+      'tr': 'Lütfen soyadını gir',
+    },
+    'login.validation.birthDateRequired': {
+      'en': 'Please select your birth date',
+      'tr': 'Lütfen doğum tarihini seç',
+    },
+    'login.validation.emailRequired': {
+      'en': 'Please enter your email',
+      'tr': 'Lütfen e-posta adresini gir',
+    },
+    'login.validation.emailInvalid': {
+      'en': 'Please enter a valid email',
+      'tr': 'Lütfen geçerli bir e-posta gir',
+    },
+    // Account setup
+    'accountSetup.saveFailed': {
+      'en': 'Could not complete setup. Please try again.',
+      'tr': 'Kurulum tamamlanamadı. Lütfen tekrar dene.',
+    },
+    'login.chooseUsernameTitle': {
+      'en': 'Choose a username',
+      'tr': 'Kullanıcı adı seç',
+    },
+    'login.chooseUsernameDescription': {
+      'en': 'Pick a unique username so your friends can find you easily.',
+      'tr':
+          'Arkadaşların seni kolay bulabilsin diye benzersiz bir kullanıcı adı seç.',
+    },
+    'login.usernameRequired': {
+      'en': 'A username is required to continue.',
+      'tr': 'Devam etmek için kullanıcı adı gerekli.',
+    },
+    'login.usernameUpdateFailed': {
+      'en': 'We could not update your username. Please try again.',
+      'tr': 'Kullanıcı adını güncelleyemedik. Lütfen tekrar dene.',
+    },
+    'login.googleNoUser': {
+      'en': 'No user returned from Google sign-in.',
+      'tr': 'Google girişi kullanıcı döndürmedi.',
+    },
+    'login.googleSetupCancelled': {
+      'en': 'Google account setup was cancelled.',
+      'tr': 'Google hesap kurulumu iptal edildi.',
+    },
+    'login.googleFailed': {
+      'en': 'Google sign-in failed. Please try again.',
+      'tr': 'Google girişi başarısız oldu. Lütfen tekrar dene.',
+    },
+    'login.appleNoUser': {
+      'en': 'No user returned from Apple sign-in.',
+      'tr': 'Apple girişi kullanıcı döndürmedi.',
+    },
+    'login.appleSetupCancelled': {
+      'en': 'Apple account setup was cancelled.',
+      'tr': 'Apple hesap kurulumu iptal edildi.',
+    },
+    'login.appleFailed': {
+      'en': 'Apple sign-in failed. Please try again.',
+      'tr': 'Apple girişi başarısız oldu. Lütfen tekrar dene.',
+    },
+    'login.error.invalidEmail': {
+      'en': 'The email address is invalid.',
+      'tr': 'E-posta adresi geçersiz.',
+    },
+    'login.error.userDisabled': {
+      'en': 'This account has been disabled.',
+      'tr': 'Bu hesap devre dışı bırakıldı.',
+    },
+    'login.error.userNotFound': {
+      'en': 'No user found with these credentials.',
+      'tr': 'Bu bilgilerle kullanıcı bulunamadı.',
+    },
+    'login.error.wrongPassword': {
+      'en': 'Incorrect mail or password. Please try again.',
+      'tr': 'Mail adresi veya şifre yanlış. Lütfen tekrar dene.',
+    },
+    'login.error.emailInUse': {
+      'en': 'This email is already registered.',
+      'tr': 'Bu e-posta zaten kayıtlı.',
+    },
+    'login.error.weakPassword': {
+      'en': 'Your password must be at least 6 characters.',
+      'tr': 'Şifren en az 6 karakter olmalı.',
+    },
+    'login.signupVerificationSent': {
+      'en':
+          'Verification email sent. Please check your inbox and verify your email before logging in.',
+      'tr':
+          'Doğrulama e-postası gönderildi. Lütfen gelen kutunu kontrol edip giriş yapmadan önce doğrula.',
+    },
+    'login.resetEmailSent': {
+      'en': 'Password reset email sent. Please check your inbox.',
+      'tr':
+          'Şifre sıfırlama e-postası gönderildi. Lütfen gelen kutunu kontrol et.',
+    },
+    'login.resetEmailFailed': {
+      'en': 'Could not send password reset email. Please try again.',
+      'tr': 'Şifre sıfırlama e-postası gönderilemedi. Lütfen tekrar dene.',
+    },
+    'login.resetEmailInputRequired': {
+      'en': 'Please enter your email address first.',
+      'tr': 'Önce e-posta adresini gir.',
+    },
+    'login.forgotPassword': {
+      'en': 'Forgot Password?',
+      'tr': 'Şifreni mi unuttun?',
+    },
+    'login.orDivider': {'en': 'OR', 'tr': 'VEYA'},
+    'login.alreadyHaveAccount': {
+      'en': 'Already have an account? ',
+      'tr': 'Zaten hesabın var mı? ',
+    },
+    'login.dontHaveAccount': {
+      'en': "Don't have an account? ",
+      'tr': 'Hesabın yok mu? ',
+    },
+    'login.login': {'en': 'Login', 'tr': 'Giriş Yap'},
+    'login.signUp': {'en': 'Sign Up', 'tr': 'Kayıt Ol'},
+    'login.creatingAccount': {
+      'en': 'Creating Account...',
+      'tr': 'Hesap oluşturuluyor...',
+    },
+    'login.loggingIn': {'en': 'Logging in...', 'tr': 'Giriş yapılıyor...'},
+    'login.continueWithGoogle': {
+      'en': 'Continue with Google',
+      'tr': 'Google ile devam et',
+    },
+    'login.continueWithApple': {
+      'en': 'Continue with Apple',
+      'tr': 'Apple ile devam et',
+    },
+    'login.label.firstName': {'en': 'First Name', 'tr': 'Ad'},
+    'login.label.lastName': {'en': 'Last Name', 'tr': 'Soyad'},
+    'login.label.birthDate': {'en': 'Birth Date', 'tr': 'Doğum Tarihi'},
+    'login.label.username': {'en': 'Username', 'tr': 'Kullanıcı Adı'},
+    'login.label.email': {'en': 'Email', 'tr': 'E-posta'},
+    'login.label.password': {'en': 'Password', 'tr': 'Şifre'},
+    'login.label.confirmPassword': {
+      'en': 'Confirm Password',
+      'tr': 'Şifreyi Doğrula',
+    },
+    'login.hint.email': {'en': 'you@example.com', 'tr': 'ornek@eposta.com'},
+    // Relative time
+    'time.justNow': {'en': 'Just now', 'tr': 'Az önce'},
+    'time.minute': {'en': '{count} minute ago', 'tr': '{count} dakika önce'},
+    'time.minutes': {'en': '{count} minutes ago', 'tr': '{count} dakika önce'},
+    'time.hour': {'en': '{count} hour ago', 'tr': '{count} saat önce'},
+    'time.hours': {'en': '{count} hours ago', 'tr': '{count} saat önce'},
+    'time.day': {'en': '{count} day ago', 'tr': '{count} gün önce'},
+    'time.days': {'en': '{count} days ago', 'tr': '{count} gün önce'},
+    // Home
+    'home.meBadge': {'en': 'ME', 'tr': 'BEN'},
+    'home.friendActivityTitle': {
+      'en': 'Friend Activity',
+      'tr': 'Arkadaş Etkinliği',
+    },
+    'home.activitiesError': {
+      'en': 'An error occurred: {error}',
+      'tr': 'Bir hata oluştu: {error}',
+    },
+    'home.noActivities': {
+      'en': 'No activities yet',
+      'tr': 'Henüz etkinlik yok',
+    },
+    'home.connectPrompt': {
+      'en': 'Add your first wish or connect with friends',
+      'tr': 'İlk dileğini ekle veya arkadaşlarınla bağlantı kur',
+    },
+    // Wish detail
+    'wishDetail.ownerLoading': {'en': 'Loading...', 'tr': 'Yükleniyor...'},
+    'wishDetail.ownerMissing': {
+      'en': 'Owner information not available.',
+      'tr': 'Sahip bilgisi bulunamadı.',
+    },
+    'wishDetail.unknownUser': {
+      'en': 'Unknown User',
+      'tr': 'Bilinmeyen Kullanıcı',
+    },
+    'wishDetail.ownWish': {
+      'en': 'This wish belongs to you',
+      'tr': 'Bu wish sana ait',
+    },
+    'wishDetail.ownerWish': {'en': "{owner}'s wish", 'tr': '{owner} dileği'},
+    'wishDetail.addedLabel': {'en': 'Added {time}', 'tr': '{time} eklendi'},
+    'wishDetail.priceLabel': {'en': 'Price {amount}', 'tr': 'Fiyat {amount}'},
+    'wishDetail.createdLabel': {
+      'en': 'Created {date}',
+      'tr': 'Oluşturuldu {date}',
+    },
+    'wishDetail.viewProduct': {'en': 'View Product', 'tr': 'Ürünü Gör'},
+    'wishDetail.like': {'en': 'Like', 'tr': 'Beğen'},
+    'wishDetail.liked': {'en': 'Liked', 'tr': 'Beğenildi'},
+    'wishDetail.comments': {'en': 'Comments', 'tr': 'Yorumlar'},
+    'wishDetail.title': {'en': 'Wish Details', 'tr': 'Wish Detayları'},
+    'wishDetail.backTooltip': {'en': 'Back', 'tr': 'Geri'},
+    'wishDetail.editTooltip': {'en': 'Edit wish', 'tr': 'Dileği düzenle'},
+    // Edit wish
+    'editWish.sessionMissing': {
+      'en': 'Session not found.',
+      'tr': 'Oturum bulunamadı.',
+    },
+    'editWish.loadFailed': {
+      'en': 'Unable to load wish: {error}',
+      'tr': 'Wish yüklenemedi: {error}',
+    },
+    'editWish.invalidProductLink': {
+      'en': 'Enter a valid link that starts with http or https.',
+      'tr': 'Lütfen http veya https ile başlayan geçerli bir link gir.',
+    },
+    'editWish.autoProductUnavailable': {
+      'en': 'Could not fetch product info. Please enter it manually.',
+      'tr': 'Ürün bilgisi alınamadı. Lütfen manuel gir.',
+    },
+    'editWish.autoImageMissing': {
+      'en': 'No product image found for this link.',
+      'tr': 'Bu link için ürün fotoğrafı bulunamadı.',
+    },
+    'editWish.autoPriceMissing': {
+      'en': 'No price found for this link. Please enter it manually.',
+      'tr': 'Bu link için fiyat bulunamadı. Lütfen manuel gir.',
+    },
+    'editWish.autoFetchFailed': {
+      'en': 'Unable to fetch product info right now. Try again later.',
+      'tr': 'Şu anda ürün bilgileri alınamadı. Lütfen tekrar dene.',
+    },
+    'editWish.photoPickFailed': {
+      'en': 'Could not select photo: {error}',
+      'tr': 'Fotoğraf seçilemedi: {error}',
+    },
+    'editWish.updated': {'en': 'Wish updated', 'tr': 'Wish güncellendi'},
+    'editWish.updateFailed': {
+      'en': 'Wish could not be updated: {error}',
+      'tr': 'Wish güncellenemedi: {error}',
+    },
+    'editWish.newListTitle': {
+      'en': 'Create New List',
+      'tr': 'Yeni Liste Oluştur',
+    },
+    'editWish.listNameHint': {'en': 'List name', 'tr': 'Liste adı'},
+    'editWish.listCreateFailed': {
+      'en': 'Could not create list',
+      'tr': 'Liste oluşturulamadı',
+    },
+    'editWish.noLists': {'en': 'No lists', 'tr': 'Liste yok'},
+    'editWish.createNewList': {
+      'en': '+ Create new list',
+      'tr': '+ Yeni liste oluştur',
+    },
+    'editWish.previousList': {
+      'en': 'Previous list (deleted)',
+      'tr': 'Önceki liste (silinmiş)',
+    },
+    'editWish.title': {'en': 'Edit Wish', 'tr': 'Dileği Düzenle'},
+    'editWish.listLabel': {'en': 'Select List', 'tr': 'Liste Seç'},
+    'editWish.nameLabel': {'en': 'Wish Name *', 'tr': 'Wish Adı *'},
+    'editWish.nameValidation': {
+      'en': 'Please enter the wish name',
+      'tr': 'Lütfen wish adını gir',
+    },
+    'editWish.descriptionLabel': {'en': 'Description', 'tr': 'Açıklama'},
+    'editWish.urlLabel': {'en': 'Product URL *', 'tr': 'Ürün URL *'},
+    'editWish.urlRequired': {
+      'en': 'Please enter a URL',
+      'tr': 'Lütfen URL gir',
+    },
+    'editWish.urlInvalid': {
+      'en': 'Please enter a valid URL',
+      'tr': 'Geçerli bir URL gir',
+    },
+    'editWish.fetchingProduct': {
+      'en': 'Fetching product info...',
+      'tr': 'Ürün bilgileri getiriliyor...',
+    },
+    'editWish.priceLabel': {'en': 'Price *', 'tr': 'Fiyat *'},
+    'editWish.priceRequired': {
+      'en': 'Please enter a price',
+      'tr': 'Lütfen fiyat gir',
+    },
+    'editWish.priceInvalid': {
+      'en': 'Enter a valid price greater than 0',
+      'tr': '0’dan büyük geçerli bir fiyat gir',
+    },
+    'editWish.currencyLabel': {'en': 'Currency', 'tr': 'Para Birimi'},
+    'editWish.pickPhoto': {'en': 'Choose photo', 'tr': 'Fotoğraf seç'},
+    'editWish.removePhoto': {'en': 'Remove photo', 'tr': 'Fotoğrafı kaldır'},
+    'editWish.save': {'en': 'Save', 'tr': 'Kaydet'},
+    // User profile
+    'profile.title': {'en': 'Profile', 'tr': 'Profil'},
+    'profile.wishLists': {'en': 'Wish Lists', 'tr': 'Wish listeleri'},
+    'profile.createList': {'en': 'Create List', 'tr': 'Liste oluştur'},
+    'profile.allWishes': {'en': 'All Wishes', 'tr': 'Tüm wishler'},
+    'profile.myWishes': {'en': 'My Wishes', 'tr': 'Wishlerim'},
+    'profile.emptyWishes': {
+      'en': 'You have not added any wishes yet.',
+      'tr': 'Henüz bir wish eklemedin.',
+    },
+    'profile.editWishTooltip': {'en': 'Edit wish', 'tr': 'Dileği düzenle'},
+    'profile.photoPickFromGallery': {
+      'en': 'Choose from gallery',
+      'tr': 'Galeriden seç',
+    },
+    'profile.photoRemove': {'en': 'Remove photo', 'tr': 'Fotoğrafı sil'},
+    'profile.photoUpdateSuccess': {
+      'en': 'Profile photo updated successfully!',
+      'tr': 'Profil fotoğrafı başarıyla güncellendi!',
+    },
+    'profile.photoUpdateError': {
+      'en': 'Error updating profile photo: {error}',
+      'tr': 'Profil fotoğrafı güncellenirken hata: {error}',
+    },
+    'profile.photoDeleteSuccess': {
+      'en': 'Profile photo removed',
+      'tr': 'Profil fotoğrafı silindi',
+    },
+    'profile.photoDeleteError': {
+      'en': 'Error removing profile photo: {error}',
+      'tr': 'Profil fotoğrafı silinirken hata: {error}',
+    },
+    'profile.errorLoadingLists': {
+      'en': 'Error loading lists',
+      'tr': 'Listeler yüklenemedi',
+    },
+    'profile.newListTitle': {
+      'en': 'Create New List',
+      'tr': 'Yeni liste oluştur',
+    },
+    'profile.newListHint': {'en': 'List name', 'tr': 'Liste adı'},
+    'profile.listCreateFailed': {
+      'en': 'Could not create list',
+      'tr': 'Liste oluşturulamadı',
+    },
+    'profile.noteAddTitle': {'en': 'Add Note', 'tr': 'Not Ekle'},
+    'profile.noteEditTitle': {'en': 'Edit Note', 'tr': 'Notu Düzenle'},
+    'profile.noteLabel': {'en': 'Note', 'tr': 'Not'},
+    'profile.pickDateOptional': {
+      'en': 'Pick a date (optional)',
+      'tr': 'Tarih seç (opsiyonel)',
+    },
+    'profile.clearDate': {'en': 'Clear date', 'tr': 'Tarihi temizle'},
+    'profile.noteSaved': {'en': 'Note saved', 'tr': 'Not kaydedildi'},
+    'profile.noteUpdated': {'en': 'Note updated', 'tr': 'Not güncellendi'},
+    'profile.noteSaveFailed': {
+      'en': 'Could not save note',
+      'tr': 'Not kaydedilemedi',
+    },
+    'profile.noteDeleteTitle': {'en': 'Delete Note', 'tr': 'Notu Sil'},
+    'profile.noteDeleteMessage': {
+      'en': 'Are you sure you want to delete this note? This cannot be undone.',
+      'tr': 'Bu notu silmek istediğine emin misin? Bu işlem geri alınamaz.',
+    },
+    'profile.noteDeleted': {'en': 'Note deleted', 'tr': 'Not silindi'},
+    'profile.noteDeleteFailed': {
+      'en': 'Could not delete note',
+      'tr': 'Not silinemedi',
+    },
+    'profile.myNotes': {'en': 'My Private Notes', 'tr': 'Kişisel Notlarım'},
+    'profile.addNoteTooltip': {'en': 'Add note', 'tr': 'Not ekle'},
+    'profile.noNotes': {
+      'en': 'You have not added any notes yet',
+      'tr': 'Henüz not eklemedin',
+    },
+    'profile.notesDescription': {
+      'en': 'Create reminders about this user that only you can see.',
+      'tr': 'Bu kullanıcı hakkında sadece senin görebileceğin notlar oluştur.',
+    },
+    'profile.addNoteButton': {'en': 'Add note', 'tr': 'Not ekle'},
+    'profile.noteUpdatedAt': {
+      'en': 'Last updated: {date}',
+      'tr': 'Son güncelleme: {date}',
+    },
+    'profile.noteEdit': {'en': 'Edit', 'tr': 'Düzenle'},
+    'profile.noteDelete': {'en': 'Delete', 'tr': 'Sil'},
+    'profile.errorLoadingUser': {
+      'en': 'Error loading user data',
+      'tr': 'Kullanıcı verileri yüklenemedi',
+    },
+    'profile.errorLoadingWishes': {
+      'en': 'Error loading wishes',
+      'tr': 'Wishler yüklenemedi',
+    },
+    'profile.errorLoadingNotes': {
+      'en': 'Error loading notes',
+      'tr': 'Notlar yüklenirken hata oluştu',
+    },
+    'profile.defaultUserName': {'en': 'User', 'tr': 'Kullanıcı'},
+    'profile.wishesTitle': {
+      'en': "{handle}'s Wishes",
+      'tr': '{handle} wishleri',
+    },
+    'profile.userUnknown': {'en': 'This user', 'tr': 'Bu kullanıcı'},
+    'profile.noWishesTitle': {'en': 'No wishes yet', 'tr': 'Henüz wish yok'},
+    'profile.noWishesSubtitle': {
+      'en': "{name} hasn't added any wishes yet",
+      'tr': '{name} henüz wish eklemedi',
+    },
+    // Comments
+    'comments.addFailed': {
+      'en': 'Could not add comment. Please try again.',
+      'tr': 'Yorum eklenemedi. Lütfen tekrar dene.',
+    },
+    'comments.title': {'en': 'Comments', 'tr': 'Yorumlar'},
+    'comments.unableToLoad': {
+      'en': 'Unable to load comments right now.',
+      'tr': 'Yorumlar şu anda yüklenemiyor.',
+    },
+    'comments.empty': {
+      'en': 'No comments yet. Be the first to comment!',
+      'tr': 'Henüz yorum yok. İlk yorum yapan sen ol!',
+    },
+    'comments.hint': {'en': 'Add a comment...', 'tr': 'Yorum ekle...'},
+    // Activity actions
+    'activity.buyGift': {'en': 'Buy gift', 'tr': 'Hediyeyi satın al'},
+    'activity.comment': {'en': 'Comment', 'tr': 'Yorum'},
+    'activity.share': {'en': 'Share', 'tr': 'Paylaş'},
+    'activity.like': {'en': 'Like', 'tr': 'Beğen'},
+    // Friends
+    'friends.title': {'en': 'Friends', 'tr': 'Arkadaşlar'},
+    'friends.tabMyFriends': {'en': 'My Friends', 'tr': 'Arkadaşlarım'},
+    'friends.tabIncoming': {'en': 'Incoming', 'tr': 'Gelenler'},
+    'friends.tabOutgoing': {'en': 'Outgoing', 'tr': 'Gidenler'},
+    'friends.searchHint': {'en': 'Search users...', 'tr': 'Kullanıcı ara...'},
+    'friends.searchError': {
+      'en': 'Error searching users',
+      'tr': 'Kullanıcı ararken hata oluştu',
+    },
+    'friends.noUsersFound': {
+      'en': 'No users found',
+      'tr': 'Kullanıcı bulunamadı',
+    },
+    'friends.statusFriends': {'en': 'Friends', 'tr': 'Arkadaşsınız'},
+    'friends.statusRequestSent': {
+      'en': 'Request sent',
+      'tr': 'İstek gönderildi',
+    },
+    'friends.statusPending': {'en': 'Pending', 'tr': 'Beklemede'},
+    'friends.buttonRespond': {'en': 'Respond', 'tr': 'Yanıtla'},
+    'friends.buttonAdd': {'en': 'Add Friend', 'tr': 'Arkadaş ekle'},
+    'friends.buttonRemove': {'en': 'Remove', 'tr': 'Kaldır'},
+    'friends.buttonAccept': {'en': 'Accept', 'tr': 'Kabul et'},
+    'friends.buttonReject': {'en': 'Reject', 'tr': 'Reddet'},
+    'friends.snackbarRequestSent': {
+      'en': 'Friend request sent successfully',
+      'tr': 'Arkadaş isteği gönderildi',
+    },
+    'friends.snackbarRequestFailed': {
+      'en': 'Error sending friend request',
+      'tr': 'Arkadaş isteği gönderilirken hata oluştu',
+    },
+    'friends.snackbarFriendRemoved': {
+      'en': 'Friend removed successfully',
+      'tr': 'Arkadaş silindi',
+    },
+    'friends.snackbarFriendRemoveFailed': {
+      'en': 'Error removing friend',
+      'tr': 'Arkadaş silinirken hata oluştu',
+    },
+    'friends.snackbarAccepted': {
+      'en': 'Friend request accepted',
+      'tr': 'Arkadaş isteği kabul edildi',
+    },
+    'friends.snackbarAcceptFailed': {
+      'en': 'Error accepting friend request',
+      'tr': 'Arkadaş isteği kabul edilirken hata oluştu',
+    },
+    'friends.snackbarRejected': {
+      'en': 'Friend request rejected',
+      'tr': 'Arkadaş isteği reddedildi',
+    },
+    'friends.snackbarRejectFailed': {
+      'en': 'Error rejecting friend request',
+      'tr': 'Arkadaş isteği reddedilirken hata oluştu',
+    },
+    'friends.emptyFriendsTitle': {
+      'en': 'No friends yet',
+      'tr': 'Henüz arkadaşın yok',
+    },
+    'friends.emptyFriendsSubtitle': {
+      'en': 'Connect with friends to see their wishes',
+      'tr': 'Arkadaşlarınla bağlantı kurup wishlerini gör',
+    },
+    'friends.emptyIncomingTitle': {
+      'en': 'No incoming friend requests',
+      'tr': 'Gelen arkadaş isteği yok',
+    },
+    'friends.emptyIncomingSubtitle': {
+      'en': 'When someone sends you a request, it will appear here',
+      'tr': 'Biri sana istek gönderdiğinde burada görünecek',
+    },
+    'friends.emptyOutgoingTitle': {
+      'en': 'No outgoing friend requests',
+      'tr': 'Gönderilmiş arkadaş isteği yok',
+    },
+    'friends.emptyOutgoingSubtitle': {
+      'en': 'Search for users and send friend requests to connect',
+      'tr': 'Kullanıcı arayıp arkadaş isteği gönder',
+    },
+    'friends.error': {'en': 'Error: {error}', 'tr': 'Hata: {error}'},
+    'friends.unknownUser': {'en': 'User', 'tr': 'Kullanıcı'},
+    // Notifications
+    'notifications.title': {'en': 'Notifications', 'tr': 'Bildirimler'},
+    'notifications.errorLoading': {
+      'en': 'Error loading notifications',
+      'tr': 'Bildirimler yüklenirken hata',
+    },
+    'notifications.errorLoadingWithReason': {
+      'en': 'Error loading notifications: {error}',
+      'tr': 'Bildirimler yüklenirken hata: {error}',
+    },
+    'notifications.retry': {'en': 'Retry', 'tr': 'Tekrar dene'},
+    'notifications.emptyTitle': {
+      'en': 'No notifications yet',
+      'tr': 'Henüz bildirimin yok',
+    },
+    'notifications.emptySubtitle': {
+      'en': 'You\'ll see friend requests and new wishes here',
+      'tr': 'Burada arkadaş isteklerini ve yeni wishleri göreceksin',
+    },
+    'notifications.userNotAuthenticated': {
+      'en': 'User not authenticated',
+      'tr': 'Kullanıcı doğrulanmadı',
+    },
+    'notifications.friendRequestTitle': {
+      'en': 'New Friend Request',
+      'tr': 'Yeni arkadaş isteği',
+    },
+    'notifications.friendRequestMessage': {
+      'en': '{user} sent you a friend request',
+      'tr': '{user} sana arkadaş isteği gönderdi',
+    },
+    'notifications.newWishTitle': {
+      'en': 'New Wish Added',
+      'tr': 'Yeni wish eklendi',
+    },
+    'notifications.newWishMessage': {
+      'en': '{user} added \"{wish}\" to their wishlist',
+      'tr': '{user} wish listesine \"{wish}\" ekledi',
+    },
+    'notifications.unknownWishFallback': {'en': 'a wish', 'tr': 'bir wish'},
+    // Add Wish
+    'addWish.title': {'en': 'Add Wish', 'tr': 'Wish Ekle'},
+    'addWish.closeKeyboard': {'en': 'Close Keyboard', 'tr': 'Klavye kapat'},
+    'addWish.assignList': {'en': 'Assign to List', 'tr': 'Liste seç'},
+    'addWish.noList': {'en': 'No list', 'tr': 'Liste yok'},
+    'addWish.createListOption': {
+      'en': '? Create new list',
+      'tr': '? Yeni liste oluştur',
+    },
+    'addWish.newListTitle': {
+      'en': 'Create New List',
+      'tr': 'Yeni Liste Oluştur',
+    },
+    'addWish.newListHint': {'en': 'List name', 'tr': 'Liste adı'},
+    'addWish.listCreateFailed': {
+      'en': 'Could not create list',
+      'tr': 'Liste oluşturulamadı',
+    },
+    'addWish.invalidLink': {
+      'en': 'Please enter a valid product link that starts with http or https.',
+      'tr': 'Lütfen http ya da https ile başlayan geçerli bir ürün linki gir.',
+    },
+    'addWish.metadataUnavailable': {
+      'en':
+          'We could not fetch product details for this link. You can enter them manually.',
+      'tr':
+          'Bu link için ürün bilgileri alınamadı. Bilgileri manuel girebilirsin.',
+    },
+    'addWish.noPhotoFromLink': {
+      'en':
+          'We could not find a product photo for this link. You can select one from your gallery.',
+      'tr':
+          'Bu link için ürün fotoğrafı bulunamadı. Galerinden bir fotoğraf seçebilirsin.',
+    },
+    'addWish.noPriceFromLink': {
+      'en':
+          'We could not detect the price for this link. Please enter it manually.',
+      'tr': 'Bu link için fiyat bulunamadı. Lütfen manuel gir.',
+    },
+    'addWish.metadataFetchFailed': {
+      'en':
+          'We could not fetch product details for this link right now. Please try again later.',
+      'tr': 'Şu anda ürün bilgileri alınamadı. Lütfen daha sonra tekrar dene.',
+    },
+    'addWish.photoPickFailed': {
+      'en': 'Failed to select photo: {error}',
+      'tr': 'Fotoğraf seçilemedi: {error}',
+    },
+    'addWish.noPhotoSelected': {
+      'en': 'No product photo selected yet.',
+      'tr': 'Henüz ürün fotoğrafı seçilmedi.',
+    },
+    'addWish.galleryPhoto': {'en': 'Gallery photo', 'tr': 'Galeriden fotoğraf'},
+    'addWish.linkPhoto': {'en': 'From product link', 'tr': 'Ürün linkinden'},
+    'addWish.removePhotoTooltip': {
+      'en': 'Remove photo',
+      'tr': 'Fotoğrafı kaldır',
+    },
+    'addWish.wishNameLabel': {'en': 'Wish Name *', 'tr': 'Wish Adı *'},
+    'addWish.wishNameValidation': {
+      'en': 'Please enter a wish name',
+      'tr': 'Lütfen wish adını gir',
+    },
+    'addWish.descriptionLabel': {'en': 'Description', 'tr': 'Açıklama'},
+    'addWish.productUrlLabel': {'en': 'Product URL *', 'tr': 'Ürün URL *'},
+    'addWish.productUrlRequired': {
+      'en': 'Please enter a product URL',
+      'tr': 'Lütfen ürün URL’si gir',
+    },
+    'addWish.productUrlInvalid': {
+      'en': 'Please enter a valid URL',
+      'tr': 'Lütfen geçerli bir URL gir',
+    },
+    'addWish.fetchingMetadata': {
+      'en': 'Fetching product details...',
+      'tr': 'Ürün bilgileri getiriliyor...',
+    },
+    'addWish.selectPhotoButton': {
+      'en': 'Select photo from gallery',
+      'tr': 'Galeriden fotoğraf seç',
+    },
+    'addWish.priceLabel': {'en': 'Price *', 'tr': 'Fiyat *'},
+    'addWish.priceRequired': {
+      'en': 'Please enter a price',
+      'tr': 'Lütfen fiyat gir',
+    },
+    'addWish.priceInvalid': {
+      'en': 'Please enter a valid price greater than 0',
+      'tr': '0’dan büyük geçerli bir fiyat gir',
+    },
+    'addWish.currencyLabel': {'en': 'Currency', 'tr': 'Para birimi'},
+    'addWish.priceFetched': {
+      'en': 'Price fetched automatically from the link.',
+      'tr': 'Fiyat linkten otomatik olarak alındı.',
+    },
+    'addWish.currencyDetected': {
+      'en': 'Currency detected as {currency}.',
+      'tr': 'Para birimi {currency} olarak algılandı.',
+    },
+    'addWish.activityDescription': {
+      'en': 'added a new wish',
+      'tr': 'yeni bir wish ekledi',
+    },
+    'addWish.success': {
+      'en': 'Wish added successfully!',
+      'tr': 'Wish eklendi!',
+    },
+    'addWish.error': {
+      'en': 'Error adding wish: {error}',
+      'tr': 'Wish eklenemedi: {error}',
+    },
+    'addWish.submit': {'en': 'Add Wish', 'tr': 'Dileği Ekle'},
+    'home.activityShared': {'en': '{wish} shared!', 'tr': '{wish} paylaşıldı!'},
+    'home.linkMissing': {
+      'en': 'No link found for {wish}',
+      'tr': '{wish} için link bulunamadı',
+    },
+  };
+
+  static AppLocalizations of(BuildContext context) {
+    final result = Localizations.of<AppLocalizations>(
+      context,
+      AppLocalizations,
+    );
+    assert(result != null, 'No AppLocalizations found in context');
+    return result!;
+  }
+
+  static const LocalizationsDelegate<AppLocalizations> delegate =
+      _AppLocalizationsDelegate();
+
+  String _languageCode() {
+    return locale.languageCode.toLowerCase() == 'tr' ? 'tr' : 'en';
+  }
+
+  String t(String key, {Map<String, String>? params}) {
+    final languageCode = _languageCode();
+    final translations = _localizedValues[key];
+    final template = translations?[languageCode] ?? translations?['en'] ?? key;
+    if (params == null || params.isEmpty) {
+      return template;
+    }
+    var result = template;
+    params.forEach((placeholder, value) {
+      result = result.replaceAll('{$placeholder}', value);
+    });
+    return result;
+  }
+
+  String relativeTime(DateTime dateTime) {
+    final difference = DateTime.now().difference(dateTime);
+    if (difference.inDays >= 1) {
+      final count = difference.inDays;
+      final key = count == 1 ? 'time.day' : 'time.days';
+      return t(key, params: {'count': '$count'});
+    }
+    if (difference.inHours >= 1) {
+      final count = difference.inHours;
+      final key = count == 1 ? 'time.hour' : 'time.hours';
+      return t(key, params: {'count': '$count'});
+    }
+    if (difference.inMinutes >= 1) {
+      final count = difference.inMinutes;
+      final key = count == 1 ? 'time.minute' : 'time.minutes';
+      return t(key, params: {'count': '$count'});
+    }
+    return t('time.justNow');
+  }
+}
+
+class _AppLocalizationsDelegate
+    extends LocalizationsDelegate<AppLocalizations> {
+  const _AppLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) {
+    return AppLocalizations.supportedLocales.any(
+      (supported) =>
+          supported.languageCode.toLowerCase() ==
+          locale.languageCode.toLowerCase(),
+    );
+  }
+
+  @override
+  Future<AppLocalizations> load(Locale locale) async {
+    return AppLocalizations(locale);
+  }
+
+  @override
+  bool shouldReload(_AppLocalizationsDelegate old) => false;
+}
+
+extension AppLocalizationExtension on BuildContext {
+  AppLocalizations get l10n => AppLocalizations.of(this);
+}

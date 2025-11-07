@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 
 import '../models/wish_item.dart';
 import '../models/wish_list.dart';
@@ -42,9 +43,15 @@ class _EditWishScreenState extends State<EditWishScreen> {
   String? _selectedImageName;
   String? _overrideImageUrl;
   String? _selectedListId;
-  static const List<String> _defaultCurrencyOptions = ['TRY', 'USD', 'EUR', 'GBP'];
-  List<String> _availableCurrencies =
-      List<String>.from(_defaultCurrencyOptions);
+  static const List<String> _defaultCurrencyOptions = [
+    'TRY',
+    'USD',
+    'EUR',
+    'GBP',
+  ];
+  List<String> _availableCurrencies = List<String>.from(
+    _defaultCurrencyOptions,
+  );
   String _selectedCurrency = 'TRY';
   List<WishList> _lists = [];
   String? _autoMetadataErrorMessage;
@@ -83,7 +90,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
       if (user == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Oturum bulunamadı.')),
+            SnackBar(content: Text(context.l10n.t('editWish.sessionMissing'))),
           );
           Navigator.of(context).pop();
         }
@@ -103,8 +110,9 @@ class _EditWishScreenState extends State<EditWishScreen> {
       _nameController.text = widget.wish.name;
       _descriptionController.text = widget.wish.description;
       _productUrlController.text = widget.wish.productUrl;
-      _priceController.text =
-          widget.wish.price > 0 ? widget.wish.price.toStringAsFixed(2) : '';
+      _priceController.text = widget.wish.price > 0
+          ? widget.wish.price.toStringAsFixed(2)
+          : '';
       _selectedListId = widget.wish.listId ?? listIdFromDoc;
       _overrideImageUrl = imageUrlFromDoc;
 
@@ -137,7 +145,11 @@ class _EditWishScreenState extends State<EditWishScreen> {
         _isInitializing = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Wish yüklenemedi: $error')),
+        SnackBar(
+          content: Text(
+            context.l10n.t('editWish.loadFailed', params: {'error': '$error'}),
+          ),
+        ),
       );
     }
   }
@@ -185,8 +197,9 @@ class _EditWishScreenState extends State<EditWishScreen> {
 
     if (!_productLinkService.supportsUrl(trimmedUrl)) {
       setState(() {
-        _autoMetadataErrorMessage =
-            'Lütfen http veya https ile başlayan geçerli bir ürün linki girin.';
+        _autoMetadataErrorMessage = context.l10n.t(
+          'editWish.invalidProductLink',
+        );
         _autoFetchedImageBytes = null;
         _autoFetchedImageContentType = null;
         _autoFetchedProductUrl = null;
@@ -213,8 +226,9 @@ class _EditWishScreenState extends State<EditWishScreen> {
 
       if (result == null) {
         setState(() {
-          _autoMetadataErrorMessage =
-              'Linkten ürün bilgileri alınamadı. Lütfen manuel girin.';
+          _autoMetadataErrorMessage = context.l10n.t(
+            'editWish.autoProductUnavailable',
+          );
           _autoFetchedImageBytes = null;
           _autoFetchedImageContentType = null;
           _autoFetchedSourceImageUrl = null;
@@ -238,8 +252,9 @@ class _EditWishScreenState extends State<EditWishScreen> {
           _autoFetchedImageBytes = null;
           _autoFetchedImageContentType = null;
           _autoFetchedSourceImageUrl = null;
-          _autoMetadataErrorMessage =
-              'Bu link için ürün fotoğrafı bulunamadı.';
+          _autoMetadataErrorMessage = context.l10n.t(
+            'editWish.autoImageMissing',
+          );
         }
 
         _autoFetchedPrice = fetchedPrice;
@@ -262,8 +277,9 @@ class _EditWishScreenState extends State<EditWishScreen> {
         }
 
         if (fetchedPrice == null && !_priceManuallyEdited) {
-          _autoMetadataErrorMessage ??=
-              'Bu link için fiyat bulunamadı. Lütfen manuel girin.';
+          _autoMetadataErrorMessage ??= context.l10n.t(
+            'editWish.autoPriceMissing',
+          );
         }
       });
 
@@ -275,8 +291,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
         return;
       }
       setState(() {
-        _autoMetadataErrorMessage =
-            'Şu anda ürün bilgileri alınamadı. Lütfen tekrar deneyin.';
+        _autoMetadataErrorMessage = context.l10n.t('editWish.autoFetchFailed');
         _autoFetchedImageBytes = null;
         _autoFetchedImageContentType = null;
         _autoFetchedSourceImageUrl = null;
@@ -313,7 +328,8 @@ class _EditWishScreenState extends State<EditWishScreen> {
       setState(() {
         _selectedImageBytes = bytes;
         _selectedImageMimeType =
-            picked.mimeType ?? _guessContentTypeFromExtension(_extensionOf(picked.name));
+            picked.mimeType ??
+            _guessContentTypeFromExtension(_extensionOf(picked.name));
         _selectedImageName = picked.name;
         _overrideImageUrl = null;
         _autoFetchedImageBytes = null;
@@ -327,7 +343,14 @@ class _EditWishScreenState extends State<EditWishScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Fotoğraf seçilemedi: $error')),
+        SnackBar(
+          content: Text(
+            context.l10n.t(
+              'editWish.photoPickFailed',
+              params: {'error': '$error'},
+            ),
+          ),
+        ),
       );
     }
   }
@@ -337,10 +360,10 @@ class _EditWishScreenState extends State<EditWishScreen> {
       _selectedImageBytes = null;
       _selectedImageMimeType = null;
       _selectedImageName = null;
-       _autoFetchedImageBytes = null;
-       _autoFetchedImageContentType = null;
-       _autoFetchedProductUrl = null;
-       _autoFetchedSourceImageUrl = null;
+      _autoFetchedImageBytes = null;
+      _autoFetchedImageContentType = null;
+      _autoFetchedProductUrl = null;
+      _autoFetchedSourceImageUrl = null;
       _overrideImageUrl = '';
     });
   }
@@ -410,7 +433,8 @@ class _EditWishScreenState extends State<EditWishScreen> {
       return null;
     }
 
-    final mimeType = _selectedImageMimeType ??
+    final mimeType =
+        _selectedImageMimeType ??
         _guessContentTypeFromExtension(_extensionOf(_selectedImageName ?? ''));
     final extension = _extensionOf(_selectedImageName ?? 'wish.jpg');
     final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -431,7 +455,8 @@ class _EditWishScreenState extends State<EditWishScreen> {
 
     final extension =
         _guessExtensionFromContentType(_autoFetchedImageContentType) ?? 'jpg';
-    final contentType = _autoFetchedImageContentType ??
+    final contentType =
+        _autoFetchedImageContentType ??
         _guessContentTypeFromExtension(extension);
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final storagePath = 'wish_images/$userId/auto-$timestamp.$extension';
@@ -480,7 +505,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Oturum bulunamadı.')),
+        SnackBar(content: Text(context.l10n.t('editWish.sessionMissing'))),
       );
       return;
     }
@@ -495,8 +520,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
         userId: user.uid,
         productUrl: productUrl,
       );
-      final priceText =
-          _priceController.text.trim().replaceAll(',', '.');
+      final priceText = _priceController.text.trim().replaceAll(',', '.');
       final parsedPrice = double.tryParse(priceText) ?? 0;
 
       await _firestoreService.updateWish(
@@ -514,16 +538,23 @@ class _EditWishScreenState extends State<EditWishScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Wish güncellendi')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Wish güncellendi')));
       Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Wish güncellenemedi: $error')),
+        SnackBar(
+          content: Text(
+            context.l10n.t(
+              'editWish.updateFailed',
+              params: {'error': '$error'},
+            ),
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -550,8 +581,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
             child: const Text('İptal'),
           ),
           TextButton(
-            onPressed: () =>
-                Navigator.of(context).pop(controller.text.trim()),
+            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
             child: const Text('Oluştur'),
           ),
         ],
@@ -575,18 +605,16 @@ class _EditWishScreenState extends State<EditWishScreen> {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Liste oluşturulamadı')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Liste oluşturulamadı')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isInitializing) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     final imageBytes = _selectedImageBytes;
@@ -594,15 +622,10 @@ class _EditWishScreenState extends State<EditWishScreen> {
     final imageUrl = _overrideImageUrl ?? widget.wish.imageUrl;
     final selectedListId = _selectedListId;
     final dropdownItems = <DropdownMenuItem<String?>>[
-      const DropdownMenuItem<String?>(
-        value: null,
-        child: Text('Liste yok'),
-      ),
+      const DropdownMenuItem<String?>(value: null, child: Text('Liste yok')),
       ..._lists.map(
-        (list) => DropdownMenuItem<String?>(
-          value: list.id,
-          child: Text(list.name),
-        ),
+        (list) =>
+            DropdownMenuItem<String?>(value: list.id, child: Text(list.name)),
       ),
       const DropdownMenuItem<String?>(
         value: '__create__',
@@ -611,7 +634,8 @@ class _EditWishScreenState extends State<EditWishScreen> {
     ];
 
     final hasExistingList =
-        selectedListId != null && _lists.any((list) => list.id == selectedListId);
+        selectedListId != null &&
+        _lists.any((list) => list.id == selectedListId);
     if (selectedListId != null &&
         selectedListId.isNotEmpty &&
         !hasExistingList) {
@@ -759,8 +783,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
                           if (value == null || value.trim().isEmpty) {
                             return 'Lütfen fiyat girin';
                           }
-                          final normalized =
-                              value.trim().replaceAll(',', '.');
+                          final normalized = value.trim().replaceAll(',', '.');
                           final parsed = double.tryParse(normalized);
                           if (parsed == null || parsed <= 0) {
                             return 'Please enter a valid price greater than 0';
@@ -776,8 +799,8 @@ class _EditWishScreenState extends State<EditWishScreen> {
                         value: _availableCurrencies.contains(_selectedCurrency)
                             ? _selectedCurrency
                             : (_availableCurrencies.isNotEmpty
-                                ? _availableCurrencies.first
-                                : _selectedCurrency),
+                                  ? _availableCurrencies.first
+                                  : _selectedCurrency),
                         decoration: const InputDecoration(
                           labelText: 'Para Birimi',
                           border: OutlineInputBorder(),
@@ -813,19 +836,19 @@ class _EditWishScreenState extends State<EditWishScreen> {
                     border: Border.all(color: Colors.grey.shade300),
                   ),
                   clipBehavior: Clip.antiAlias,
-                 child: Builder(
-                   builder: (context) {
-                     if (imageBytes != null) {
-                       return Image.memory(imageBytes, fit: BoxFit.cover);
-                     }
-                     if (autoImageBytes != null) {
-                       return Image.memory(autoImageBytes, fit: BoxFit.cover);
-                     }
-                     if (imageUrl.isNotEmpty) {
-                       return Image.network(
-                         imageUrl,
-                         fit: BoxFit.cover,
-                         errorBuilder: (context, error, stackTrace) =>
+                  child: Builder(
+                    builder: (context) {
+                      if (imageBytes != null) {
+                        return Image.memory(imageBytes, fit: BoxFit.cover);
+                      }
+                      if (autoImageBytes != null) {
+                        return Image.memory(autoImageBytes, fit: BoxFit.cover);
+                      }
+                      if (imageUrl.isNotEmpty) {
+                        return Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
                               _buildImagePlaceholder(),
                         );
                       }
@@ -873,10 +896,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
                           height: 22,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text(
-                          'Kaydet',
-                          style: TextStyle(fontSize: 18),
-                        ),
+                      : const Text('Kaydet', style: TextStyle(fontSize: 18)),
                 ),
               ],
             ),
@@ -890,13 +910,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
     return Container(
       color: Colors.grey.shade200,
       alignment: Alignment.center,
-      child: const Icon(
-        Icons.image,
-        size: 48,
-        color: Colors.grey,
-      ),
+      child: const Icon(Icons.image, size: 48, color: Colors.grey),
     );
   }
 }
-
-

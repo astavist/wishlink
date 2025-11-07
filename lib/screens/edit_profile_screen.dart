@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 
 import '../services/storage_service.dart';
 import '../models/wish_item.dart';
@@ -134,7 +135,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           }
         }
         if (birthday != null) {
-          final normalized = DateTime(birthday.year, birthday.month, birthday.day);
+          final normalized = DateTime(
+            birthday.year,
+            birthday.month,
+            birthday.day,
+          );
           _selectedBirthday = normalized;
           _birthdayController.text = _formatDate(normalized);
         } else {
@@ -162,9 +167,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _isLoading = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to load profile: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.l10n.t('editProfile.loadFailed', params: {'error': '$e'}),
+            ),
+          ),
+        );
       }
     }
   }
@@ -198,11 +207,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _openEditWish(WishItem wish) async {
-    final updated = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => EditWishScreen(wish: wish),
-      ),
-    );
+    final updated = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => EditWishScreen(wish: wish)));
 
     final user = _auth.currentUser;
     if (updated == true && user != null) {
@@ -237,9 +244,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.l10n.t(
+                'editProfile.photoPickFailed',
+                params: {'error': '$e'},
+              ),
+            ),
+          ),
+        );
       }
     }
   }
@@ -422,9 +436,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         _isSaving = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to save profile: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              context.l10n.t('editProfile.saveFailed', params: {'error': '$e'}),
+            ),
+          ),
+        );
       }
     }
   }
@@ -617,8 +635,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               if (_userWishes.isEmpty)
                 Container(
                   width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 24,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(12),
@@ -728,11 +748,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         color: Colors.grey[300],
         borderRadius: BorderRadius.circular(8),
       ),
-      child: const Icon(
-        Icons.image,
-        color: Colors.grey,
-      ),
+      child: const Icon(Icons.image, color: Colors.grey),
     );
   }
 }
-

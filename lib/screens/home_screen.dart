@@ -12,6 +12,7 @@ import 'profile_screen.dart';
 import 'friends_screen.dart';
 import 'notification_screen.dart';
 import 'settings_screen.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 
 // (Removed unused left-to-right slide route)
 
@@ -221,9 +222,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       extendBody: true,
-      backgroundColor: Theme.of(context).appBarTheme.backgroundColor ??
+      backgroundColor:
+          Theme.of(context).appBarTheme.backgroundColor ??
           Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: GestureDetector(
@@ -309,7 +312,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       );
                     },
-                    tooltip: 'Settings',
+                    tooltip: l10n.t('settings.title'),
                   )
                 : GestureDetector(
                     onTap: () {
@@ -345,9 +348,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         return CircleAvatar(
                           backgroundColor: Colors.lightGreen[200],
-                          child: const Text(
-                            'ME',
-                            style: TextStyle(
+                          child: Text(
+                            l10n.t('home.meBadge'),
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                             ),
@@ -383,9 +386,12 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Friend Activity',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                Text(
+                  l10n.t('home.friendActivityTitle'),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Expanded(
@@ -413,7 +419,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'An error occurred:  ${snapshot.error}',
+                                  l10n.t(
+                                    'home.activitiesError',
+                                    params: {'error': '${snapshot.error}'},
+                                  ),
                                   style: const TextStyle(
                                     color: Colors.grey,
                                     fontSize: 16,
@@ -440,8 +449,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 SizedBox(height: 16),
                                 Text(
-                                  'No activities yet',
-                                  style: TextStyle(
+                                  l10n.t('home.noActivities'),
+                                  style: const TextStyle(
                                     color: Colors.grey,
                                     fontSize: 16,
                                   ),
@@ -449,8 +458,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                                 SizedBox(height: 8),
                                 Text(
-                                  'Add your first wish or connect with friends',
-                                  style: TextStyle(
+                                  l10n.t('home.connectPrompt'),
+                                  style: const TextStyle(
                                     color: Colors.grey,
                                     fontSize: 14,
                                   ),
@@ -737,21 +746,33 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _shareActivity(FriendActivity activity) {
+    final l10n = context.l10n;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${activity.wishItem.name} paylaşıldı!'),
+        content: Text(
+          l10n.t(
+            'home.activityShared',
+            params: {'wish': activity.wishItem.name},
+          ),
+        ),
         duration: const Duration(seconds: 2),
       ),
     );
   }
 
   void _buyNow(FriendActivity activity) {
+    final l10n = context.l10n;
     if (activity.wishItem.productUrl.isNotEmpty) {
       _launchUrl(activity.wishItem.productUrl);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${activity.wishItem.name} için link bulunamadı'),
+          content: Text(
+            l10n.t(
+              'home.linkMissing',
+              params: {'wish': activity.wishItem.name},
+            ),
+          ),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -765,9 +786,9 @@ class _HomeScreenState extends State<HomeScreen> {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Link açılamadı')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.l10n.t('common.linkOpenFailed'))),
+          );
         }
       }
     }

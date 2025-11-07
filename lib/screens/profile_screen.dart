@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 import '../models/wish_item.dart';
 import 'wish_detail_screen.dart';
 import 'edit_wish_screen.dart';
@@ -35,20 +37,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _profilePhotoUrl = '';
   DateTime? _birthday;
   String _birthdayDisplayPreference = 'dayMonthYear';
-  static const List<String> _turkishMonths = [
-    'Ocak',
-    'Şubat',
-    'Mart',
-    'Nisan',
-    'Mayıs',
-    'Haziran',
-    'Temmuz',
-    'Ağustos',
-    'Eylül',
-    'Ekim',
-    'Kasım',
-    'Aralık',
-  ];
   List<WishItem> _userWishes = [];
   List<WishList> _wishLists = [];
   final FirestoreService _firestoreService = FirestoreService();
@@ -80,14 +68,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return null;
   }
 
-  String _formatBirthday(DateTime date) {
+  String _formatBirthday(DateTime date, AppLocalizations l10n) {
+    final localeName = l10n.locale.toLanguageTag();
     if (_birthdayDisplayPreference == 'dayMonth') {
-      final monthName = _turkishMonths[date.month - 1];
+      final monthName = DateFormat.MMMM(localeName).format(date);
       return '${date.day} $monthName';
     }
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    return '$day/$month/${date.year}';
+    return DateFormat('dd/MM/yyyy', localeName).format(date);
   }
 
   @override
@@ -154,8 +141,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final l10n = context.l10n;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error loading user data')),
+          SnackBar(content: Text(l10n.t('profile.errorLoadingUser'))),
         );
       }
     }
@@ -183,9 +171,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Error loading wishes')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.t('profile.errorLoadingWishes'))),
+        );
       }
     }
   }
@@ -198,9 +186,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Listeler yüklenemedi')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.t('profile.errorLoadingLists'))),
+        );
       }
     }
   }
@@ -218,11 +206,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return;
     }
 
-    final updated = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => EditWishScreen(wish: wish),
-      ),
-    );
+    final updated = await Navigator.of(
+      context,
+    ).push<bool>(MaterialPageRoute(builder: (_) => EditWishScreen(wish: wish)));
 
     if (updated == true) {
       await _loadUserWishes(user.uid);
@@ -231,6 +217,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Profil fotoğrafı seçme ve yükleme
   Future<void> _pickAndUploadProfilePhoto() async {
+    final l10n = context.l10n;
     try {
       final XFile? pickedFile = await _imagePicker.pickImage(
         source: ImageSource.gallery,
@@ -266,9 +253,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Profil fotoğrafı başarıyla güncellendi!'),
-              ),
+              SnackBar(content: Text(l10n.t('profile.photoUpdateSuccess'))),
             );
           }
         }
@@ -280,7 +265,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profil fotoğrafı yüklenirken hata: $e')),
+          SnackBar(
+            content: Text(
+              l10n.t('profile.photoUpdateError', params: {'error': '$e'}),
+            ),
+          ),
         );
       }
     }
@@ -288,6 +277,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Profil fotoğrafı silme
   Future<void> _deleteProfilePhoto() async {
+    final l10n = context.l10n;
     try {
       final user = _auth.currentUser;
       if (user != null && _profilePhotoUrl.isNotEmpty) {
@@ -305,14 +295,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profil fotoğrafı silindi')),
+            SnackBar(content: Text(l10n.t('profile.photoDeleteSuccess'))),
           );
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profil fotoğrafı silinirken hata: $e')),
+          SnackBar(
+            content: Text(
+              l10n.t('profile.photoDeleteError', params: {'error': '$e'}),
+            ),
+          ),
         );
       }
     }
@@ -320,6 +314,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Profil fotoğrafı seçenekleri dialog'u
   void _showProfilePhotoOptions() {
+    final l10n = context.l10n;
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -329,7 +324,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.photo_library),
-                title: const Text('Galeriden Seç'),
+                title: Text(l10n.t('profile.photoPickFromGallery')),
                 onTap: () {
                   Navigator.pop(context);
                   _pickAndUploadProfilePhoto();
@@ -338,9 +333,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (_profilePhotoUrl.isNotEmpty)
                 ListTile(
                   leading: const Icon(Icons.delete, color: Colors.red),
-                  title: const Text(
-                    'Fotoğrafı Sil',
-                    style: TextStyle(color: Colors.red),
+                  title: Text(
+                    l10n.t('profile.photoRemove'),
+                    style: const TextStyle(color: Colors.red),
                   ),
                   onTap: () {
                     Navigator.pop(context);
@@ -349,7 +344,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ListTile(
                 leading: const Icon(Icons.close),
-                title: const Text('İptal'),
+                title: Text(l10n.t('common.cancel')),
                 onTap: () => Navigator.pop(context),
               ),
             ],
@@ -365,17 +360,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final l10n = context.l10n;
     final displayName = '$_firstName $_lastName'.trim();
     final headerTitle = displayName.isNotEmpty
         ? displayName
         : _username.isNotEmpty
-            ? '@$_username'
-            : 'Profile';
+        ? '@$_username'
+        : l10n.t('profile.title');
     final secondaryText = _username.isNotEmpty ? '@$_username' : _email;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(l10n.t('profile.title')),
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
         notificationPredicate: (_) => false,
@@ -461,9 +457,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 8),
                       Text(
                         secondaryText,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyLarge?.copyWith(color: Colors.grey[600]),
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: Colors.grey[600],
+                        ),
                       ),
                     ],
                     if (_birthday != null) ...[
@@ -478,10 +474,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            _formatBirthday(_birthday!),
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            _formatBirthday(_birthday!, l10n),
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(color: Colors.grey[600]),
                           ),
                         ],
@@ -496,14 +490,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Wish Lists',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    l10n.t('profile.wishLists'),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   ElevatedButton.icon(
                     onPressed: _showCreateListDialog,
                     icon: const Icon(Icons.add),
-                    label: const Text('Create List'),
+                    label: Text(l10n.t('profile.createList')),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFEFB652),
                       foregroundColor: Colors.white,
@@ -526,7 +523,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   if (index == 0) {
                     // All Wishes tile
                     return _ListTileCard(
-                      title: 'All Wishes',
+                      title: l10n.t('profile.allWishes'),
                       imageUrl: _userWishes.isNotEmpty
                           ? _userWishes.first.imageUrl
                           : '',
@@ -558,24 +555,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 8),
               const SizedBox(height: 24),
-              const Text(
-                'My Wishes',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              Text(
+                l10n.t('profile.myWishes'),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               if (_userWishes.isEmpty)
                 Container(
                   width: double.infinity,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 24,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'You have not added any wishes yet.',
+                  child: Text(
+                    l10n.t('profile.emptyWishes'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black54),
+                    style: const TextStyle(color: Colors.black54),
                   ),
                 )
               else
@@ -663,7 +665,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         trailing: IconButton(
                           icon: const Icon(Icons.edit_outlined),
-                          tooltip: 'Wish\'i düzenle',
+                          tooltip: l10n.t('profile.editWishTooltip'),
                           onPressed: () => _openEditWish(wish),
                         ),
                       ),
@@ -678,23 +680,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _showCreateListDialog() async {
+    final l10n = context.l10n;
     final controller = TextEditingController();
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Yeni Liste Oluştur'),
+        title: Text(l10n.t('profile.newListTitle')),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(hintText: 'Liste adı'),
+          decoration: InputDecoration(hintText: l10n.t('profile.newListHint')),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('İptal'),
+            child: Text(l10n.t('common.cancel')),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: const Text('Oluştur'),
+            child: Text(l10n.t('common.create')),
           ),
         ],
       ),
@@ -708,15 +711,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         });
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Liste oluşturulamadı')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(l10n.t('profile.listCreateFailed'))),
+          );
         }
       }
     }
   }
 
   PopupMenuButton _buildListMenu(WishList list) {
+    final l10n = context.l10n;
     return PopupMenuButton<String>(
       onSelected: (value) async {
         if (value == 'delete') {
@@ -727,7 +731,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       },
       itemBuilder: (context) => [
-        const PopupMenuItem<String>(value: 'delete', child: Text('Delete')),
+        PopupMenuItem<String>(
+          value: 'delete',
+          child: Text(l10n.t('common.delete')),
+        ),
       ],
     );
   }
@@ -818,6 +825,3 @@ class _ListTileCard extends StatelessWidget {
     );
   }
 }
-
-
-

@@ -7,6 +7,7 @@ import '../screens/user_profile_screen.dart';
 import '../screens/wish_detail_screen.dart';
 import '../utils/currency_utils.dart';
 import 'wishlink_card.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 
 const Color _brandColor = Color(0xFFEFB652);
 
@@ -91,7 +92,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     if (userId == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please sign in to like wishes.')),
+          SnackBar(content: Text(context.l10n.t('common.signInToLike'))),
         );
       }
       return;
@@ -136,7 +137,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to update like. Try again.')),
+          SnackBar(content: Text(context.l10n.t('common.likeFailed'))),
         );
       }
     } finally {
@@ -168,10 +169,12 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = context.l10n;
     final displayName = widget.activity.userName.isNotEmpty
         ? widget.activity.userName
-        : 'Unknown User';
+        : l10n.t('wishDetail.unknownUser');
     final handle = widget.activity.userUsername;
+    final relativeTime = l10n.relativeTime(widget.activity.activityTime);
 
     return WishLinkCard(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -269,7 +272,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                               borderColor: _brandColor.withOpacity(0.5),
                             ),
                           _InfoPill(
-                            label: widget.activity.timeAgo,
+                            label: relativeTime,
                             background: theme.colorScheme.surface.withOpacity(
                               0.6,
                             ),
@@ -286,7 +289,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
               if (_isOwnActivity && widget.onEdit != null)
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
-                  tooltip: 'Edit wish',
+                  tooltip: l10n.t('wishDetail.editTooltip'),
                   onPressed: widget.onEdit,
                 ),
             ],
@@ -419,7 +422,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
               ),
               onPressed: widget.onBuyNow,
               icon: const Icon(Icons.card_giftcard_outlined),
-              label: const Text('Hediyeyi satın al'),
+              label: Text(l10n.t('activity.buyGift')),
             ),
           ),
           const SizedBox(height: 16),
@@ -428,9 +431,9 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
           Row(
             children: [
               Expanded(
-                child: _ActionPillButton(
+                child: _ActionPillButton.iconOnly(
                   icon: _isLiked ? Icons.favorite : Icons.favorite_border,
-                  label: _likesCount > 0 ? _likesCount.toString() : 'Beğen',
+                  count: _likesCount,
                   isActive: _isLiked,
                   onTap: (!_isOwnActivity && !_isProcessingLike)
                       ? _handleLike
@@ -439,19 +442,16 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _ActionPillButton(
+                child: _ActionPillButton.iconOnly(
                   icon: Icons.chat_bubble_outline,
-                  label: _commentsCount > 0
-                      ? _commentsCount.toString()
-                      : 'Yorum',
+                  count: _commentsCount,
                   onTap: !_isOwnActivity ? _handleCommentPressed : null,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _ActionPillButton(
+                child: _ActionPillButton.iconOnly(
                   icon: Icons.share_outlined,
-                  label: 'Paylaş',
                   onTap: widget.onShare,
                 ),
               ),
@@ -535,12 +535,23 @@ class _ActionPillButton extends StatelessWidget {
     required this.label,
     this.onTap,
     this.isActive = false,
-  });
+    this.count,
+  }) : iconOnly = false;
+
+  const _ActionPillButton.iconOnly({
+    required this.icon,
+    this.count,
+    this.onTap,
+    this.isActive = false,
+  }) : label = '',
+       iconOnly = true;
 
   final IconData icon;
   final String label;
+  final int? count;
   final VoidCallback? onTap;
   final bool isActive;
+  final bool iconOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -553,33 +564,57 @@ class _ActionPillButton extends StatelessWidget {
         ? theme.colorScheme.primary.withOpacity(0.16)
         : theme.colorScheme.surface.withOpacity(enabled ? 0.7 : 0.45);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: theme.colorScheme.primary.withOpacity(0.1),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 20, color: activeColor),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: activeColor,
-                  fontWeight: FontWeight.w600,
-                ),
+    return SizedBox(
+      width: double.infinity,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: theme.colorScheme.primary.withOpacity(0.1),
               ),
-            ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Icon(icon, size: 20, color: activeColor),
+                    if ((count ?? 0) > 0)
+                      Positioned(
+                        right: -12,
+                        top: -8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$count',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

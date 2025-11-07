@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
+
 import '../services/firestore_service.dart';
 import '../screens/user_profile_screen.dart';
 import '../screens/friends_screen.dart';
@@ -45,6 +47,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Future<void> _loadNotifications() async {
+    final l10n = context.l10n;
     try {
       setState(() {
         _isLoading = true;
@@ -55,7 +58,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       if (currentUserId == null) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'User not authenticated';
+          _errorMessage = l10n.t('notifications.userNotAuthenticated');
         });
         return;
       }
@@ -137,15 +140,24 @@ class _NotificationScreenState extends State<NotificationScreen> {
               requestTimestamp = Timestamp.now();
             }
 
+            final requesterName =
+                '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'
+                    .trim();
+            final displayName = requesterName.isEmpty
+                ? l10n.t('friends.unknownUser')
+                : requesterName;
+
             notifications.add(
               NotificationItem(
                 id: request.id,
                 type: NotificationType.friendRequest,
-                title: 'New Friend Request',
-                message:
-                    '${userData['firstName']} ${userData['lastName']} sent you a friend request',
+                title: l10n.t('notifications.friendRequestTitle'),
+                message: l10n.t(
+                  'notifications.friendRequestMessage',
+                  params: {'user': displayName},
+                ),
                 userId: requesterId,
-                userName: '${userData['firstName']} ${userData['lastName']}',
+                userName: displayName,
                 timestamp: requestTimestamp,
                 isRead: readNotificationIds.contains(request.id),
               ),
@@ -211,18 +223,31 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     activityTimestamp = Timestamp.now();
                   }
 
+                  final activityUserName =
+                      '${userData['firstName'] ?? ''} ${userData['lastName'] ?? ''}'
+                          .trim();
+                  final displayName = activityUserName.isEmpty
+                      ? l10n.t('friends.unknownUser')
+                      : activityUserName;
+                  final rawWishName =
+                      (wishData['name'] as String?)?.trim() ?? '';
+                  final displayWishName = rawWishName.isEmpty
+                      ? l10n.t('notifications.unknownWishFallback')
+                      : rawWishName;
+
                   notifications.add(
                     NotificationItem(
                       id: activity.id,
                       type: NotificationType.newWish,
-                      title: 'New Wish Added',
-                      message:
-                          '${userData['firstName']} ${userData['lastName']} added "${wishData['name']}" to their wishlist',
+                      title: l10n.t('notifications.newWishTitle'),
+                      message: l10n.t(
+                        'notifications.newWishMessage',
+                        params: {'user': displayName, 'wish': displayWishName},
+                      ),
                       userId: activityUserId,
-                      userName:
-                          '${userData['firstName']} ${userData['lastName']}',
+                      userName: displayName,
                       wishId: wishData['id'] as String? ?? '',
-                      wishName: wishData['name'] as String? ?? '',
+                      wishName: displayWishName,
                       timestamp: activityTimestamp,
                       isRead: readNotificationIds.contains(activity.id),
                     ),
@@ -244,13 +269,21 @@ class _NotificationScreenState extends State<NotificationScreen> {
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Error loading notifications: ${e.toString()}';
+        _errorMessage = l10n.t(
+          'notifications.errorLoadingWithReason',
+          params: {'error': e.toString()},
+        );
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading notifications: ${e.toString()}'),
+            content: Text(
+              l10n.t(
+                'notifications.errorLoadingWithReason',
+                params: {'error': e.toString()},
+              ),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -304,9 +337,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
           .doc(__uid)
           .collection('items')
           .doc(notificationId)
-          .update({
-        'isRead': true,
-      });
+          .update({'isRead': true});
 
       // Update local state
       setState(() {
@@ -315,19 +346,17 @@ class _NotificationScreenState extends State<NotificationScreen> {
           _notifications[index] = _notifications[index].copyWith(isRead: true);
         }
       });
-      } catch (e) {
-        // If notification document doesn't exist, create it
-        try {
-        final __uid2 = _auth.currentUser?.uid; if (__uid2 == null) return;
+    } catch (e) {
+      // If notification document doesn't exist, create it
+      try {
+        final __uid2 = _auth.currentUser?.uid;
+        if (__uid2 == null) return;
         await _firestore
             .collection('notifications')
             .doc(__uid2)
             .collection('items')
             .doc(notificationId)
-            .set({
-          'isRead': true,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
+            .set({'isRead': true, 'timestamp': FieldValue.serverTimestamp()});
 
         setState(() {
           final index = _notifications.indexWhere(
@@ -356,19 +385,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   String _getTimeAgo(Timestamp timestamp) {
-    final now = DateTime.now();
-    final time = timestamp.toDate();
-    final difference = now.difference(time);
-
-    if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
-    } else {
-      return 'Just now';
-    }
+    return context.l10n.relativeTime(timestamp.toDate());
   }
 
   Icon _getNotificationIcon(NotificationType type) {
@@ -382,9 +399,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifications'),
+        title: Text(l10n.t('notifications.title')),
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
         elevation: 0,
@@ -407,7 +425,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   const Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(
-                    'Error loading notifications',
+                    l10n.t('notifications.errorLoading'),
                     style: const TextStyle(
                       fontSize: 18,
                       color: Colors.red,
@@ -423,7 +441,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _refreshNotifications,
-                    child: const Text('Retry'),
+                    child: Text(l10n.t('notifications.retry')),
                   ),
                 ],
               ),
@@ -431,28 +449,31 @@ class _NotificationScreenState extends State<NotificationScreen> {
           : RefreshIndicator(
               onRefresh: _refreshNotifications,
               child: _notifications.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.notifications_none,
                             size: 64,
                             color: Colors.grey,
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           Text(
-                            'No notifications yet',
-                            style: TextStyle(
+                            l10n.t('notifications.emptyTitle'),
+                            style: const TextStyle(
                               fontSize: 18,
                               color: Colors.grey,
                               fontWeight: FontWeight.w500,
                             ),
                           ),
-                          SizedBox(height: 8),
+                          const SizedBox(height: 8),
                           Text(
-                            'You\'ll see friend requests and new wishes here',
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                            l10n.t('notifications.emptySubtitle'),
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
                             textAlign: TextAlign.center,
                           ),
                         ],

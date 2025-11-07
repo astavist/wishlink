@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:wishlink/screens/login_screen.dart';
+import 'package:wishlink/locale/locale_controller.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 
 class EmailVerificationRequiredScreen extends StatefulWidget {
   const EmailVerificationRequiredScreen({super.key});
@@ -19,19 +21,33 @@ class _EmailVerificationRequiredScreenState
   bool _isResending = false;
   Timer? _verificationTimer;
   bool _isDisposed = false; // Disposed flag ekle
+  Locale? _appliedLocale;
 
   @override
   void initState() {
     super.initState();
-    _setFirebaseLocale();
     _startVerificationCheck();
     // Otomatik email gönderme kaldırıldı - sadece kullanıcı resend butonuna bastığında gidecek
   }
 
-  void _setFirebaseLocale() {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final localeController = LocaleControllerProvider.of(context);
+    final locale = localeController.locale;
+    if (_appliedLocale != locale) {
+      _appliedLocale = locale;
+      _setFirebaseLocale(locale);
+    }
+  }
+
+  void _setFirebaseLocale(Locale locale) {
     try {
-      // Firebase Auth için locale ayarla
-      _auth.setLanguageCode('tr'); // Türkçe için
+      // Update Firebase Auth locale for verification emails
+      final languageCode = locale.languageCode.toLowerCase() == 'tr'
+          ? 'tr'
+          : 'en';
+      _auth.setLanguageCode(languageCode);
     } catch (e) {
       print('Firebase locale set error: $e');
     }
@@ -104,6 +120,8 @@ class _EmailVerificationRequiredScreenState
   Future<void> _resendVerificationEmail() async {
     if (_isDisposed) return; // Disposed kontrolü
 
+    final l10n = context.l10n;
+
     setState(() {
       _isResending = true;
     });
@@ -114,8 +132,8 @@ class _EmailVerificationRequiredScreenState
 
       if (mounted && !_isDisposed) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verification email resent successfully!'),
+          SnackBar(
+            content: Text(l10n.t('emailVerification.resendSuccess')),
             backgroundColor: Colors.green,
           ),
         );
@@ -124,7 +142,9 @@ class _EmailVerificationRequiredScreenState
       if (mounted && !_isDisposed) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error resending email: $e'),
+            content: Text(
+              l10n.t('emailVerification.resendError', params: {'error': '$e'}),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -159,6 +179,8 @@ class _EmailVerificationRequiredScreenState
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(''), // Boş title
@@ -166,9 +188,9 @@ class _EmailVerificationRequiredScreenState
         actions: [
           TextButton(
             onPressed: _handleSignOut,
-            child: const Text(
-              'Back to Login',
-              style: TextStyle(color: Colors.white),
+            child: Text(
+              l10n.t('common.backToLogin'),
+              style: const TextStyle(color: Colors.white),
             ),
           ),
         ],
@@ -180,21 +202,24 @@ class _EmailVerificationRequiredScreenState
           children: [
             const Icon(Icons.email_outlined, size: 80, color: Colors.orange),
             const SizedBox(height: 24),
-            const Text(
-              'Email Verification Required',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            Text(
+              l10n.t('emailVerification.title'),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             Text(
-              'To verify your account, please send a verification email to:\n${_auth.currentUser?.email}',
+              l10n.t(
+                'emailVerification.subtitle',
+                params: {'email': _auth.currentUser?.email ?? ''},
+              ),
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Click the button below to send a verification email, then check your inbox and click the verification link.',
+            Text(
+              l10n.t('emailVerification.instructions'),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey),
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 32),
             SizedBox(
@@ -203,21 +228,21 @@ class _EmailVerificationRequiredScreenState
                 onPressed: _isResending ? null : _resendVerificationEmail,
                 child: _isResending
                     ? const CircularProgressIndicator()
-                    : const Text('Send Verification Email'),
+                    : Text(l10n.t('emailVerification.sendButton')),
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'After sending and verifying your email, you\'ll be automatically redirected.',
+            Text(
+              l10n.t('emailVerification.postSendInfo'),
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+              style: const TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 24),
             TextButton(
               onPressed: _handleSignOut,
-              child: const Text(
-                'Use Different Account',
-                style: TextStyle(color: Colors.blue),
+              child: Text(
+                l10n.t('common.useDifferentAccount'),
+                style: const TextStyle(color: Colors.blue),
               ),
             ),
           ],

@@ -6,6 +6,9 @@ import '../models/user_private_note.dart';
 import '../services/firestore_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'wish_detail_screen.dart';
+import 'package:intl/intl.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -26,10 +29,7 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _NoteEditorDialog extends StatefulWidget {
-  const _NoteEditorDialog({
-    required this.formatDate,
-    this.note,
-  });
+  const _NoteEditorDialog({required this.formatDate, this.note});
 
   final UserPrivateNote? note;
   final String Function(DateTime) formatDate;
@@ -93,7 +93,11 @@ class _NoteEditorDialogState extends State<_NoteEditorDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.note == null ? 'Not Ekle' : 'Notu Düzenle'),
+      title: Text(
+        widget.note == null
+            ? context.l10n.t('profile.noteAddTitle')
+            : context.l10n.t('profile.noteEditTitle'),
+      ),
       content: SingleChildScrollView(
         padding: const EdgeInsets.only(top: 8),
         child: SizedBox(
@@ -104,8 +108,8 @@ class _NoteEditorDialogState extends State<_NoteEditorDialog> {
             children: [
               TextField(
                 controller: _controller,
-                decoration: const InputDecoration(
-                  labelText: 'Not',
+                decoration: InputDecoration(
+                  labelText: context.l10n.t('profile.noteLabel'),
                   alignLabelWithHint: true,
                 ),
                 autofocus: true,
@@ -122,7 +126,7 @@ class _NoteEditorDialogState extends State<_NoteEditorDialog> {
                       label: Text(
                         _selectedDate != null
                             ? widget.formatDate(_selectedDate!)
-                            : 'Tarih seç (opsiyonel)',
+                            : context.l10n.t('profile.pickDateOptional'),
                       ),
                     ),
                   ),
@@ -131,7 +135,7 @@ class _NoteEditorDialogState extends State<_NoteEditorDialog> {
                     IconButton(
                       onPressed: _clearDate,
                       icon: const Icon(Icons.close),
-                      tooltip: 'Tarihi temizle',
+                      tooltip: context.l10n.t('profile.clearDate'),
                     ),
                   ],
                 ],
@@ -143,18 +147,20 @@ class _NoteEditorDialogState extends State<_NoteEditorDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Vazgeç'),
+          child: Text(context.l10n.t('common.cancel')),
         ),
         FilledButton(
           onPressed: _canSubmit
-              ? () => Navigator.of(context).pop(
-                    <String, dynamic>{
-                      'text': _controller.text.trim(),
-                      'date': _selectedDate,
-                    },
-                  )
+              ? () => Navigator.of(context).pop(<String, dynamic>{
+                  'text': _controller.text.trim(),
+                  'date': _selectedDate,
+                })
               : null,
-          child: Text(widget.note == null ? 'Ekle' : 'Kaydet'),
+          child: Text(
+            widget.note == null
+                ? context.l10n.t('common.add')
+                : context.l10n.t('common.save'),
+          ),
         ),
       ],
     );
@@ -172,20 +178,6 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String _profilePhotoUrl = '';
   DateTime? _birthday;
   String _birthdayDisplayPreference = 'dayMonthYear';
-  static const List<String> _turkishMonths = [
-    'Ocak',
-    'Şubat',
-    'Mart',
-    'Nisan',
-    'Mayıs',
-    'Haziran',
-    'Temmuz',
-    'Ağustos',
-    'Eylül',
-    'Ekim',
-    'Kasım',
-    'Aralık',
-  ];
   List<WishItem> _userWishes = [];
   List<UserPrivateNote> _privateNotes = [];
 
@@ -216,20 +208,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return null;
   }
 
-  String _formatBirthday(DateTime date) {
+  String _formatBirthday(DateTime date, AppLocalizations l10n) {
+    final localeName = l10n.locale.toLanguageTag();
     if (_birthdayDisplayPreference == 'dayMonth') {
-      final monthName = _turkishMonths[date.month - 1];
+      final monthName = DateFormat.MMMM(localeName).format(date);
       return '${date.day} $monthName';
     }
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    return '$day/$month/${date.year}';
+    return DateFormat('dd/MM/yyyy', localeName).format(date);
   }
 
-  String _formatNoteDate(DateTime date) {
-    final day = date.day.toString().padLeft(2, '0');
-    final month = date.month.toString().padLeft(2, '0');
-    return '$day.$month.${date.year}';
+  String _formatNoteDate(DateTime date, AppLocalizations l10n) {
+    final localeName = l10n.locale.toLanguageTag();
+    return DateFormat('dd.MM.yyyy', localeName).format(date);
   }
 
   @override
@@ -286,7 +276,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error loading user data')),
+          SnackBar(content: Text(context.l10n.t('profile.errorLoadingUser'))),
         );
       }
     }
@@ -319,17 +309,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Error loading wishes')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.t('profile.errorLoadingWishes'))),
+        );
       }
     }
   }
 
   Future<void> _loadPrivateNotes() async {
     try {
-      final notes =
-          await _firestoreService.getPrivateNotesForUser(widget.userId);
+      final notes = await _firestoreService.getPrivateNotesForUser(
+        widget.userId,
+      );
       if (!mounted) {
         return;
       }
@@ -338,10 +329,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(
-          const SnackBar(content: Text('Notlar yüklenirken bir hata oluştu')),
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.t('profile.errorLoadingNotes'))),
         );
       }
     }
@@ -380,16 +369,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(note == null
-                ? 'Not kaydedildi'
-                : 'Not güncellendi'),
+            content: Text(
+              note == null
+                  ? context.l10n.t('profile.noteSaved')
+                  : context.l10n.t('profile.noteUpdated'),
+            ),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Not kaydedilemedi')),
+          SnackBar(content: Text(context.l10n.t('profile.noteSaveFailed'))),
         );
       }
     }
@@ -399,18 +390,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Notu Sil'),
-        content: const Text(
-          'Bu notu silmek istediğinden emin misin? Bu işlem geri alınamaz.',
-        ),
+        title: Text(context.l10n.t('profile.noteDeleteTitle')),
+        content: Text(context.l10n.t('profile.noteDeleteMessage')),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Vazgeç'),
+            child: Text(context.l10n.t('common.cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Sil'),
+            child: Text(context.l10n.t('common.delete')),
           ),
         ],
       ),
@@ -425,42 +414,40 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       await _loadPrivateNotes();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Not silindi')),
+          SnackBar(content: Text(context.l10n.t('profile.noteDeleted'))),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Not silinemedi')),
+          SnackBar(content: Text(context.l10n.t('profile.noteDeleteFailed'))),
         );
       }
     }
   }
 
-  Future<Map<String, dynamic>?> _showNoteEditorDialog({
-    UserPrivateNote? note,
-  }) {
+  Future<Map<String, dynamic>?> _showNoteEditorDialog({UserPrivateNote? note}) {
     return showDialog<Map<String, dynamic>>(
       context: context,
       builder: (dialogContext) {
         return _NoteEditorDialog(
           note: note,
-          formatDate: _formatNoteDate,
+          formatDate: (date) => _formatNoteDate(date, context.l10n),
         );
       },
     );
   }
 
-  Widget _buildPrivateNotesSection() {
+  Widget _buildPrivateNotesSection(AppLocalizations l10n) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
-                'Kişisel Notlarım',
-                style: TextStyle(
+                l10n.t('profile.myNotes'),
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -468,7 +455,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             ),
             IconButton(
               onPressed: () => _handleAddOrEditNote(),
-              tooltip: 'Not ekle',
+              tooltip: l10n.t('profile.addNoteTooltip'),
               icon: const Icon(Icons.note_add_outlined),
             ),
           ],
@@ -486,7 +473,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Henüz not eklemedin',
+                  l10n.t('profile.noNotes'),
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -495,17 +482,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Bu kullanıcı hakkında sadece senin görebileceğin hatırlatıcılar oluşturabilirsin.',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    height: 1.4,
-                  ),
+                  l10n.t('profile.notesDescription'),
+                  style: TextStyle(color: Colors.grey[600], height: 1.4),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: () => _handleAddOrEditNote(),
                   icon: const Icon(Icons.add),
-                  label: const Text('Not ekle'),
+                  label: Text(l10n.t('profile.addNoteButton')),
                 ),
               ],
             ),
@@ -536,7 +520,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  _formatNoteDate(note.noteDate!),
+                                  _formatNoteDate(note.noteDate!, l10n),
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -547,7 +531,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           if (note.updatedAt != null) ...[
                             const SizedBox(height: 4),
                             Text(
-                              'Son güncelleme: ${_formatNoteDate(note.updatedAt!)}',
+                              l10n.t(
+                                'profile.noteUpdatedAt',
+                                params: {
+                                  'date': _formatNoteDate(
+                                    note.updatedAt!,
+                                    l10n,
+                                  ),
+                                },
+                              ),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[600],
@@ -566,14 +558,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       _handleDeleteNote(note);
                     }
                   },
-                  itemBuilder: (context) => const [
+                  itemBuilder: (context) => [
                     PopupMenuItem<String>(
                       value: 'edit',
-                      child: Text('Düzenle'),
+                      child: Text(l10n.t('profile.noteEdit')),
                     ),
                     PopupMenuItem<String>(
                       value: 'delete',
-                      child: Text('Sil'),
+                      child: Text(l10n.t('profile.noteDelete')),
                     ),
                   ],
                 ),
@@ -595,9 +587,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(const SnackBar(content: Text('Could not open link')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(context.l10n.t('common.couldNotOpenLink'))),
+          );
         }
       }
     }
@@ -605,6 +597,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final handle =
         (_username.isNotEmpty ? _username : (widget.userUsername ?? '')).trim();
     final resolvedName = [
@@ -613,14 +606,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     ].where((value) => value.isNotEmpty).join(' ').trim();
     final fallbackName = resolvedName.isNotEmpty
         ? resolvedName
-        : (widget.userName ?? 'User');
-    final profileTitle = handle.isNotEmpty ? '@$handle' : fallbackName;
-    final wishesTitle = handle.isNotEmpty
-        ? '@$handle\'s Wishes'
-        : "$fallbackName's Wishes";
-    final emptyStateName = handle.isNotEmpty
-        ? '@$handle'
-        : (fallbackName.isNotEmpty ? fallbackName : 'This user');
+        : (widget.userName ?? l10n.t('profile.defaultUserName'));
+    final handleLabel = handle.isNotEmpty ? '@$handle' : '';
+    final profileTitle = handleLabel.isNotEmpty ? handleLabel : fallbackName;
+    final emptyStateName = handleLabel.isNotEmpty
+        ? handleLabel
+        : l10n.t('profile.userUnknown');
+    final wishesTitle = l10n.t(
+      'profile.wishesTitle',
+      params: {'handle': emptyStateName},
+    );
 
     final appBar = AppBar(
       title: Text(profileTitle),
@@ -689,10 +684,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            _formatBirthday(_birthday!),
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
+                            _formatBirthday(_birthday!, context.l10n),
+                            style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(color: Colors.grey[600]),
                           ),
                         ],
@@ -703,7 +696,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
               const SizedBox(height: 32),
 
-              _buildPrivateNotesSection(),
+              _buildPrivateNotesSection(l10n),
               const SizedBox(height: 32),
 
               // User's Wishes Section
@@ -733,7 +726,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'No wishes yet',
+                        l10n.t('profile.noWishesTitle'),
                         style: TextStyle(
                           fontSize: 16,
                           color: Colors.grey[600],
@@ -742,7 +735,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '$emptyStateName hasn\'t added any wishes yet',
+                        l10n.t(
+                          'profile.noWishesSubtitle',
+                          params: {'name': emptyStateName},
+                        ),
                         style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                         textAlign: TextAlign.center,
                       ),
@@ -846,7 +842,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               ? ElevatedButton.icon(
                                   onPressed: () => _launchUrl(wish.productUrl),
                                   icon: const Icon(Icons.link, size: 16),
-                                  label: const Text('View Product'),
+                                  label: Text(l10n.t('common.viewProduct')),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFFEFB652),
                                     foregroundColor: Colors.white,
@@ -869,8 +865,3 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 }
-
-
-
-
-

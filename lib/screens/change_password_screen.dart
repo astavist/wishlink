@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:firebase_auth/firebase_auth.dart";
+import "package:wishlink/l10n/app_localizations.dart";
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -31,6 +32,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     }
 
     setState(() => _isSubmitting = true);
+    final l10n = context.l10n;
 
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -55,7 +57,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password updated successfully')),
+        SnackBar(content: Text(l10n.t('changePassword.updateSuccess'))),
       );
 
       Navigator.of(context).pop();
@@ -65,18 +67,18 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Failed to update password')),
+        SnackBar(
+          content: Text(e.message ?? l10n.t('changePassword.updateFailed')),
+        ),
       );
     } catch (_) {
       if (!mounted) {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Something went wrong. Please try again.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.t('common.tryAgain'))));
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);

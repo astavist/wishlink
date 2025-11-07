@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../services/firestore_service.dart';
 import '../screens/user_profile_screen.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 
 // Custom page route for right-to-left slide animation
 PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
@@ -122,14 +123,14 @@ class _FriendsScreenState extends State<FriendsScreen>
         _isSearching = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Error searching users')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.t('friends.searchError'))),
+        );
       }
     }
   }
 
-  String _formatDisplayName(Map<String, dynamic> data) {
+  String _formatDisplayName(Map<String, dynamic> data, AppLocalizations l10n) {
     final firstName = (data['firstName'] as String? ?? '').trim();
     final lastName = (data['lastName'] as String? ?? '').trim();
     final username = (data['username'] as String?)?.trim() ?? '';
@@ -145,7 +146,7 @@ class _FriendsScreenState extends State<FriendsScreen>
       return '@$username';
     }
 
-    return displayName.isNotEmpty ? displayName : 'User';
+    return displayName.isNotEmpty ? displayName : l10n.t('friends.unknownUser');
   }
 
   String _buildInitials(Map<String, dynamic> data) {
@@ -177,9 +178,10 @@ class _FriendsScreenState extends State<FriendsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Friends'),
+        title: Text(l10n.t('friends.title')),
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
         elevation: 0,
@@ -188,12 +190,12 @@ class _FriendsScreenState extends State<FriendsScreen>
         bottom: TabBar(
           controller: _tabController,
           tabs: [
-            const Tab(text: 'My Friends'),
+            Tab(text: l10n.t('friends.tabMyFriends')),
             Tab(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Incoming'),
+                  Text(l10n.t('friends.tabIncoming')),
                   if (_incomingRequestCount > 0)
                     Container(
                       margin: const EdgeInsets.only(left: 8),
@@ -217,7 +219,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                 ],
               ),
             ),
-            const Tab(text: 'Outgoing'),
+            Tab(text: l10n.t('friends.tabOutgoing')),
           ],
         ),
       ),
@@ -229,7 +231,7 @@ class _FriendsScreenState extends State<FriendsScreen>
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search users...',
+                hintText: l10n.t('friends.searchHint'),
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
@@ -279,8 +281,9 @@ class _FriendsScreenState extends State<FriendsScreen>
   }
 
   Widget _buildSearchResults() {
+    final l10n = context.l10n;
     if (_searchResults.isEmpty) {
-      return const Center(child: Text('No users found'));
+      return Center(child: Text(l10n.t('friends.noUsersFound')));
     }
 
     final currentUserId = _auth.currentUser?.uid;
@@ -293,7 +296,7 @@ class _FriendsScreenState extends State<FriendsScreen>
 
         final avatarUrl =
             (userData['profilePhotoUrl'] as String?)?.trim() ?? '';
-        final displayName = _formatDisplayName(userData);
+        final displayName = _formatDisplayName(userData, l10n);
         final initials = _buildInitials(userData);
         final email = (userData['email'] as String? ?? '').trim();
 
@@ -306,15 +309,15 @@ class _FriendsScreenState extends State<FriendsScreen>
         if (isSelf) {
           trailing = null;
         } else if (isFriend) {
-          trailing = _buildStatusChip('Friends');
+          trailing = _buildStatusChip(l10n.t('friends.statusFriends'));
         } else if (hasOutgoing) {
-          trailing = _buildStatusChip('Request sent');
+          trailing = _buildStatusChip(l10n.t('friends.statusRequestSent'));
         } else if (hasIncoming) {
           trailing = TextButton(
             onPressed: () {
               _tabController.animateTo(1);
             },
-            child: const Text('Respond'),
+            child: Text(l10n.t('friends.buttonRespond')),
           );
         } else {
           trailing = TextButton(
@@ -325,8 +328,8 @@ class _FriendsScreenState extends State<FriendsScreen>
                   return;
                 }
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Friend request sent successfully'),
+                  SnackBar(
+                    content: Text(l10n.t('friends.snackbarRequestSent')),
                   ),
                 );
                 await _loadData();
@@ -336,14 +339,14 @@ class _FriendsScreenState extends State<FriendsScreen>
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Error sending friend request'),
+                    SnackBar(
+                      content: Text(l10n.t('friends.snackbarRequestFailed')),
                     ),
                   );
                 }
               }
             },
-            child: const Text('Add Friend'),
+            child: Text(l10n.t('friends.buttonAdd')),
           );
         }
 
@@ -393,6 +396,7 @@ class _FriendsScreenState extends State<FriendsScreen>
   }
 
   Widget _buildFriendsList() {
+    final l10n = context.l10n;
     return FutureBuilder<List<DocumentSnapshot>>(
       future: _firestoreService.getFriends(),
       builder: (context, snapshot) {
@@ -401,7 +405,11 @@ class _FriendsScreenState extends State<FriendsScreen>
         }
 
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return Center(
+            child: Text(
+              l10n.t('friends.error', params: {'error': '${snapshot.error}'}),
+            ),
+          );
         }
 
         final friends = snapshot.data ?? [];
@@ -420,13 +428,13 @@ class _FriendsScreenState extends State<FriendsScreen>
                   Icon(Icons.people_outline, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
                   Text(
-                    'No friends yet',
+                    l10n.t('friends.emptyFriendsTitle'),
                     style: TextStyle(color: Colors.grey, fontSize: 16),
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Connect with friends to see their wishes',
+                    l10n.t('friends.emptyFriendsSubtitle'),
                     style: TextStyle(color: Colors.grey, fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
@@ -457,7 +465,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                   final userData =
                       userSnapshot.data!.data() as Map<String, dynamic>;
 
-                  final displayName = _formatDisplayName(userData);
+                  final displayName = _formatDisplayName(userData, l10n);
                   final avatarUrl =
                       (userData['profilePhotoUrl'] as String?)?.trim() ?? '';
                   final email = (userData['email'] as String? ?? '').trim();
@@ -472,15 +480,16 @@ class _FriendsScreenState extends State<FriendsScreen>
                               userId: friendId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
-                              userUsername:
-                                  (userData['username'] as String?)?.trim(),
+                              userUsername: (userData['username'] as String?)
+                                  ?.trim(),
                             ),
                           ),
                         );
                       },
                       child: CircleAvatar(
-                        backgroundImage:
-                            avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                        backgroundImage: avatarUrl.isNotEmpty
+                            ? NetworkImage(avatarUrl)
+                            : null,
                         child: avatarUrl.isNotEmpty
                             ? null
                             : Text(_buildInitials(userData)),
@@ -495,8 +504,8 @@ class _FriendsScreenState extends State<FriendsScreen>
                               userId: friendId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
-                              userUsername:
-                                  (userData['username'] as String?)?.trim(),
+                              userUsername: (userData['username'] as String?)
+                                  ?.trim(),
                             ),
                           ),
                         );
@@ -510,8 +519,10 @@ class _FriendsScreenState extends State<FriendsScreen>
                           await _firestoreService.removeFriend(friendId);
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Friend removed successfully'),
+                              SnackBar(
+                                content: Text(
+                                  l10n.t('friends.snackbarFriendRemoved'),
+                                ),
                               ),
                             );
                             // UI'ı güncelle
@@ -520,14 +531,16 @@ class _FriendsScreenState extends State<FriendsScreen>
                         } catch (e) {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Error removing friend'),
+                              SnackBar(
+                                content: Text(
+                                  l10n.t('friends.snackbarFriendRemoveFailed'),
+                                ),
                               ),
                             );
                           }
                         }
                       },
-                      child: const Text('Remove'),
+                      child: Text(l10n.t('friends.buttonRemove')),
                     ),
                   );
                 },
@@ -540,6 +553,7 @@ class _FriendsScreenState extends State<FriendsScreen>
   }
 
   Widget _buildIncomingRequests() {
+    final l10n = context.l10n;
     return FutureBuilder<Map<String, List<DocumentSnapshot>>>(
       future: _firestoreService.getFriendRequests(),
       builder: (context, snapshot) {
@@ -548,7 +562,11 @@ class _FriendsScreenState extends State<FriendsScreen>
         }
 
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return Center(
+            child: Text(
+              l10n.t('friends.error', params: {'error': '${snapshot.error}'}),
+            ),
+          );
         }
 
         final requests = snapshot.data?['incoming'] ?? [];
@@ -567,13 +585,13 @@ class _FriendsScreenState extends State<FriendsScreen>
                   Icon(Icons.person_add_outlined, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
                   Text(
-                    'No incoming friend requests',
+                    l10n.t('friends.emptyIncomingTitle'),
                     style: TextStyle(color: Colors.grey, fontSize: 16),
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'When someone sends you a request, it will appear here',
+                    l10n.t('friends.emptyIncomingSubtitle'),
                     style: TextStyle(color: Colors.grey, fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
@@ -604,7 +622,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                   final userData =
                       userSnapshot.data!.data() as Map<String, dynamic>;
 
-                  final displayName = _formatDisplayName(userData);
+                  final displayName = _formatDisplayName(userData, l10n);
                   final avatarUrl =
                       (userData['profilePhotoUrl'] as String?)?.trim() ?? '';
                   final email = (userData['email'] as String? ?? '').trim();
@@ -619,15 +637,16 @@ class _FriendsScreenState extends State<FriendsScreen>
                               userId: requesterId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
-                              userUsername:
-                                  (userData['username'] as String?)?.trim(),
+                              userUsername: (userData['username'] as String?)
+                                  ?.trim(),
                             ),
                           ),
                         );
                       },
                       child: CircleAvatar(
-                        backgroundImage:
-                            avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                        backgroundImage: avatarUrl.isNotEmpty
+                            ? NetworkImage(avatarUrl)
+                            : null,
                         child: avatarUrl.isNotEmpty
                             ? null
                             : Text(_buildInitials(userData)),
@@ -642,8 +661,8 @@ class _FriendsScreenState extends State<FriendsScreen>
                               userId: requesterId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
-                              userUsername:
-                                  (userData['username'] as String?)?.trim(),
+                              userUsername: (userData['username'] as String?)
+                                  ?.trim(),
                             ),
                           ),
                         );
@@ -662,8 +681,10 @@ class _FriendsScreenState extends State<FriendsScreen>
                               );
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Friend request accepted'),
+                                  SnackBar(
+                                    content: Text(
+                                      l10n.t('friends.snackbarAccepted'),
+                                    ),
                                   ),
                                 );
                                 // UI'ı güncelle
@@ -672,16 +693,16 @@ class _FriendsScreenState extends State<FriendsScreen>
                             } catch (e) {
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                     content: Text(
-                                      'Error accepting friend request',
+                                      l10n.t('friends.snackbarAcceptFailed'),
                                     ),
                                   ),
                                 );
                               }
                             }
                           },
-                          child: const Text('Accept'),
+                          child: Text(l10n.t('friends.buttonAccept')),
                         ),
                         TextButton(
                           onPressed: () async {
@@ -689,8 +710,10 @@ class _FriendsScreenState extends State<FriendsScreen>
                               await _firestoreService.removeFriend(requesterId);
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Friend request rejected'),
+                                  SnackBar(
+                                    content: Text(
+                                      l10n.t('friends.snackbarRejected'),
+                                    ),
                                   ),
                                 );
                                 // UI'ı güncelle
@@ -699,16 +722,16 @@ class _FriendsScreenState extends State<FriendsScreen>
                             } catch (e) {
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                     content: Text(
-                                      'Error rejecting friend request',
+                                      l10n.t('friends.snackbarRejectFailed'),
                                     ),
                                   ),
                                 );
                               }
                             }
                           },
-                          child: const Text('Reject'),
+                          child: Text(l10n.t('friends.buttonReject')),
                         ),
                       ],
                     ),
@@ -723,6 +746,7 @@ class _FriendsScreenState extends State<FriendsScreen>
   }
 
   Widget _buildOutgoingRequests() {
+    final l10n = context.l10n;
     return FutureBuilder<Map<String, List<DocumentSnapshot>>>(
       future: _firestoreService.getFriendRequests(),
       builder: (context, snapshot) {
@@ -731,7 +755,11 @@ class _FriendsScreenState extends State<FriendsScreen>
         }
 
         if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
+          return Center(
+            child: Text(
+              l10n.t('friends.error', params: {'error': '${snapshot.error}'}),
+            ),
+          );
         }
 
         final requests = snapshot.data?['outgoing'] ?? [];
@@ -750,13 +778,13 @@ class _FriendsScreenState extends State<FriendsScreen>
                   Icon(Icons.send_outlined, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
                   Text(
-                    'No outgoing friend requests',
+                    l10n.t('friends.emptyOutgoingTitle'),
                     style: TextStyle(color: Colors.grey, fontSize: 16),
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 8),
                   Text(
-                    'Search for users and send friend requests to connect',
+                    l10n.t('friends.emptyOutgoingSubtitle'),
                     style: TextStyle(color: Colors.grey, fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
@@ -787,7 +815,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                   final userData =
                       userSnapshot.data!.data() as Map<String, dynamic>;
 
-                  final displayName = _formatDisplayName(userData);
+                  final displayName = _formatDisplayName(userData, l10n);
                   final avatarUrl =
                       (userData['profilePhotoUrl'] as String?)?.trim() ?? '';
                   final email = (userData['email'] as String? ?? '').trim();
@@ -802,15 +830,16 @@ class _FriendsScreenState extends State<FriendsScreen>
                               userId: friendId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
-                              userUsername:
-                                  (userData['username'] as String?)?.trim(),
+                              userUsername: (userData['username'] as String?)
+                                  ?.trim(),
                             ),
                           ),
                         );
                       },
                       child: CircleAvatar(
-                        backgroundImage:
-                            avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                        backgroundImage: avatarUrl.isNotEmpty
+                            ? NetworkImage(avatarUrl)
+                            : null,
                         child: avatarUrl.isNotEmpty
                             ? null
                             : Text(_buildInitials(userData)),
@@ -825,8 +854,8 @@ class _FriendsScreenState extends State<FriendsScreen>
                               userId: friendId,
                               userName:
                                   '${userData['firstName']} ${userData['lastName']}',
-                              userUsername:
-                                  (userData['username'] as String?)?.trim(),
+                              userUsername: (userData['username'] as String?)
+                                  ?.trim(),
                             ),
                           ),
                         );
@@ -843,9 +872,9 @@ class _FriendsScreenState extends State<FriendsScreen>
                         color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Text(
-                        'Pending',
-                        style: TextStyle(
+                      child: Text(
+                        l10n.t('friends.statusPending'),
+                        style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
