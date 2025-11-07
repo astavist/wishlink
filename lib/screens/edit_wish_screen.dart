@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,6 +10,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/wish_item.dart';
 import '../models/wish_list.dart';
 import '../services/firestore_service.dart';
+import '../services/product_link_service.dart';
 import '../services/storage_service.dart';
 
 class EditWishScreen extends StatefulWidget {
@@ -29,9 +31,12 @@ class _EditWishScreenState extends State<EditWishScreen> {
   final _firestoreService = FirestoreService();
   final _storageService = StorageService();
   final _imagePicker = ImagePicker();
+  final ProductLinkService _productLinkService = ProductLinkService();
+  Timer? _productUrlDebounce;
 
   bool _isInitializing = true;
   bool _isSaving = false;
+  bool _isFetchingMetadata = false;
   Uint8List? _selectedImageBytes;
   String? _selectedImageMimeType;
   String? _selectedImageName;
@@ -42,15 +47,29 @@ class _EditWishScreenState extends State<EditWishScreen> {
       List<String>.from(_defaultCurrencyOptions);
   String _selectedCurrency = 'TRY';
   List<WishList> _lists = [];
+  String? _autoMetadataErrorMessage;
+  Uint8List? _autoFetchedImageBytes;
+  String? _autoFetchedImageContentType;
+  String? _autoFetchedProductUrl;
+  String? _autoFetchedSourceImageUrl;
+  double? _autoFetchedPrice;
+  String? _autoFetchedCurrency;
+  int _urlRequestId = 0;
+  bool _priceManuallyEdited = false;
+  bool _currencyManuallySelected = false;
 
   @override
   void initState() {
     super.initState();
+    _productUrlController.addListener(_onProductUrlChanged);
     _initialLoad();
   }
 
   @override
   void dispose() {
+    _productUrlDebounce?.cancel();
+    _productUrlController.removeListener(_onProductUrlChanged);
+    _productLinkService.dispose();
     _nameController.dispose();
     _descriptionController.dispose();
     _productUrlController.dispose();
@@ -123,6 +142,156 @@ class _EditWishScreenState extends State<EditWishScreen> {
     }
   }
 
+  void _onProductUrlChanged() {
+    if (_isInitializing) {
+      return;
+    }
+
+    final rawUrl = _productUrlController.text.trim();
+    _productUrlDebounce?.cancel();
+
+    if (rawUrl.isEmpty) {
+      if (_autoFetchedImageBytes != null ||
+          _autoMetadataErrorMessage != null ||
+          _isFetchingMetadata ||
+          _autoFetchedPrice != null ||
+          _autoFetchedCurrency != null) {
+        setState(() {
+          _autoFetchedImageBytes = null;
+          _autoFetchedImageContentType = null;
+          _autoFetchedProductUrl = null;
+          _autoFetchedSourceImageUrl = null;
+          _autoFetchedPrice = null;
+          _autoFetchedCurrency = null;
+          _autoMetadataErrorMessage = null;
+          _isFetchingMetadata = false;
+        });
+      }
+      return;
+    }
+
+    _productUrlDebounce = Timer(const Duration(milliseconds: 800), () {
+      _priceManuallyEdited = false;
+      _currencyManuallySelected = false;
+      _fetchMetadataForProductUrl(rawUrl);
+    });
+  }
+
+  Future<void> _fetchMetadataForProductUrl(String url) async {
+    final trimmedUrl = url.trim();
+    if (trimmedUrl.isEmpty) {
+      return;
+    }
+
+    if (!_productLinkService.supportsUrl(trimmedUrl)) {
+      setState(() {
+        _autoMetadataErrorMessage =
+            'Lütfen http veya https ile başlayan geçerli bir ürün linki girin.';
+        _autoFetchedImageBytes = null;
+        _autoFetchedImageContentType = null;
+        _autoFetchedProductUrl = null;
+        _autoFetchedSourceImageUrl = null;
+        _autoFetchedPrice = null;
+        _autoFetchedCurrency = null;
+      });
+      return;
+    }
+
+    final currentRequestId = ++_urlRequestId;
+
+    setState(() {
+      _isFetchingMetadata = true;
+      _autoMetadataErrorMessage = null;
+      _autoFetchedProductUrl = trimmedUrl;
+    });
+
+    try {
+      final result = await _productLinkService.fetchMetadata(trimmedUrl);
+      if (!mounted || currentRequestId != _urlRequestId) {
+        return;
+      }
+
+      if (result == null) {
+        setState(() {
+          _autoMetadataErrorMessage =
+              'Linkten ürün bilgileri alınamadı. Lütfen manuel girin.';
+          _autoFetchedImageBytes = null;
+          _autoFetchedImageContentType = null;
+          _autoFetchedSourceImageUrl = null;
+          _autoFetchedPrice = null;
+          _autoFetchedCurrency = null;
+        });
+        return;
+      }
+
+      final imageResult = result.image;
+      final fetchedPrice = result.price;
+      final fetchedCurrency = result.currency?.toUpperCase();
+
+      setState(() {
+        if (imageResult != null) {
+          _autoFetchedImageBytes = imageResult.imageBytes;
+          _autoFetchedImageContentType = imageResult.contentType;
+          _autoFetchedSourceImageUrl = imageResult.imageUrl;
+          _autoMetadataErrorMessage = null;
+        } else if (_selectedImageBytes == null) {
+          _autoFetchedImageBytes = null;
+          _autoFetchedImageContentType = null;
+          _autoFetchedSourceImageUrl = null;
+          _autoMetadataErrorMessage =
+              'Bu link için ürün fotoğrafı bulunamadı.';
+        }
+
+        _autoFetchedPrice = fetchedPrice;
+
+        if (fetchedCurrency != null) {
+          _autoFetchedCurrency = fetchedCurrency;
+          if (!_availableCurrencies.contains(fetchedCurrency)) {
+            _availableCurrencies = [
+              fetchedCurrency,
+              ..._availableCurrencies.where(
+                (currency) => currency != fetchedCurrency,
+              ),
+            ];
+          }
+          if (!_currencyManuallySelected) {
+            _selectedCurrency = fetchedCurrency;
+          }
+        } else {
+          _autoFetchedCurrency = null;
+        }
+
+        if (fetchedPrice == null && !_priceManuallyEdited) {
+          _autoMetadataErrorMessage ??=
+              'Bu link için fiyat bulunamadı. Lütfen manuel girin.';
+        }
+      });
+
+      if (fetchedPrice != null && !_priceManuallyEdited) {
+        _priceController.text = fetchedPrice.toStringAsFixed(2);
+      }
+    } catch (_) {
+      if (!mounted || currentRequestId != _urlRequestId) {
+        return;
+      }
+      setState(() {
+        _autoMetadataErrorMessage =
+            'Şu anda ürün bilgileri alınamadı. Lütfen tekrar deneyin.';
+        _autoFetchedImageBytes = null;
+        _autoFetchedImageContentType = null;
+        _autoFetchedSourceImageUrl = null;
+        _autoFetchedPrice = null;
+        _autoFetchedCurrency = null;
+      });
+    } finally {
+      if (mounted && currentRequestId == _urlRequestId) {
+        setState(() {
+          _isFetchingMetadata = false;
+        });
+      }
+    }
+  }
+
   Future<void> _pickImage() async {
     try {
       final picked = await _imagePicker.pickImage(
@@ -147,6 +316,11 @@ class _EditWishScreenState extends State<EditWishScreen> {
             picked.mimeType ?? _guessContentTypeFromExtension(_extensionOf(picked.name));
         _selectedImageName = picked.name;
         _overrideImageUrl = null;
+        _autoFetchedImageBytes = null;
+        _autoFetchedImageContentType = null;
+        _autoFetchedProductUrl = null;
+        _autoFetchedSourceImageUrl = null;
+        _autoMetadataErrorMessage = null;
       });
     } catch (error) {
       if (!mounted) {
@@ -163,6 +337,10 @@ class _EditWishScreenState extends State<EditWishScreen> {
       _selectedImageBytes = null;
       _selectedImageMimeType = null;
       _selectedImageName = null;
+       _autoFetchedImageBytes = null;
+       _autoFetchedImageContentType = null;
+       _autoFetchedProductUrl = null;
+       _autoFetchedSourceImageUrl = null;
       _overrideImageUrl = '';
     });
   }
@@ -181,6 +359,41 @@ class _EditWishScreenState extends State<EditWishScreen> {
       default:
         return null;
     }
+  }
+
+  String? _guessExtensionFromContentType(String? contentType) {
+    if (contentType == null) {
+      return null;
+    }
+    final lower = contentType.toLowerCase();
+    if (lower.contains('png')) {
+      return 'png';
+    }
+    if (lower.contains('webp')) {
+      return 'webp';
+    }
+    if (lower.contains('gif')) {
+      return 'gif';
+    }
+    if (lower.contains('svg')) {
+      return 'svg';
+    }
+    if (lower.contains('bmp')) {
+      return 'bmp';
+    }
+    if (lower.contains('heic')) {
+      return 'heic';
+    }
+    if (lower.contains('heif')) {
+      return 'heif';
+    }
+    if (lower.contains('avif')) {
+      return 'avif';
+    }
+    if (lower.contains('jpeg') || lower.contains('jpg')) {
+      return 'jpg';
+    }
+    return null;
   }
 
   String _extensionOf(String fileName) {
@@ -210,6 +423,55 @@ class _EditWishScreenState extends State<EditWishScreen> {
     );
   }
 
+  Future<String?> _uploadAutoFetchedImage(String userId) async {
+    final bytes = _autoFetchedImageBytes;
+    if (bytes == null) {
+      return _autoFetchedSourceImageUrl;
+    }
+
+    final extension =
+        _guessExtensionFromContentType(_autoFetchedImageContentType) ?? 'jpg';
+    final contentType = _autoFetchedImageContentType ??
+        _guessContentTypeFromExtension(extension);
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final storagePath = 'wish_images/$userId/auto-$timestamp.$extension';
+
+    final uploadedUrl = await _storageService.uploadBytes(
+      path: storagePath,
+      bytes: bytes,
+      contentType: contentType ?? 'image/jpeg',
+    );
+
+    setState(() {
+      _autoFetchedImageBytes = null;
+      _autoFetchedImageContentType = null;
+      _autoFetchedSourceImageUrl = uploadedUrl;
+    });
+
+    return uploadedUrl;
+  }
+
+  Future<String?> _prepareImageForUpdate({
+    required String userId,
+    required String productUrl,
+  }) async {
+    if (_selectedImageBytes != null) {
+      return _uploadSelectedImage(userId);
+    }
+
+    if (_autoFetchedImageBytes != null &&
+        _autoFetchedProductUrl == productUrl) {
+      return _uploadAutoFetchedImage(userId);
+    }
+
+    if (_autoFetchedSourceImageUrl != null &&
+        _autoFetchedProductUrl == productUrl) {
+      return _autoFetchedSourceImageUrl;
+    }
+
+    return _overrideImageUrl;
+  }
+
   Future<void> _saveWish() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -228,11 +490,11 @@ class _EditWishScreenState extends State<EditWishScreen> {
     });
 
     try {
-      String? imageUrlForUpdate = _overrideImageUrl;
-      if (_selectedImageBytes != null) {
-        imageUrlForUpdate = await _uploadSelectedImage(user.uid);
-      }
-
+      final productUrl = _productUrlController.text.trim();
+      final imageUrlForUpdate = await _prepareImageForUpdate(
+        userId: user.uid,
+        productUrl: productUrl,
+      );
       final priceText =
           _priceController.text.trim().replaceAll(',', '.');
       final parsedPrice = double.tryParse(priceText) ?? 0;
@@ -241,7 +503,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
         wishId: widget.wish.id,
         name: _nameController.text.trim(),
         description: _descriptionController.text.trim(),
-        productUrl: _productUrlController.text.trim(),
+        productUrl: productUrl,
         price: parsedPrice,
         currency: _selectedCurrency.toUpperCase(),
         imageUrl: imageUrlForUpdate,
@@ -328,6 +590,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
     }
 
     final imageBytes = _selectedImageBytes;
+    final autoImageBytes = _autoFetchedImageBytes;
     final imageUrl = _overrideImageUrl ?? widget.wish.imageUrl;
     final selectedListId = _selectedListId;
     final dropdownItems = <DropdownMenuItem<String?>>[
@@ -442,7 +705,37 @@ class _EditWishScreenState extends State<EditWishScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
+                if (_isFetchingMetadata)
+                  Row(
+                    children: const [
+                      SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Ürün bilgileri getiriliyor...',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                if (_isFetchingMetadata) const SizedBox(height: 12),
+                if (_autoMetadataErrorMessage != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, bottom: 12),
+                    child: Text(
+                      _autoMetadataErrorMessage!,
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 4),
                 Row(
                   children: [
                     Expanded(
@@ -455,9 +748,16 @@ class _EditWishScreenState extends State<EditWishScreen> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
+                        onChanged: (value) {
+                          if (!_priceManuallyEdited) {
+                            setState(() {
+                              _priceManuallyEdited = true;
+                            });
+                          }
+                        },
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
-                            return 'L�tfen fiyat girin';
+                            return 'Lütfen fiyat girin';
                           }
                           final normalized =
                               value.trim().replaceAll(',', '.');
@@ -498,6 +798,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
                                 }
                                 setState(() {
                                   _selectedCurrency = value;
+                                  _currencyManuallySelected = true;
                                 });
                               },
                       ),
@@ -512,16 +813,19 @@ class _EditWishScreenState extends State<EditWishScreen> {
                     border: Border.all(color: Colors.grey.shade300),
                   ),
                   clipBehavior: Clip.antiAlias,
-                  child: Builder(
-                    builder: (context) {
-                      if (imageBytes != null) {
-                        return Image.memory(imageBytes, fit: BoxFit.cover);
-                      }
-                      if (imageUrl.isNotEmpty) {
-                        return Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
+                 child: Builder(
+                   builder: (context) {
+                     if (imageBytes != null) {
+                       return Image.memory(imageBytes, fit: BoxFit.cover);
+                     }
+                     if (autoImageBytes != null) {
+                       return Image.memory(autoImageBytes, fit: BoxFit.cover);
+                     }
+                     if (imageUrl.isNotEmpty) {
+                       return Image.network(
+                         imageUrl,
+                         fit: BoxFit.cover,
+                         errorBuilder: (context, error, stackTrace) =>
                               _buildImagePlaceholder(),
                         );
                       }
@@ -539,7 +843,9 @@ class _EditWishScreenState extends State<EditWishScreen> {
                         label: const Text('Fotoğraf seç'),
                       ),
                     ),
-                    if ((imageBytes != null) || imageUrl.isNotEmpty)
+                    if ((imageBytes != null) ||
+                        autoImageBytes != null ||
+                        imageUrl.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(left: 8.0),
                         child: OutlinedButton.icon(
