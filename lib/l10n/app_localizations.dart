@@ -72,6 +72,60 @@ class AppLocalizations {
       'en': 'Failed to save profile: {error}',
       'tr': 'Profil kaydedilemedi: {error}',
     },
+    'editProfile.usernameRequired': {
+      'en': 'Please choose a username',
+      'tr': 'Lütfen bir kullanıcı adı seç',
+    },
+    'editProfile.usernameRules': {
+      'en': '3-20 characters using letters, numbers, ., _, -',
+      'tr': '3-20 karakter, harf, rakam, ., _, - kullan',
+    },
+    'editProfile.usernameTaken': {
+      'en': 'This username is already taken',
+      'tr': 'Bu kullanıcı adı zaten alınmış',
+    },
+    'editProfile.removeSelectedPhoto': {
+      'en': 'Remove selected photo',
+      'tr': 'Seçilen fotoğrafı kaldır',
+    },
+    'editProfile.removeCurrentPhoto': {
+      'en': 'Remove current photo',
+      'tr': 'Mevcut fotoğrafı kaldır',
+    },
+    'editProfile.usernameLabel': {'en': 'Username', 'tr': 'Kullanıcı adı'},
+    'editProfile.firstNameLabel': {'en': 'First name', 'tr': 'Ad'},
+    'editProfile.firstNameRequired': {
+      'en': 'Please enter your first name',
+      'tr': 'Lütfen adını gir',
+    },
+    'editProfile.lastNameLabel': {'en': 'Last name', 'tr': 'Soyad'},
+    'editProfile.birthDateLabel': {'en': 'Birth date', 'tr': 'Doğum tarihi'},
+    'editProfile.removeBirthDate': {
+      'en': 'Remove birth date',
+      'tr': 'Doğum tarihini kaldır',
+    },
+    'editProfile.birthDateDisplayLabel': {
+      'en': 'Birth date display',
+      'tr': 'Doğum tarihi gösterimi',
+    },
+    'editProfile.birthDateOptionFull': {
+      'en': 'Show day / month / year (dd.mm.yyyy)',
+      'tr': 'Gün / ay / yıl göster (gg.aa.yyyy)',
+    },
+    'editProfile.birthDateOptionPartial': {
+      'en': 'Show only day / month (dd.mm)',
+      'tr': 'Sadece gün / ay göster (gg.aa)',
+    },
+    'editProfile.saveButton': {
+      'en': 'Save changes',
+      'tr': 'Değişiklikleri kaydet',
+    },
+    'editProfile.wishesTitle': {'en': 'My Wishes', 'tr': 'Wishlerim'},
+    'editProfile.wishesEmpty': {
+      'en': 'You have not added any wishes yet.',
+      'tr': 'Henüz hiç wish eklemedin.',
+    },
+    'editProfile.editWishTooltip': {'en': 'Edit wish', 'tr': 'Wishi düzenle'},
     // Change Password
     'changePassword.updateSuccess': {
       'en': 'Password updated successfully',
@@ -365,7 +419,7 @@ class AppLocalizations {
     },
     'home.connectPrompt': {
       'en': 'Add your first wish or connect with friends',
-      'tr': 'İlk dileğini ekle veya arkadaşlarınla bağlantı kur',
+      'tr': 'İlk wishini ekle veya arkadaşlarınla bağlantı kur',
     },
     // Wish detail
     'wishDetail.ownerLoading': {'en': 'Loading...', 'tr': 'Yükleniyor...'},
@@ -381,7 +435,7 @@ class AppLocalizations {
       'en': 'This wish belongs to you',
       'tr': 'Bu wish sana ait',
     },
-    'wishDetail.ownerWish': {'en': "{owner}'s wish", 'tr': '{owner} dileği'},
+    'wishDetail.ownerWish': {'en': "{owner}'s wish", 'tr': '{owner} wishi'},
     'wishDetail.addedLabel': {'en': 'Added {time}', 'tr': '{time} eklendi'},
     'wishDetail.priceLabel': {'en': 'Price {amount}', 'tr': 'Fiyat {amount}'},
     'wishDetail.createdLabel': {
@@ -394,7 +448,7 @@ class AppLocalizations {
     'wishDetail.comments': {'en': 'Comments', 'tr': 'Yorumlar'},
     'wishDetail.title': {'en': 'Wish Details', 'tr': 'Wish Detayları'},
     'wishDetail.backTooltip': {'en': 'Back', 'tr': 'Geri'},
-    'wishDetail.editTooltip': {'en': 'Edit wish', 'tr': 'Dileği düzenle'},
+    'wishDetail.editTooltip': {'en': 'Edit wish', 'tr': 'Wishi düzenle'},
     // Edit wish
     'editWish.sessionMissing': {
       'en': 'Session not found.',
@@ -451,7 +505,7 @@ class AppLocalizations {
       'en': 'Previous list (deleted)',
       'tr': 'Önceki liste (silinmiş)',
     },
-    'editWish.title': {'en': 'Edit Wish', 'tr': 'Dileği Düzenle'},
+    'editWish.title': {'en': 'Edit Wish', 'tr': 'Wishi Düzenle'},
     'editWish.listLabel': {'en': 'Select List', 'tr': 'Liste Seç'},
     'editWish.nameLabel': {'en': 'Wish Name *', 'tr': 'Wish Adı *'},
     'editWish.nameValidation': {
@@ -495,7 +549,7 @@ class AppLocalizations {
       'en': 'You have not added any wishes yet.',
       'tr': 'Henüz bir wish eklemedin.',
     },
-    'profile.editWishTooltip': {'en': 'Edit wish', 'tr': 'Dileği düzenle'},
+    'profile.editWishTooltip': {'en': 'Edit wish', 'tr': 'Wishi düzenle'},
     'profile.photoPickFromGallery': {
       'en': 'Choose from gallery',
       'tr': 'Galeriden seç',
@@ -848,7 +902,7 @@ class AppLocalizations {
       'en': 'Error adding wish: {error}',
       'tr': 'Wish eklenemedi: {error}',
     },
-    'addWish.submit': {'en': 'Add Wish', 'tr': 'Dileği Ekle'},
+    'addWish.submit': {'en': 'Add Wish', 'tr': 'Wishi Ekle'},
     'home.activityShared': {'en': '{wish} shared!', 'tr': '{wish} paylaşıldı!'},
     'home.linkMissing': {
       'en': 'No link found for {wish}',

@@ -270,13 +270,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   String? _validateUsernameFormat(String? value) {
+    final l10n = context.l10n;
     if (value == null || value.trim().isEmpty) {
-      return 'Please choose a username';
+      return l10n.t('editProfile.usernameRequired');
     }
     final normalized = value.trim().toLowerCase();
     final regex = RegExp(r'^[a-z0-9._-]{3,20}$');
     if (!regex.hasMatch(normalized)) {
-      return '3-20 characters using letters, numbers, ., _, -';
+      return l10n.t('editProfile.usernameRules');
     }
     return null;
   }
@@ -306,6 +307,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
+    final l10n = context.l10n;
     FocusScope.of(context).unfocus();
 
     setState(() {
@@ -376,7 +378,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           });
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('This username is already taken')),
+              SnackBar(
+                content: Text(l10n.t('editProfile.usernameTaken')),
+              ),
             );
           }
           return;
@@ -465,13 +469,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Edit Profile'),
+        title: Text(l10n.t('settings.editProfile')),
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
         elevation: 0,
@@ -527,15 +532,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   icon: const Icon(Icons.delete_outline),
                   label: Text(
                     (_selectedImageFile != null || _selectedImageBytes != null)
-                        ? 'Remove selected photo'
-                        : 'Remove current photo',
+                        ? l10n.t('editProfile.removeSelectedPhoto')
+                        : l10n.t('editProfile.removeCurrentPhoto'),
                   ),
                 ),
               const SizedBox(height: 24),
               TextFormField(
                 controller: _usernameController,
-                decoration: const InputDecoration(
-                  labelText: 'Username',
+                decoration: InputDecoration(
+                  labelText: l10n.t('editProfile.usernameLabel'),
                   prefixText: '@',
                 ),
                 textInputAction: TextInputAction.next,
@@ -546,11 +551,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _firstNameController,
-                decoration: const InputDecoration(labelText: 'First name'),
+                decoration: InputDecoration(
+                  labelText: l10n.t('editProfile.firstNameLabel'),
+                ),
                 textInputAction: TextInputAction.next,
                 validator: (value) {
                   if (value == null || value.trim().isEmpty) {
-                    return 'Please enter your first name';
+                    return l10n.t('editProfile.firstNameRequired');
                   }
                   return null;
                 },
@@ -558,16 +565,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _lastNameController,
-                decoration: const InputDecoration(labelText: 'Last name'),
+                decoration: InputDecoration(
+                  labelText: l10n.t('editProfile.lastNameLabel'),
+                ),
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _birthdayController,
                 readOnly: true,
-                decoration: const InputDecoration(
-                  labelText: 'Birth date',
-                  prefixIcon: Icon(Icons.cake_outlined),
+                decoration: InputDecoration(
+                  labelText: l10n.t('editProfile.birthDateLabel'),
+                  prefixIcon: const Icon(Icons.cake_outlined),
                 ),
                 onTap: _isSaving ? null : _pickBirthday,
               ),
@@ -577,27 +586,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: _isSaving ? null : _clearBirthday,
-                    child: const Text('Remove birth date'),
+                    child: Text(l10n.t('editProfile.removeBirthDate')),
                   ),
                 ),
               ],
               const SizedBox(height: 16),
               InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'Birth date display',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: l10n.t('editProfile.birthDateDisplayLabel'),
+                  border: const OutlineInputBorder(),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _birthdayDisplayPreference,
-                    items: const [
+                    items: [
                       DropdownMenuItem(
                         value: 'dayMonthYear',
-                        child: Text('Show day / month / year (dd.mm.yyyy)'),
+                        child: Text(
+                          l10n.t('editProfile.birthDateOptionFull'),
+                        ),
                       ),
                       DropdownMenuItem(
                         value: 'dayMonth',
-                        child: Text('Show only day / month (dd.mm)'),
+                        child: Text(
+                          l10n.t('editProfile.birthDateOptionPartial'),
+                        ),
                       ),
                     ],
                     onChanged: _isSaving
@@ -623,13 +636,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Save changes'),
+                      : Text(l10n.t('editProfile.saveButton')),
                 ),
               ),
               const SizedBox(height: 32),
-              const Text(
-                'My Wishes',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              Text(
+                l10n.t('editProfile.wishesTitle'),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               if (_userWishes.isEmpty)
@@ -643,10 +656,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     color: Colors.grey[200],
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'You have not added any wishes yet.',
+                  child: Text(
+                    l10n.t('editProfile.wishesEmpty'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black54),
+                    style: const TextStyle(color: Colors.black54),
                   ),
                 )
               else
@@ -726,7 +739,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         ),
                         trailing: IconButton(
                           icon: const Icon(Icons.edit_outlined),
-                          tooltip: 'Wish\'i düzenle',
+                          tooltip: l10n.t('editProfile.editWishTooltip'),
                           onPressed: () => _openEditWish(wish),
                         ),
                       ),
