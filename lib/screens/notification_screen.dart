@@ -406,6 +406,60 @@ class _NotificationScreenState extends State<NotificationScreen> {
     await _loadNotifications();
   }
 
+  Future<void> _markAllNotificationsAsRead() async {
+    final unreadNotificationIds = _notifications
+        .where(
+          (notification) =>
+              !(notification.isRead ||
+                  _locallyReadNotificationIds.contains(notification.id)),
+        )
+        .map((notification) => notification.id)
+        .toList();
+
+    if (unreadNotificationIds.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _locallyReadNotificationIds.addAll(unreadNotificationIds);
+      _notifications = _notifications
+          .map((notification) => notification.copyWith(isRead: true))
+          .toList();
+    });
+
+    final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId == null) {
+      return;
+    }
+
+    final batch = _firestore.batch();
+    final itemsCollection = _firestore
+        .collection('notifications')
+        .doc(currentUserId)
+        .collection('items');
+
+    for (final notificationId in unreadNotificationIds) {
+      batch.set(
+        itemsCollection.doc(notificationId),
+        {'isRead': true},
+        SetOptions(merge: true),
+      );
+    }
+
+    try {
+      await batch.commit();
+    } catch (e) {
+      if (!mounted) return;
+      final l10n = context.l10n;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.t('common.tryAgain')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   void _onNotificationTap(NotificationItem notification) async {
     // Mark as read
     await _markAsRead(notification.id);
@@ -689,6 +743,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final hasUnreadNotifications = _notifications.any(
+      (notification) =>
+          !(notification.isRead ||
+              _locallyReadNotificationIds.contains(notification.id)),
+    );
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.t('notifications.title')),
@@ -699,8 +758,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
         surfaceTintColor: Colors.transparent,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _refreshNotifications,
+            icon: const Icon(Icons.done_all),
+            tooltip: l10n.t('notifications.markAllAsRead'),
+            onPressed:
+                hasUnreadNotifications ? _markAllNotificationsAsRead : null,
           ),
         ],
       ),

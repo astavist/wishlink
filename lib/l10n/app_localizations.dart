@@ -762,6 +762,10 @@ class AppLocalizations {
       'tr': 'Bildirimler yüklenirken hata: {error}',
     },
     'notifications.retry': {'en': 'Retry', 'tr': 'Tekrar dene'},
+    'notifications.markAllAsRead': {
+      'en': 'Mark all as read',
+      'tr': 'Tumunu okundu yap',
+    },
     'notifications.emptyTitle': {
       'en': 'No notifications yet',
       'tr': 'Henüz bildirimin yok',
