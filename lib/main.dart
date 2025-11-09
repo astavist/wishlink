@@ -79,12 +79,15 @@ class MyApp extends StatelessWidget {
   }
 
   ThemeData _buildLightTheme() {
+    final colorScheme = ColorScheme.fromSeed(seedColor: _seedColor);
     return ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: _seedColor),
+      colorScheme: colorScheme.copyWith(primary: _seedColor),
       brightness: Brightness.light,
       useMaterial3: true,
       visualDensity: VisualDensity.adaptivePlatformDensity,
       pageTransitionsTheme: _pageTransitionsTheme,
+      progressIndicatorTheme:
+          const ProgressIndicatorThemeData(color: _seedColor),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -97,15 +100,18 @@ class MyApp extends StatelessWidget {
   }
 
   ThemeData _buildDarkTheme() {
-    return ThemeData(
-      colorScheme: ColorScheme.fromSeed(
+    final colorScheme = ColorScheme.fromSeed(
         seedColor: _seedColor,
         brightness: Brightness.dark,
-      ),
+      );
+    return ThemeData(
+      colorScheme: colorScheme.copyWith(primary: _seedColor),
       brightness: Brightness.dark,
       useMaterial3: true,
       visualDensity: VisualDensity.adaptivePlatformDensity,
       pageTransitionsTheme: _pageTransitionsTheme,
+      progressIndicatorTheme:
+          const ProgressIndicatorThemeData(color: _seedColor),
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFF121212),
         foregroundColor: Colors.white,

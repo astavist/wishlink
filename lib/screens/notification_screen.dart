@@ -829,7 +829,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         ],
                       ),
                     )
-                  : ListView.builder(
+                    : ListView.builder(
                       itemCount: _notifications.length,
                       itemBuilder: (context, index) {
                         final notification = _notifications[index];
@@ -837,6 +837,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             _locallyReadNotificationIds.contains(
                               notification.id,
                             );
+                        final theme = Theme.of(context);
+                        final textTheme = theme.textTheme;
+                        final onSurface = theme.colorScheme.onSurface;
+                        final timestampColor =
+                            theme.colorScheme.onSurface.withValues(alpha: 0.6);
                         return Card(
                           margin: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -846,19 +851,28 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             leading: _buildNotificationAvatar(notification),
                             title: Text(
                               notification.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: onSurface,
+                                  ) ??
+                                  TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: onSurface,
+                                  ),
                             ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 RichText(
                                   text: TextSpan(
-                                    style: const TextStyle(
-                                      color: Colors.black87,
-                                      fontSize: 14,
-                                    ),
+                                    style: textTheme.bodyMedium?.copyWith(
+                                          color: onSurface,
+                                          fontSize: 14,
+                                        ) ??
+                                        TextStyle(
+                                          color: onSurface,
+                                          fontSize: 14,
+                                        ),
                                     children:
                                         _buildMessageTextSpans(notification),
                                   ),
@@ -866,10 +880,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                 const SizedBox(height: 4),
                                 Text(
                                   _getTimeAgo(notification.timestamp),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[500],
-                                  ),
+                                  style: textTheme.bodySmall?.copyWith(
+                                        color: timestampColor,
+                                      ) ??
+                                      TextStyle(
+                                        fontSize: 12,
+                                        color: timestampColor,
+                                      ),
                                 ),
                               ],
                             ),

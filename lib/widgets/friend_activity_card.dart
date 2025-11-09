@@ -267,9 +267,10 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                           if (handle.isNotEmpty)
                             _InfoPill(
                               label: '@$handle',
-                              background: _brandColor.withOpacity(0.18),
+                              background: theme.colorScheme.surface
+                                  .withOpacity(0.6),
                               foreground: _brandColor,
-                              borderColor: _brandColor.withOpacity(0.5),
+                              borderColor: Colors.transparent,
                             ),
                           _InfoPill(
                             label: relativeTime,
@@ -279,6 +280,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                             foreground:
                                 theme.textTheme.bodySmall?.color ??
                                 theme.colorScheme.onSurface,
+                            borderColor: Colors.transparent,
                           ),
                         ],
                       ),
@@ -384,7 +386,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                         vertical: 10,
                       ),
                       decoration: BoxDecoration(
-                        color: _brandColor.withOpacity(0.16),
+                        color: Colors.transparent,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
                           color: _brandColor.withOpacity(0.4),
