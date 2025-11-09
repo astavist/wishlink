@@ -9,6 +9,7 @@ import 'wish_detail_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class UserProfileScreen extends StatefulWidget {
   final String userId;
@@ -170,6 +171,7 @@ class _NoteEditorDialogState extends State<_NoteEditorDialog> {
 class _UserProfileScreenState extends State<UserProfileScreen> {
   final _firestore = FirebaseFirestore.instance;
   final FirestoreService _firestoreService = FirestoreService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   bool _isLoading = true;
   String _firstName = '';
   String _lastName = '';
@@ -181,6 +183,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   List<WishItem> _userWishes = [];
   List<UserPrivateNote> _privateNotes = [];
   bool _isFriend = false;
+
+  bool get _isViewingOwnProfile => _auth.currentUser?.uid == widget.userId;
 
   DateTime? _parseBirthday(dynamic value) {
     if (value is Timestamp) {
@@ -267,7 +271,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       // Load user's wishes from friend_activities
       await _loadUserWishes(widget.userId);
 
-      await _loadPrivateNotes();
+      if (_isViewingOwnProfile) {
+        if (mounted) {
+          setState(() {
+            _privateNotes = [];
+          });
+        }
+      } else {
+        await _loadPrivateNotes();
+      }
 
       if (!mounted) {
         return;
@@ -687,7 +699,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 8),
-                    if (_isFriend) ...[
+                    if (_isFriend && !_isViewingOwnProfile) ...[
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -749,8 +761,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               ),
               const SizedBox(height: 32),
 
-              _buildPrivateNotesSection(l10n),
-              const SizedBox(height: 32),
+              if (!_isViewingOwnProfile) ...[
+                _buildPrivateNotesSection(l10n),
+                const SizedBox(height: 32),
+              ],
 
               // User's Wishes Section
               Text(
