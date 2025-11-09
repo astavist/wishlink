@@ -584,35 +584,28 @@ class _ActionPillButton extends StatelessWidget {
               mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Icon(icon, size: 20, color: activeColor),
-                    if ((count ?? 0) > 0)
-                      Positioned(
-                        right: -12,
-                        top: -8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            '$count',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                Icon(icon, size: 20, color: activeColor),
+                if (!iconOnly && label.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: Text(
+                      label,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: activeColor,
+                        fontWeight: FontWeight.w600,
                       ),
-                  ],
-                ),
+                    ),
+                  ),
+                if ((count ?? 0) > 0) ...[
+                  SizedBox(width: iconOnly ? 6 : 8),
+                  Text(
+                    '$count',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: activeColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

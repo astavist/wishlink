@@ -676,6 +676,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       body: RefreshIndicator(
         onRefresh: _refreshPage,
         child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
