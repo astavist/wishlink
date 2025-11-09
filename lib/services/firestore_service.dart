@@ -48,6 +48,125 @@ class FirestoreService {
     return friendIds.toList();
   }
 
+  Future<List<FriendshipRecord>> getAcceptedFriendships() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) return <FriendshipRecord>[];
+
+    final snapshots = await Future.wait([
+      _firestore
+          .collection('friendships')
+          .where('status', isEqualTo: 'accepted')
+          .where('type', isEqualTo: 'friendship')
+          .where('userId', isEqualTo: currentUser.uid)
+          .get(),
+      _firestore
+          .collection('friendships')
+          .where('status', isEqualTo: 'accepted')
+          .where('type', isEqualTo: 'friendship')
+          .where('friendId', isEqualTo: currentUser.uid)
+          .get(),
+    ]);
+
+    final friendships = <String, FriendshipRecord>{};
+
+    void processSnapshot(
+      QuerySnapshot snapshot, {
+      required bool currentUserIsOwner,
+    }) {
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final friendId = currentUserIsOwner
+            ? data['friendId'] as String?
+            : data['userId'] as String?;
+
+        if (friendId == null || friendId.isEmpty) continue;
+
+        final timestamp = _extractFriendshipTimestamp(data);
+        final existing = friendships[friendId];
+
+        if (existing == null || currentUserIsOwner) {
+          friendships[friendId] = FriendshipRecord(
+            friendId: friendId,
+            documentId: doc.id,
+            createdAt: timestamp,
+          );
+          continue;
+        }
+
+        if (existing.createdAt == null && timestamp != null) {
+          friendships[friendId] = FriendshipRecord(
+            friendId: friendId,
+            documentId: doc.id,
+            createdAt: timestamp,
+          );
+        } else if (timestamp != null &&
+            existing.createdAt != null &&
+            timestamp.compareTo(existing.createdAt!) < 0) {
+          friendships[friendId] = FriendshipRecord(
+            friendId: friendId,
+            documentId: doc.id,
+            createdAt: timestamp,
+          );
+        }
+      }
+    }
+
+    processSnapshot(
+      snapshots[0] as QuerySnapshot,
+      currentUserIsOwner: true,
+    );
+    processSnapshot(
+      snapshots[1] as QuerySnapshot,
+      currentUserIsOwner: false,
+    );
+
+    return friendships.values.toList();
+  }
+
+  Timestamp? _extractFriendshipTimestamp(Map<String, dynamic> data) {
+    const keys = ['acceptedAt', 'createdAt', 'timestamp', 'updatedAt'];
+    for (final key in keys) {
+      final value = data[key];
+      if (value is Timestamp) {
+        return value;
+      }
+    }
+    return null;
+  }
+
+  // Check if the current user is friends with the provided user id
+  Future<bool> isFriendWith(String targetUserId) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null || targetUserId.isEmpty) {
+      return false;
+    }
+
+    if (currentUser.uid == targetUserId) {
+      return true;
+    }
+
+    final checks = await Future.wait([
+      _firestore
+          .collection('friendships')
+          .where('userId', isEqualTo: currentUser.uid)
+          .where('friendId', isEqualTo: targetUserId)
+          .where('status', isEqualTo: 'accepted')
+          .where('type', isEqualTo: 'friendship')
+          .limit(1)
+          .get(),
+      _firestore
+          .collection('friendships')
+          .where('userId', isEqualTo: targetUserId)
+          .where('friendId', isEqualTo: currentUser.uid)
+          .where('status', isEqualTo: 'accepted')
+          .where('type', isEqualTo: 'friendship')
+          .limit(1)
+          .get(),
+    ]);
+
+    return checks.any((snapshot) => snapshot.docs.isNotEmpty);
+  }
+
   // Get friend activities only from friends
   Future<List<FriendActivity>> getFriendActivities() async {
     final friendIds = await getFriendIds();
@@ -287,6 +406,57 @@ class FirestoreService {
   // Get user profile
   Future<DocumentSnapshot?> getUserProfile(String userId) async {
     return await _firestore.collection('users').doc(userId).get();
+  }
+
+  Future<Map<String, Map<String, dynamic>>> getUserProfilesByIds(
+    Iterable<String> userIds,
+  ) async {
+    final uniqueIds = userIds
+        .where((id) => id.isNotEmpty)
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+
+    if (uniqueIds.isEmpty) {
+      return <String, Map<String, dynamic>>{};
+    }
+
+    const chunkSize = 10;
+    final chunks = <List<String>>[];
+    var currentChunk = <String>[];
+
+    for (final id in uniqueIds) {
+      currentChunk.add(id);
+      if (currentChunk.length == chunkSize) {
+        chunks.add(currentChunk);
+        currentChunk = <String>[];
+      }
+    }
+
+    if (currentChunk.isNotEmpty) {
+      chunks.add(currentChunk);
+    }
+
+    final queries = chunks
+        .map(
+          (chunk) => _firestore
+              .collection('users')
+              .where(FieldPath.documentId, whereIn: chunk)
+              .get(),
+        )
+        .toList();
+
+    final snapshots = await Future.wait(queries);
+    final results = <String, Map<String, dynamic>>{};
+
+    for (final snapshot in snapshots) {
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        results[doc.id] = Map<String, dynamic>.from(data);
+      }
+    }
+
+    return results;
   }
 
   // Add friend activity
@@ -686,4 +856,16 @@ class FirestoreService {
   Future<void> deletePrivateNote(String noteId) async {
     await _firestore.collection('user_private_notes').doc(noteId).delete();
   }
+}
+
+class FriendshipRecord {
+  final String friendId;
+  final String documentId;
+  final Timestamp? createdAt;
+
+  const FriendshipRecord({
+    required this.friendId,
+    required this.documentId,
+    required this.createdAt,
+  });
 }

@@ -780,7 +780,15 @@ class AppLocalizations {
     },
     'notifications.friendRequestMessage': {
       'en': '{user} sent you a friend request',
-      'tr': '{user} sana arkadaş isteği gönderdi',
+      'tr': '{user} sana arkadaşlık isteği gönderdi',
+    },
+    'notifications.friendshipAcceptedTitle': {
+      'en': 'Friendship confirmed',
+      'tr': 'Arkadaşlık onaylandı',
+    },
+    'notifications.friendshipAcceptedMessage': {
+      'en': 'You and {user} are now friends',
+      'tr': '{user} ile artık arkadaşsınız',
     },
     'notifications.newWishTitle': {
       'en': 'New Wish Added',

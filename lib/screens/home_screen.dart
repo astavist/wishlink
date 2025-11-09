@@ -134,18 +134,32 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
 
-      // Count unread wish notifications (only for friends)
-      final friendIds = await _firestoreService.getFriendIds();
+      // Count unread wish notifications (only for friends after friendship start)
+      final friendships = await _firestoreService.getAcceptedFriendships();
+      final friendIds = friendships
+          .map((friendship) => friendship.friendId)
+          .where((id) => id.isNotEmpty)
+          .toSet();
+      final friendshipStartTimes = _buildFriendshipStartTimes(friendships);
 
       for (final activity in recentActivities.docs) {
-        final activityData = activity.data();
+        final activityData = activity.data() as Map<String, dynamic>;
         final activityUserId = activityData['userId'] as String;
 
-        if (friendIds.contains(activityUserId) &&
-            activityUserId != currentUserId &&
-            !readNotificationIds.contains(activity.id)) {
-          unreadCount++;
+        if (!friendIds.contains(activityUserId) ||
+            activityUserId == currentUserId ||
+            readNotificationIds.contains(activity.id)) {
+          continue;
         }
+
+        final activityTimestamp = _extractActivityTimestamp(activityData);
+        final friendSince = friendshipStartTimes[activityUserId];
+        if (friendSince != null &&
+            activityTimestamp.compareTo(friendSince) < 0) {
+          continue;
+        }
+
+        unreadCount++;
       }
 
       return unreadCount;
@@ -192,23 +206,37 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
 
-      // Mark wish notifications as read (only for friends)
-      final friendIds = await _firestoreService.getFriendIds();
+      // Mark wish notifications as read (only for friends after friendship start)
+      final friendships = await _firestoreService.getAcceptedFriendships();
+      final friendIds = friendships
+          .map((friendship) => friendship.friendId)
+          .where((id) => id.isNotEmpty)
+          .toSet();
+      final friendshipStartTimes = _buildFriendshipStartTimes(friendships);
 
       for (final activity in recentActivities.docs) {
-        final activityData = activity.data();
+        final activityData = activity.data() as Map<String, dynamic>;
         final activityUserId = activityData['userId'] as String;
 
-        if (friendIds.contains(activityUserId) &&
-            activityUserId != currentUserId &&
-            !readNotificationIds.contains(activity.id)) {
-          await FirebaseFirestore.instance
-              .collection('notifications')
-              .doc(currentUserId)
-              .collection('items')
-              .doc(activity.id)
-              .set({'isRead': true, 'timestamp': FieldValue.serverTimestamp()});
+        if (!friendIds.contains(activityUserId) ||
+            activityUserId == currentUserId ||
+            readNotificationIds.contains(activity.id)) {
+          continue;
         }
+
+        final activityTimestamp = _extractActivityTimestamp(activityData);
+        final friendSince = friendshipStartTimes[activityUserId];
+        if (friendSince != null &&
+            activityTimestamp.compareTo(friendSince) < 0) {
+          continue;
+        }
+
+        await FirebaseFirestore.instance
+            .collection('notifications')
+            .doc(currentUserId)
+            .collection('items')
+            .doc(activity.id)
+            .set({'isRead': true, 'timestamp': FieldValue.serverTimestamp()});
       }
 
       // Update local state
@@ -218,6 +246,48 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       // Handle error silently
     }
+  }
+
+  Map<String, Timestamp?> _buildFriendshipStartTimes(
+    List<FriendshipRecord> friendships,
+  ) {
+    final map = <String, Timestamp?>{};
+    for (final friendship in friendships) {
+      final friendId = friendship.friendId;
+      if (friendId.isEmpty) continue;
+
+      final existing = map[friendId];
+      final candidate = friendship.createdAt;
+
+      if (existing == null) {
+        map[friendId] = candidate;
+        continue;
+      }
+
+      if (candidate != null &&
+          existing != null &&
+          candidate.compareTo(existing) < 0) {
+        map[friendId] = candidate;
+      }
+    }
+    return map;
+  }
+
+  Timestamp _extractActivityTimestamp(Map<String, dynamic> activityData) {
+    try {
+      if (activityData['activityTime'] is Timestamp) {
+        return activityData['activityTime'] as Timestamp;
+      }
+      if (activityData['timestamp'] is Timestamp) {
+        return activityData['timestamp'] as Timestamp;
+      }
+      if (activityData['createdAt'] is Timestamp) {
+        return activityData['createdAt'] as Timestamp;
+      }
+    } catch (_) {
+      // Ignore malformed data and fall back to now
+    }
+    return Timestamp.now();
   }
 
   @override

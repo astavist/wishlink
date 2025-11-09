@@ -180,6 +180,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String _birthdayDisplayPreference = 'dayMonthYear';
   List<WishItem> _userWishes = [];
   List<UserPrivateNote> _privateNotes = [];
+  bool _isFriend = false;
 
   DateTime? _parseBirthday(dynamic value) {
     if (value is Timestamp) {
@@ -230,6 +231,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _loadUserData() async {
     try {
+      await _checkFriendshipStatus();
+
       // Load user profile data
       final userData = await _firestore
           .collection('users')
@@ -279,6 +282,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           SnackBar(content: Text(context.l10n.t('profile.errorLoadingUser'))),
         );
       }
+    }
+  }
+
+  Future<void> _checkFriendshipStatus() async {
+    try {
+      final isFriend = await _firestoreService.isFriendWith(widget.userId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isFriend = isFriend;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isFriend = false;
+      });
     }
   }
 
@@ -665,6 +687,37 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 8),
+                    if (_isFriend) ...[
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE6F4EA),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.check_circle,
+                              size: 18,
+                              color: Colors.green,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              l10n.t('friends.statusFriends'),
+                              style: const TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                     if (_email.isNotEmpty)
                       Text(
                         _email,
