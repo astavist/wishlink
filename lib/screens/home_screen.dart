@@ -664,35 +664,38 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   Positioned(
                     bottom: bottomInset + addButtonBottomOffset,
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          _createBottomToTopSlideRoute(const AddWishScreen()),
-                        );
-                      },
-                      child: Container(
-                        width: addButtonSize,
-                        height: addButtonSize,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [Color(0xFFFDD27B), Color(0xFFF6A441)],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(0x66F6A441),
-                              blurRadius: 30,
-                              offset: Offset(0, 18),
-                            ),
-                          ],
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        _createBottomToTopSlideRoute(const AddWishScreen()),
+                      );
+                    },
+                    child: Container(
+                      width: addButtonSize,
+                      height: addButtonSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFDD27B), Color(0xFFF6A441)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
-                        child: const Icon(
-                          Icons.add,
-                          color: Colors.white,
-                          size: 30,
+                        boxShadow:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? null
+                                : const [
+                                    BoxShadow(
+                                      color: Color(0x66F6A441),
+                                      blurRadius: 30,
+                                      offset: Offset(0, 18),
+                                    ),
+                                  ],
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        color: Colors.white,
+                        size: 30,
                         ),
                       ),
                     ),
