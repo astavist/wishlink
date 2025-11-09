@@ -12,6 +12,7 @@ import '../services/firestore_service.dart';
 import '../services/storage_service.dart';
 import '../services/product_link_service.dart';
 import '../models/wish_list.dart';
+import '../widgets/wish_list_editor_dialog.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
 
 class AddWishScreen extends StatefulWidget {
@@ -93,34 +94,29 @@ class _AddWishScreenState extends State<AddWishScreen> {
   }
 
   Future<void> _createNewListFlow() async {
-    final controller = TextEditingController();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
     final l10n = context.l10n;
-    final name = await showDialog<String>(
+    final result = await showWishListEditorDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.t('addWish.newListTitle')),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(hintText: l10n.t('addWish.newListHint')),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.t('common.cancel')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: Text(l10n.t('common.create')),
-          ),
-        ],
-      ),
+      isEditing: false,
     );
-
-    if (name == null || name.isEmpty) return;
+    if (result == null) return;
 
     try {
+      var coverUrl = '';
+      if (result.coverImageBytes != null) {
+        coverUrl = await _storageService.uploadWishListCoverBytes(
+          userId: user.uid,
+          bytes: result.coverImageBytes!,
+          contentType: result.coverImageContentType,
+        );
+      }
       final service = FirestoreService();
-      final newList = await service.createWishList(name: name);
+      final newList = await service.createWishList(
+        name: result.name,
+        coverImageUrl: coverUrl,
+      );
       if (mounted) {
         setState(() {
           _lists.insert(0, newList);

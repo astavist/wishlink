@@ -14,6 +14,7 @@ import '../services/firestore_service.dart';
 import '../utils/currency_utils.dart';
 import 'all_wishes_screen.dart';
 import 'wish_list_detail_screen.dart';
+import '../widgets/wish_list_editor_dialog.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -680,42 +681,102 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _showCreateListDialog() async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return;
+    }
     final l10n = context.l10n;
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
+    final result = await showWishListEditorDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.t('profile.newListTitle')),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(hintText: l10n.t('profile.newListHint')),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(l10n.t('common.cancel')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: Text(l10n.t('common.create')),
-          ),
-        ],
-      ),
+      isEditing: false,
     );
+    if (result == null) {
+      return;
+    }
 
-    if (result != null && result.isNotEmpty) {
-      try {
-        final newList = await _firestoreService.createWishList(name: result);
-        setState(() {
-          _wishLists.insert(0, newList);
-        });
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(l10n.t('profile.listCreateFailed'))),
+    try {
+      var coverUrl = '';
+      if (result.coverImageBytes != null) {
+        coverUrl = await _storageService.uploadWishListCoverBytes(
+          userId: user.uid,
+          bytes: result.coverImageBytes!,
+          contentType: result.coverImageContentType,
+        );
+      }
+      final newList = await _firestoreService.createWishList(
+        name: result.name,
+        coverImageUrl: coverUrl,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _wishLists.insert(0, newList);
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.t('profile.listCreateFailed'))),
+      );
+    }
+  }
+
+  Future<void> _showEditListDialog(WishList list) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return;
+    }
+    final l10n = context.l10n;
+    final result = await showWishListEditorDialog(
+      context: context,
+      isEditing: true,
+      initialName: list.name,
+      existingCoverImageUrl: list.coverImageUrl,
+    );
+    if (result == null) {
+      return;
+    }
+
+    try {
+      String? coverUrl;
+      if (result.coverImageBytes != null) {
+        coverUrl = await _storageService.uploadWishListCoverBytes(
+          userId: user.uid,
+          bytes: result.coverImageBytes!,
+          contentType: result.coverImageContentType,
+        );
+      } else if (result.removeExistingCover) {
+        coverUrl = '';
+      }
+
+      await _firestoreService.updateWishList(
+        listId: list.id,
+        name: result.name,
+        coverImageUrl: coverUrl,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        final index = _wishLists.indexWhere((item) => item.id == list.id);
+        if (index != -1) {
+          _wishLists[index] = list.copyWith(
+            name: result.name,
+            coverImageUrl: coverUrl ?? list.coverImageUrl,
           );
         }
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.t('profile.listUpdateFailed'))),
+      );
     }
   }
 
@@ -723,6 +784,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final l10n = context.l10n;
     return PopupMenuButton<String>(
       onSelected: (value) async {
+        if (value == 'edit') {
+          await _showEditListDialog(list);
+          return;
+        }
         if (value == 'delete') {
           await _firestoreService.deleteWishList(list.id);
           setState(() {
@@ -731,6 +796,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       },
       itemBuilder: (context) => [
+        PopupMenuItem<String>(
+          value: 'edit',
+          child: Text(l10n.t('common.edit')),
+        ),
         PopupMenuItem<String>(
           value: 'delete',
           child: Text(l10n.t('common.delete')),

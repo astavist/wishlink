@@ -662,6 +662,20 @@ class FirestoreService {
         .toList();
   }
 
+  Future<void> updateWishList({
+    required String listId,
+    required String name,
+    String? coverImageUrl,
+  }) async {
+    final updates = <String, dynamic>{
+      'name': name,
+    };
+    if (coverImageUrl != null) {
+      updates['coverImageUrl'] = coverImageUrl;
+    }
+    await _firestore.collection('wish_lists').doc(listId).update(updates);
+  }
+
   Future<void> deleteWishList(String listId) async {
     await _firestore.collection('wish_lists').doc(listId).delete();
   }

@@ -15,6 +15,7 @@ class AppLocalizations {
     'common.save': {'en': 'Save', 'tr': 'Kaydet'},
     'common.add': {'en': 'Add', 'tr': 'Ekle'},
     'common.create': {'en': 'Create', 'tr': 'Oluştur'},
+    'common.edit': {'en': 'Edit', 'tr': 'Düzenle'},
     'common.delete': {'en': 'Delete', 'tr': 'Sil'},
     'common.tryAgain': {
       'en': 'An error occurred. Please try again.',
@@ -579,10 +580,35 @@ class AppLocalizations {
       'en': 'Create New List',
       'tr': 'Yeni liste oluştur',
     },
+    'profile.editListTitle': {
+      'en': 'Edit List',
+      'tr': 'Listeyi düzenle',
+    },
+    'profile.listNameLabel': {'en': 'List name', 'tr': 'Liste adı'},
+    'profile.listNameRequired': {
+      'en': 'Please enter a list name',
+      'tr': 'Lütfen liste adı gir',
+    },
+    'profile.coverPhotoLabel': {
+      'en': 'Cover photo (optional)',
+      'tr': 'Kapak fotoğrafı (opsiyonel)',
+    },
+    'profile.selectCoverPhoto': {
+      'en': 'Choose cover photo',
+      'tr': 'Kapak fotoğrafı seç',
+    },
+    'profile.removeCoverPhoto': {
+      'en': 'Remove cover photo',
+      'tr': 'Kapak fotoğrafını kaldır',
+    },
     'profile.newListHint': {'en': 'List name', 'tr': 'Liste adı'},
     'profile.listCreateFailed': {
       'en': 'Could not create list',
       'tr': 'Liste oluşturulamadı',
+    },
+    'profile.listUpdateFailed': {
+      'en': 'Could not update list',
+      'tr': 'Liste güncellenemedi',
     },
     'profile.noteAddTitle': {'en': 'Add Note', 'tr': 'Not Ekle'},
     'profile.noteEditTitle': {'en': 'Edit Note', 'tr': 'Notu Düzenle'},

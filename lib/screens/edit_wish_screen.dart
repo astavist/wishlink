@@ -13,6 +13,7 @@ import '../models/wish_list.dart';
 import '../services/firestore_service.dart';
 import '../services/product_link_service.dart';
 import '../services/storage_service.dart';
+import '../widgets/wish_list_editor_dialog.dart';
 
 class EditWishScreen extends StatefulWidget {
   final WishItem wish;
@@ -566,34 +567,32 @@ class _EditWishScreenState extends State<EditWishScreen> {
   }
 
   Future<void> _createNewListFlow() async {
-    final controller = TextEditingController();
-    final result = await showDialog<String>(
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return;
+    }
+    final l10n = context.l10n;
+    final result = await showWishListEditorDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Yeni Liste Oluştur'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: 'Liste adı'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('İptal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: const Text('Oluştur'),
-          ),
-        ],
-      ),
+      isEditing: false,
     );
-
-    if (result == null || result.isEmpty) {
+    if (result == null) {
       return;
     }
 
     try {
-      final newList = await _firestoreService.createWishList(name: result);
+      var coverUrl = '';
+      if (result.coverImageBytes != null) {
+        coverUrl = await _storageService.uploadWishListCoverBytes(
+          userId: user.uid,
+          bytes: result.coverImageBytes!,
+          contentType: result.coverImageContentType,
+        );
+      }
+      final newList = await _firestoreService.createWishList(
+        name: result.name,
+        coverImageUrl: coverUrl,
+      );
       if (!mounted) {
         return;
       }
@@ -607,7 +606,9 @@ class _EditWishScreenState extends State<EditWishScreen> {
       }
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Liste oluşturulamadı')));
+      ).showSnackBar(
+        SnackBar(content: Text(l10n.t('profile.listCreateFailed'))),
+      );
     }
   }
 

@@ -60,6 +60,28 @@ class StorageService {
     }
   }
 
+  // Liste kapak fotoğrafı yükleme (byte dizisi)
+  Future<String> uploadWishListCoverBytes({
+    required String userId,
+    required Uint8List bytes,
+    String? contentType,
+  }) async {
+    try {
+      final extension = _extensionFromContentType(contentType);
+      final fileName =
+          'wish_list_covers/$userId/${DateTime.now().millisecondsSinceEpoch}.$extension';
+      final ref = _storage.ref().child(fileName);
+      final metadata = SettableMetadata(
+        contentType: contentType ?? 'image/jpeg',
+        cacheControl: 'public, max-age=15552000',
+      );
+      final uploadTask = await ref.putData(bytes, metadata);
+      return await uploadTask.ref.getDownloadURL();
+    } catch (e) {
+      throw Exception('Liste kapak fotoğrafı yüklenirken hata: $e');
+    }
+  }
+
   // Profil fotoğrafı URL'ini alma
   Future<String?> getProfilePhotoUrl(String userId) async {
     try {
@@ -117,6 +139,19 @@ class StorageService {
       await ref.delete();
     } catch (e) {
       throw Exception('Dosya silinirken hata: $e');
+    }
+  }
+
+  String _extensionFromContentType(String? contentType) {
+    switch (contentType?.toLowerCase()) {
+      case 'image/png':
+        return 'png';
+      case 'image/webp':
+        return 'webp';
+      case 'image/gif':
+        return 'gif';
+      default:
+        return 'jpg';
     }
   }
 }

@@ -33,4 +33,17 @@ class WishList {
       'coverImageUrl': coverImageUrl,
     };
   }
+
+  WishList copyWith({
+    String? name,
+    String? coverImageUrl,
+  }) {
+    return WishList(
+      id: id,
+      userId: userId,
+      name: name ?? this.name,
+      createdAt: createdAt,
+      coverImageUrl: coverImageUrl ?? this.coverImageUrl,
+    );
+  }
 }
