@@ -15,6 +15,9 @@ import '../models/wish_list.dart';
 import '../widgets/wish_list_editor_dialog.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
 
+const _accentColor = Color(0xFFF2753A);
+const _darkBorderColor = Color(0xFFFFB691);
+
 class AddWishScreen extends StatefulWidget {
   const AddWishScreen({super.key});
 
@@ -29,6 +32,8 @@ class _AddWishScreenState extends State<AddWishScreen> {
   final _descriptionController = TextEditingController();
   final _productUrlController = TextEditingController();
   final _priceController = TextEditingController();
+  final TextEditingController _currencyController =
+      TextEditingController(text: 'TRY');
   final _storageService = StorageService();
   final ProductLinkService _productLinkService = ProductLinkService();
   final ImagePicker _imagePicker = ImagePicker();
@@ -71,6 +76,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
     _descriptionController.dispose();
     _productUrlController.dispose();
     _priceController.dispose();
+    _currencyController.dispose();
     super.dispose();
   }
 
@@ -78,6 +84,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
   void initState() {
     super.initState();
     _productUrlController.addListener(_onProductUrlChanged);
+    _currencyController.text = _selectedCurrency;
     _loadLists();
   }
 
@@ -249,13 +256,13 @@ class _AddWishScreenState extends State<AddWishScreen> {
             ];
           }
           if (!_currencyManuallySelected) {
-            _selectedCurrency = fetchedCurrency;
+            _applyCurrencySelection(fetchedCurrency);
           }
         } else {
           _autoFetchedCurrency = null;
           if (!_currencyManuallySelected) {
             final fallback = _defaultCurrencyOptions.first;
-            _selectedCurrency = fallback;
+            _applyCurrencySelection(fallback);
             if (!_availableCurrencies.contains(fallback)) {
               _availableCurrencies = [fallback, ..._availableCurrencies];
             }
@@ -360,17 +367,35 @@ class _AddWishScreenState extends State<AddWishScreen> {
 
     if (!hasImage) {
       return Container(
-        height: 200,
+        height: 220,
         width: double.infinity,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade300),
-          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: _resolveBorderColor(context),
+          ),
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1E1E1E)
+              : const Color(0xFFFFFBF6),
         ),
-        child: Text(
-          l10n.t('addWish.noPhotoSelected'),
-          style: const TextStyle(fontSize: 14, color: Colors.black54),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.image_outlined,
+              size: 36,
+              color: Theme.of(context).disabledColor,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.t('addWish.noPhotoSelected'),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                  ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       );
     }
@@ -378,23 +403,35 @@ class _AddWishScreenState extends State<AddWishScreen> {
     final bytes = manualBytes ?? autoBytes!;
     final isManual = manualBytes != null;
 
-    return SizedBox(
-      height: 200,
+    return Container(
+      height: 220,
       width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: Theme.of(context).brightness == Brightness.dark
+            ? null
+            : const [
+                BoxShadow(
+                  color: Color(0x22000000),
+                  blurRadius: 32,
+                  offset: Offset(0, 12),
+                ),
+              ],
+      ),
       child: Stack(
         fit: StackFit.expand,
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(24),
             child: Image.memory(bytes, fit: BoxFit.cover),
           ),
           Positioned(
-            left: 12,
-            bottom: 12,
+            left: 16,
+            bottom: 16,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.black54,
+                color: Colors.black.withValues(alpha: 0.55),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -407,10 +444,10 @@ class _AddWishScreenState extends State<AddWishScreen> {
           ),
           if (isManual)
             Positioned(
-              top: 8,
-              right: 8,
+              top: 12,
+              right: 12,
               child: Material(
-                color: Colors.black54,
+                color: Colors.black.withValues(alpha: 0.45),
                 shape: const CircleBorder(),
                 child: IconButton(
                   icon: const Icon(Icons.close, color: Colors.white, size: 18),
@@ -681,272 +718,700 @@ class _AddWishScreenState extends State<AddWishScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = this.l10n;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final backgroundColor =
+        isDark ? const Color(0xFF0F0F0F) : const Color(0xFFFDF9F4);
+
     return Scaffold(
+      backgroundColor: backgroundColor,
       appBar: AppBar(
-        title: Text(l10n.t('addWish.title')),
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
+        backgroundColor: backgroundColor,
         elevation: 0,
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 16.0),
-        child: FloatingActionButton(
-          onPressed: _closeKeyboard,
-          backgroundColor: const Color(0xFFEFB652),
-          foregroundColor: Colors.white,
-          mini: true,
-          tooltip: l10n.t('addWish.closeKeyboard'),
-          child: const Icon(Icons.keyboard_hide),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded),
+          onPressed: () => Navigator.of(context).maybePop(),
         ),
+        title: Image.asset(
+          _resolveAppBarAsset(context),
+          height: 42,
+        ),
+        actions: [
+          IconButton(
+            tooltip: l10n.t('addWish.closeKeyboard'),
+            icon: const Icon(Icons.keyboard_hide_outlined),
+            onPressed: _closeKeyboard,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-
       body: GestureDetector(
         onTap: _closeKeyboard,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  DropdownButtonFormField<String?>(
-                    value: _selectedListId,
-                    decoration: InputDecoration(
-                      labelText: l10n.t('addWish.assignList'),
-                      border: const OutlineInputBorder(),
-                    ),
-                    items: [
-                      DropdownMenuItem<String?>(
-                        value: null,
-                        child: Text(l10n.t('addWish.noList')),
-                      ),
-                      ..._lists.map(
-                        (l) => DropdownMenuItem<String?>(
-                          value: l.id,
-                          child: Text(l.name),
-                        ),
-                      ),
-                      DropdownMenuItem<String?>(
-                        value: '__create__',
-                        child: Text(l10n.t('addWish.createListOption')),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      if (value == '__create__') {
-                        FocusScope.of(context).unfocus();
-                        _createNewListFlow();
-                        return;
-                      }
-                      setState(() {
-                        _selectedListId = value;
-                      });
-                    },
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: isDark
+                ? const LinearGradient(
+                    colors: [Color(0xFF131313), Color(0xFF1E1E1E)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  )
+                : const LinearGradient(
+                    colors: [Color(0xFFFFF5E8), Color(0xFFF7F4EF)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: l10n.t('addWish.wishNameLabel'),
-                      border: const OutlineInputBorder(),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return l10n.t('addWish.wishNameValidation');
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _descriptionController,
-                    decoration: InputDecoration(
-                      labelText: l10n.t('addWish.descriptionLabel'),
-                      border: const OutlineInputBorder(),
-                    ),
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _productUrlController,
-                    decoration: InputDecoration(
-                      labelText: l10n.t('addWish.productUrlLabel'),
-                      border: const OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.url,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return l10n.t('addWish.productUrlRequired');
-                      }
-                      final uri = Uri.tryParse(value.trim());
-                      if (uri == null || !uri.hasAbsolutePath) {
-                        return l10n.t('addWish.productUrlInvalid');
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  if (_isFetchingMetadata)
-                    Row(
+          ),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                24,
+                20,
+                24 + MediaQuery.of(context).padding.bottom,
+              ),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeroCard(context, l10n),
+                    const SizedBox(height: 24),
+                    _buildSectionCard(
+                      context: context,
                       children: [
-                        const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                        _buildSectionTitle(
+                          context,
+                          l10n.t('addWish.mediaSectionTitle'),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            l10n.t('addWish.fetchingMetadata'),
-                            style: const TextStyle(fontSize: 13),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _productUrlController,
+                          decoration: _wishFieldDecoration(
+                            context: context,
+                            label: l10n.t('addWish.productUrlLabel'),
+                            suffixIcon: _productUrlController.text.isEmpty
+                                ? null
+                                : IconButton(
+                                    icon: const Icon(
+                                      Icons.close_rounded,
+                                      size: 18,
+                                    ),
+                                    onPressed: () {
+                                      setState(_productUrlController.clear);
+                                    },
+                                  ),
                           ),
-                        ),
-                      ],
-                    ),
-                  if (_isFetchingMetadata) const SizedBox(height: 12),
-                  if (_autoMetadataErrorMessage != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4, bottom: 12),
-                      child: Text(
-                        _autoMetadataErrorMessage!,
-                        style: const TextStyle(
-                          color: Colors.redAccent,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  _buildImagePreview(),
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: _isLoading ? null : _pickImageFromGallery,
-                    icon: const Icon(Icons.photo_library_outlined),
-                    label: Text(l10n.t('addWish.selectPhotoButton')),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _priceController,
-                          decoration: InputDecoration(
-                            labelText: l10n.t('addWish.priceLabel'),
-                            border: const OutlineInputBorder(),
-                          ),
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          onChanged: (value) {
-                            if (!_priceManuallyEdited) {
-                              setState(() {
-                                _priceManuallyEdited = true;
-                              });
-                            }
-                          },
+                          keyboardType: TextInputType.url,
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return l10n.t('addWish.priceRequired');
+                              return l10n.t('addWish.productUrlRequired');
                             }
-                            final normalized = value.trim().replaceAll(
-                              ',',
-                              '.',
-                            );
-                            final price = double.tryParse(normalized);
-                            if (price == null || price <= 0) {
-                              return l10n.t('addWish.priceInvalid');
+                            final uri = Uri.tryParse(value.trim());
+                            if (uri == null ||
+                                !uri.hasScheme ||
+                                !uri.hasAuthority) {
+                              return l10n.t('addWish.productUrlInvalid');
                             }
                             return null;
                           },
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      SizedBox(
-                        width: 120,
-                        child: DropdownButtonFormField<String>(
-                          value:
-                              _availableCurrencies.contains(_selectedCurrency)
-                              ? _selectedCurrency
-                              : (_availableCurrencies.isNotEmpty
-                                    ? _availableCurrencies.first
-                                    : _selectedCurrency),
-                          decoration: InputDecoration(
-                            labelText: l10n.t('addWish.currencyLabel'),
-                            border: const OutlineInputBorder(),
-                          ),
-                          items: _availableCurrencies
-                              .map(
-                                (currency) => DropdownMenuItem<String>(
-                                  value: currency,
-                                  child: Text(currency),
+                        _buildMetadataStatus(context),
+                        const SizedBox(height: 16),
+                        _buildImagePreview(),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed:
+                                    _isLoading ? null : _pickImageFromGallery,
+                                icon: const Icon(Icons.photo_library_outlined),
+                                label: Text(
+                                  l10n.t('addWish.selectPhotoButton'),
                                 ),
-                              )
-                              .toList(),
-                          onChanged: _isLoading
-                              ? null
-                              : (value) {
-                                  if (value == null) {
-                                    return;
-                                  }
-                                  setState(() {
-                                    _selectedCurrency = value;
-                                    _currencyManuallySelected = true;
-                                  });
-                                },
+                                style: OutlinedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  side: BorderSide(
+                                    color: _resolveBorderColor(context),
+                                  ),
+                                  foregroundColor: _resolveBorderColor(context),
+                                ),
+                              ),
+                            ),
+                            if (_selectedLocalImageBytes != null) ...[
+                              const SizedBox(width: 12),
+                              IconButton(
+                                onPressed: _clearManualImage,
+                                tooltip: l10n.t('addWish.removePhotoTooltip'),
+                                icon:
+                                    const Icon(Icons.delete_outline_rounded),
+                              ),
+                            ],
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-                  if (_autoFetchedPrice != null && !_priceManuallyEdited)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        l10n.t('addWish.priceFetched'),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.green.shade700,
-                        ),
-                      ),
+                      ],
                     ),
-                  if (_autoFetchedCurrency != null &&
-                      !_currencyManuallySelected)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        l10n.t(
-                          'addWish.currencyDetected',
-                          params: {'currency': _autoFetchedCurrency!},
+                    _buildSectionCard(
+                      context: context,
+                      children: [
+                        _buildSectionTitle(
+                          context,
+                          l10n.t('addWish.listSectionTitle'),
                         ),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.green.shade700,
+                        const SizedBox(height: 12),
+                        _buildListSelector(context, l10n),
+                      ],
+                    ),
+                    _buildSectionCard(
+                      context: context,
+                      children: [
+                        _buildSectionTitle(
+                          context,
+                          l10n.t('addWish.detailsSectionTitle'),
                         ),
-                      ),
-                    ),
-                  const SizedBox(height: 32),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _saveWish,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEFB652),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                    ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                            l10n.t('addWish.submit'),
-                            style: const TextStyle(fontSize: 18),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: _wishFieldDecoration(
+                            context: context,
+                            label: l10n.t('addWish.wishNameLabel'),
                           ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return l10n.t('addWish.wishNameValidation');
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _descriptionController,
+                          decoration: _wishFieldDecoration(
+                            context: context,
+                            label: l10n.t('addWish.descriptionLabel'),
+                          ),
+                          maxLines: 3,
+                        ),
+                      ],
+                    ),
+                    _buildSectionCard(
+                      context: context,
+                      children: [
+                        _buildSectionTitle(
+                          context,
+                          l10n.t('addWish.pricingSectionTitle'),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: _priceController,
+                                decoration: _wishFieldDecoration(
+                                  context: context,
+                                  label: l10n.t('addWish.priceLabel'),
+                                ),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                ),
+                                onChanged: (value) {
+                                  if (!_priceManuallyEdited) {
+                                    setState(() {
+                                      _priceManuallyEdited = true;
+                                    });
+                                  }
+                                },
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return l10n.t('addWish.priceRequired');
+                                  }
+                                  final normalized =
+                                      value.trim().replaceAll(',', '.');
+                                  final price = double.tryParse(normalized);
+                                  if (price == null || price <= 0) {
+                                    return l10n.t('addWish.priceInvalid');
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            SizedBox(
+                              width: 140,
+                              child: DropdownMenu<String>(
+                                controller: _currencyController,
+                                initialSelection:
+                                    _availableCurrencies.contains(
+                                  _selectedCurrency,
+                                )
+                                        ? _selectedCurrency
+                                        : (_availableCurrencies.isNotEmpty
+                                              ? _availableCurrencies.first
+                                              : _selectedCurrency),
+                                enabled: !_isLoading,
+                                label: Text(
+                                  l10n.t('addWish.currencyLabel'),
+                                ),
+                                inputDecorationTheme:
+                                    _dropdownDecorationTheme(context),
+                                dropdownMenuEntries: _availableCurrencies
+                                    .map(
+                                      (currency) => DropdownMenuEntry<String>(
+                                        value: currency,
+                                        label: currency,
+                                      ),
+                                    )
+                                    .toList(),
+                                onSelected: _isLoading
+                                    ? null
+                                    : (value) {
+                                        if (value == null) {
+                                          return;
+                                        }
+                                        setState(() {
+                                          _currencyManuallySelected = true;
+                                          _applyCurrencySelection(value);
+                                        });
+                                      },
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (_autoFetchedPrice != null && !_priceManuallyEdited)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Text(
+                              l10n.t('addWish.priceFetched'),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.green.shade600,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        if (_autoFetchedCurrency != null &&
+                            !_currencyManuallySelected)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              l10n.t(
+                                'addWish.currencyDetected',
+                                params: {'currency': _autoFetchedCurrency!},
+                              ),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.green.shade600,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _buildPrimaryButton(context, l10n),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildPrimaryButton(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _saveWish,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFF2753A),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          elevation: 0,
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: Colors.white,
+                ),
+              )
+            : Text(
+                l10n.t('addWish.submit'),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildHeroCard(BuildContext context, AppLocalizations l10n) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final gradientColors = isDark
+        ? const [Color(0xFF322E2B), Color(0xFF1C1A18)]
+        : const [Color(0xFFFFE4B4), Color(0xFFF6A441)];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: gradientColors,
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: isDark
+            ? null
+            : const [
+                BoxShadow(
+                  color: Color(0x33F6A441),
+                  blurRadius: 40,
+                  offset: Offset(0, 20),
+                ),
+              ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: isDark ? 0.12 : 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.auto_awesome_rounded,
+              color: Colors.white,
+              size: 32,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.t('addWish.title'),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  l10n.t('addWish.heroSubtitle'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required BuildContext context,
+    required List<Widget> children,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1F1F1F) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: isDark
+            ? null
+            : const [
+                BoxShadow(
+                  color: Color(0x1A000000),
+                  blurRadius: 32,
+                  offset: Offset(0, 12),
+                ),
+              ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(BuildContext context, String text) {
+    final theme = Theme.of(context);
+    return Text(
+      text,
+      style: theme.textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w600,
+        color: theme.colorScheme.onSurface,
+      ),
+    );
+  }
+
+  Widget _buildListSelector(BuildContext context, AppLocalizations l10n) {
+    final chips = <Widget>[
+      _buildListChip(
+        context: context,
+        label: l10n.t('addWish.noList'),
+        isSelected: _selectedListId == null,
+        onTap: () {
+          FocusScope.of(context).unfocus();
+          setState(() {
+            _selectedListId = null;
+          });
+        },
+      ),
+      ..._lists.map(
+        (list) => _buildListChip(
+          context: context,
+          label: list.name,
+          isSelected: _selectedListId == list.id,
+          onTap: () {
+            FocusScope.of(context).unfocus();
+            setState(() {
+              _selectedListId = list.id;
+            });
+          },
+        ),
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final chip in chips)
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: chip,
+                ),
+            ],
+          ),
+        ),
+        if (_lists.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Text(
+              l10n.t('addWish.noListInfo'),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.color
+                        ?.withValues(alpha: 0.8),
+                  ),
+            ),
+          ),
+        TextButton.icon(
+          onPressed: () {
+            FocusScope.of(context).unfocus();
+            _createNewListFlow();
+          },
+          icon: const Icon(Icons.add_rounded),
+          label: Text(l10n.t('addWish.createListOption')),
+          style: TextButton.styleFrom(
+            foregroundColor: const Color(0xFFF2753A),
+            textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildListChip({
+    required BuildContext context,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final Color selectedColor = const Color(0xFFF2753A);
+    final Color unselectedColor =
+        isDark ? const Color(0xFF2A2A2A) : const Color(0xFFF6F2EA);
+
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (_) => onTap(),
+      labelStyle: TextStyle(
+        color: isSelected
+            ? Colors.white
+            : Theme.of(context).textTheme.bodyMedium?.color,
+        fontWeight: FontWeight.w600,
+      ),
+      backgroundColor: unselectedColor,
+      selectedColor: selectedColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: isSelected
+              ? Colors.transparent
+              : _resolveBorderColor(context),
+        ),
+      ),
+      pressElevation: 0,
+    );
+  }
+
+  InputDecoration _wishFieldDecoration({
+    required BuildContext context,
+    required String label,
+    Widget? suffixIcon,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    OutlineInputBorder border(Color color) {
+      return OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide(color: color, width: 1),
+      );
+    }
+
+    final Color baseColor = _resolveBorderColor(context);
+
+    return InputDecoration(
+      labelText: label,
+      filled: true,
+      fillColor: isDark ? const Color(0xFF1D1D1D) : Colors.white,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 18,
+        vertical: 18,
+      ),
+      border: border(baseColor),
+      enabledBorder: border(baseColor),
+      focusedBorder: border(_resolveBorderColor(context)),
+      suffixIcon: suffixIcon,
+    );
+  }
+
+  InputDecorationTheme _dropdownDecorationTheme(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    OutlineInputBorder border(Color color) {
+      return OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: BorderSide(color: color, width: 1),
+      );
+    }
+
+    final Color baseColor = _resolveBorderColor(context);
+
+    return InputDecorationTheme(
+      filled: true,
+      fillColor: isDark ? const Color(0xFF1D1D1D) : Colors.white,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 18,
+        vertical: 18,
+      ),
+      border: border(baseColor),
+      enabledBorder: border(baseColor),
+      focusedBorder: border(_resolveBorderColor(context)),
+      labelStyle: Theme.of(context).textTheme.bodySmall,
+    );
+  }
+
+  Widget _buildMetadataStatus(BuildContext context) {
+    Widget child = const SizedBox.shrink();
+
+    if (_isFetchingMetadata) {
+      child = _buildAssistBanner(
+        context: context,
+        key: const ValueKey('metadataLoading'),
+        icon: Icons.sync_rounded,
+        color: const Color(0xFFF6A441),
+        text: l10n.t('addWish.fetchingMetadata'),
+      );
+    } else if (_autoMetadataErrorMessage != null) {
+      child = _buildAssistBanner(
+        context: context,
+        key: const ValueKey('metadataError'),
+        icon: Icons.info_outline_rounded,
+        color: Theme.of(context).colorScheme.error,
+        text: _autoMetadataErrorMessage!,
+      );
+    }
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      child: child,
+    );
+  }
+
+  Widget _buildAssistBanner({
+    required BuildContext context,
+    required IconData icon,
+    required Color color,
+    required String text,
+    Key? key,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      key: key,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.22 : 0.15),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _applyCurrencySelection(String currency) {
+    _selectedCurrency = currency;
+    _currencyController.text = currency;
+  }
+
+  Color _resolveBorderColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? _darkBorderColor
+        : _accentColor;
+  }
+
+  String _resolveAppBarAsset(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? 'assets/images/AppBarDark.png'
+        : 'assets/images/AppBar.png';
   }
 }

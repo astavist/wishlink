@@ -928,6 +928,30 @@ class AppLocalizations {
       'en': 'Currency detected as {currency}.',
       'tr': 'Para birimi {currency} olarak algılandı.',
     },
+    'addWish.heroSubtitle': {
+      'en': 'Share your next wish with the people you care about.',
+      'tr': 'Yeni dile?Yini sevdiklerinle payla?.',
+    },
+    'addWish.listSectionTitle': {
+      'en': 'Wish lists',
+      'tr': 'Listeler',
+    },
+    'addWish.detailsSectionTitle': {
+      'en': 'Wish details',
+      'tr': 'Wish detaylar??',
+    },
+    'addWish.mediaSectionTitle': {
+      'en': 'Image & preview',
+      'tr': 'G??rsel ve ??n izleme',
+    },
+    'addWish.pricingSectionTitle': {
+      'en': 'Price & currency',
+      'tr': 'Fiyat ve para birimi',
+    },
+    'addWish.noListInfo': {
+      'en': 'Create a list to keep your wishes organized.',
+      'tr': 'Wishlerini d??zenlemek i??in yeni bir liste olu?Ytur.',
+    },
     'addWish.activityDescription': {
       'en': 'added a new wish',
       'tr': 'yeni bir wish ekledi',
