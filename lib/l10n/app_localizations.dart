@@ -60,6 +60,51 @@ class AppLocalizations {
       'en': 'Change Password',
       'tr': 'Şifreyi Değiştir',
     },
+    'editProfile.section.profile': {
+      'en': 'Profile basics',
+      'tr': 'Profil bilgileri',
+    },
+    'editProfile.section.profileSubtitle': {
+      'en': 'Update your username and names.',
+      'tr': 'Kullanıcı adını ve isimlerini güncelle.',
+    },
+    'editProfile.section.personal': {
+      'en': 'Personal details',
+      'tr': 'Kişisel detaylar',
+    },
+    'editProfile.section.personalSubtitle': {
+      'en': 'Control how your birthday appears.',
+      'tr': 'Doğum gününün nasıl görüneceğini seç.',
+    },
+    'editProfile.heroTitle': {'en': 'Make it yours', 'tr': 'Seni yansıtsın'},
+    'editProfile.heroSubtitle': {
+      'en': 'Refresh your profile photo and details.',
+      'tr': 'Profil fotoğrafını ve bilgilerini yenile.',
+    },
+    'settings.section.account': {
+      'en': 'Account & Profile',
+      'tr': 'Hesap ve Profil',
+    },
+    'settings.section.accountSubtitle': {
+      'en': 'Update your personal info and security basics.',
+      'tr': 'Kişisel bilgilerini ve güvenliğini güncelle.',
+    },
+    'settings.section.preferences': {
+      'en': 'App Preferences',
+      'tr': 'Uygulama Tercihleri',
+    },
+    'settings.section.preferencesSubtitle': {
+      'en': 'Fine-tune language, theme and vibe.',
+      'tr': 'Dilini ve temayı ruh haline göre ayarla.',
+    },
+    'settings.section.support': {
+      'en': 'Support & Legal',
+      'tr': 'Destek ve Yasal',
+    },
+    'settings.section.supportSubtitle': {
+      'en': 'Need help? These areas are on the way.',
+      'tr': 'Yardım mı lazım? Bu bölümler yakında geliyor.',
+    },
     // Edit Profile
     'editProfile.loadFailed': {
       'en': 'Failed to load profile: {error}',
@@ -136,6 +181,52 @@ class AppLocalizations {
       'en': 'Failed to update password',
       'tr': 'Şifre güncellenemedi',
     },
+    'changePassword.title': {'en': 'Update password', 'tr': 'Şifreni güncelle'},
+    'changePassword.subtitle': {
+      'en': 'Secure your account by refreshing your password.',
+      'tr': 'Hesabını şifreni yenileyerek güvende tut.',
+    },
+    'changePassword.heroTitle': {
+      'en': 'Lock things down',
+      'tr': 'Her şeyi kilitle',
+    },
+    'changePassword.heroSubtitle': {
+      'en': 'Re-enter your current password and pick a new one.',
+      'tr': 'Mevcut şifreni gir ve yeni bir şifre seç.',
+    },
+    'changePassword.currentLabel': {
+      'en': 'Current password',
+      'tr': 'Mevcut şifre',
+    },
+    'changePassword.currentRequired': {
+      'en': 'Please enter your current password',
+      'tr': 'Lütfen mevcut şifreni gir',
+    },
+    'changePassword.newLabel': {'en': 'New password', 'tr': 'Yeni şifre'},
+    'changePassword.newRequired': {
+      'en': 'Please enter a new password',
+      'tr': 'Lütfen yeni bir şifre gir',
+    },
+    'changePassword.newTooShort': {
+      'en': 'Password should be at least 6 characters',
+      'tr': 'Şifre en az 6 karakter olmalı',
+    },
+    'changePassword.confirmLabel': {
+      'en': 'Confirm new password',
+      'tr': 'Yeni şifreyi doğrula',
+    },
+    'changePassword.confirmRequired': {
+      'en': 'Please confirm your new password',
+      'tr': 'Lütfen yeni şifreni doğrula',
+    },
+    'changePassword.mismatch': {
+      'en': 'Passwords do not match',
+      'tr': 'Şifreler eşleşmiyor',
+    },
+    'changePassword.saveButton': {
+      'en': 'Update password',
+      'tr': 'Şifreyi güncelle',
+    },
     'settings.appearance': {'en': 'Appearance', 'tr': 'Görünüm'},
     'settings.appearance.matchSystem': {
       'en': 'Match system',
@@ -181,6 +272,14 @@ class AppLocalizations {
     'settings.profileUpdated': {
       'en': 'Profile updated',
       'tr': 'Profil güncellendi',
+    },
+    'settings.heroSubtitle': {
+      'en': 'Fine-tune how WishLink looks and feels.',
+      'tr': 'WishLink deneyimini kendi stiline göre ayarla.',
+    },
+    'settings.signedInAs': {
+      'en': 'Signed in as {email}',
+      'tr': '{email} olarak giriş yaptın',
     },
     // Email verification
     'emailVerification.title': {
@@ -580,10 +679,7 @@ class AppLocalizations {
       'en': 'Create New List',
       'tr': 'Yeni liste oluştur',
     },
-    'profile.editListTitle': {
-      'en': 'Edit List',
-      'tr': 'Listeyi düzenle',
-    },
+    'profile.editListTitle': {'en': 'Edit List', 'tr': 'Listeyi düzenle'},
     'profile.listNameLabel': {'en': 'List name', 'tr': 'Liste adı'},
     'profile.listNameRequired': {
       'en': 'Please enter a list name',
@@ -932,10 +1028,7 @@ class AppLocalizations {
       'en': 'Share your next wish with the people you care about.',
       'tr': 'Yeni dile?Yini sevdiklerinle payla?.',
     },
-    'addWish.listSectionTitle': {
-      'en': 'Wish lists',
-      'tr': 'Listeler',
-    },
+    'addWish.listSectionTitle': {'en': 'Wish lists', 'tr': 'Listeler'},
     'addWish.detailsSectionTitle': {
       'en': 'Wish details',
       'tr': 'Wish detaylar??',
