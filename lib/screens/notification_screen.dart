@@ -2,10 +2,36 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
+import 'package:wishlink/theme/app_theme.dart';
 
-import '../services/firestore_service.dart';
-import '../screens/user_profile_screen.dart';
 import '../screens/friends_screen.dart';
+import '../screens/user_profile_screen.dart';
+import '../services/firestore_service.dart';
+import '../widgets/wishlink_card.dart';
+
+const LinearGradient _lightNotificationsBackground = LinearGradient(
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+  colors: [Color(0xFFFDFDFD), Color(0xFFF2F8FF)],
+);
+
+const LinearGradient _darkNotificationsBackground = LinearGradient(
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+  colors: [Color(0xFF1F1F1F), Color(0xFF101216)],
+);
+
+const LinearGradient _unreadCardFallbackGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFFFFF4DC), Color(0xFFFDE9C9)],
+);
+
+const LinearGradient _readCardFallbackGradient = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFFFFF8F1), Color(0xFFF8FDF9)],
+);
 
 // Custom page route for right-to-left slide animation
 PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
@@ -41,6 +67,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   bool _hasInitialized = false;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -54,6 +81,23 @@ class _NotificationScreenState extends State<NotificationScreen> {
       _hasInitialized = true;
       _loadNotifications();
     }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _handleLogoTap() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeInOut,
+    );
   }
 
   Future<void> _loadNotifications() async {
@@ -144,8 +188,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
         }
       }
 
-      final userProfileCache =
-          await _firestoreService.getUserProfilesByIds(profileIds);
+      final userProfileCache = await _firestoreService.getUserProfilesByIds(
+        profileIds,
+      );
       final missingProfiles = <String>{};
 
       Future<Map<String, dynamic>?> loadUserProfile(String userId) async {
@@ -235,8 +280,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
       // Process newly accepted friendships (recent ones only)
       if (friendships.isNotEmpty) {
-        final friendshipCutoff =
-            DateTime.now().subtract(const Duration(days: 30));
+        final friendshipCutoff = DateTime.now().subtract(
+          const Duration(days: 30),
+        );
 
         for (final friendship in friendships) {
           final acceptedAt = friendship.createdAt;
@@ -246,13 +292,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
           final userData = await loadUserProfile(friendship.friendId);
           if (userData == null) continue;
 
-          final displayName = _buildDisplayName(
-            userData: userData,
-            l10n: l10n,
-          );
+          final displayName = _buildDisplayName(userData: userData, l10n: l10n);
           final avatarUrl = _extractAvatarUrl(userData);
           final usernameValue = _extractUsername(userData);
-          final friendshipNotificationId = 'friendship_${friendship.documentId}';
+          final friendshipNotificationId =
+              'friendship_${friendship.documentId}';
           final message = l10n.t(
             'notifications.friendshipAcceptedMessage',
             params: {'user': displayName},
@@ -316,10 +360,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
           if (wishData == null) continue;
 
           final fallbackName = (activityData['userName'] as String?)?.trim();
-          final fallbackUsername =
-              (activityData['userUsername'] as String?)?.trim();
-          final fallbackAvatar =
-              (activityData['userAvatarUrl'] as String?)?.trim();
+          final fallbackUsername = (activityData['userUsername'] as String?)
+              ?.trim();
+          final fallbackAvatar = (activityData['userAvatarUrl'] as String?)
+              ?.trim();
 
           final displayName = _buildDisplayName(
             userData: userData,
@@ -439,11 +483,9 @@ class _NotificationScreenState extends State<NotificationScreen> {
         .collection('items');
 
     for (final notificationId in unreadNotificationIds) {
-      batch.set(
-        itemsCollection.doc(notificationId),
-        {'isRead': true},
-        SetOptions(merge: true),
-      );
+      batch.set(itemsCollection.doc(notificationId), {
+        'isRead': true,
+      }, SetOptions(merge: true));
     }
 
     try {
@@ -526,10 +568,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   void _updateNotificationReadState(String notificationId) {
     final index = _notifications.indexWhere((n) => n.id == notificationId);
-    final alreadyLocallyRead =
-        _locallyReadNotificationIds.contains(notificationId);
-    final alreadyRead =
-        index != -1 ? _notifications[index].isRead : false;
+    final alreadyLocallyRead = _locallyReadNotificationIds.contains(
+      notificationId,
+    );
+    final alreadyRead = index != -1 ? _notifications[index].isRead : false;
 
     if (alreadyLocallyRead && alreadyRead) {
       return;
@@ -538,8 +580,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     setState(() {
       _locallyReadNotificationIds.add(notificationId);
       if (index != -1 && !_notifications[index].isRead) {
-        _notifications[index] =
-            _notifications[index].copyWith(isRead: true);
+        _notifications[index] = _notifications[index].copyWith(isRead: true);
       }
     });
   }
@@ -552,11 +593,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }) {
     final namePart =
         _composeFullName(userData, fallbackName: fallbackName) ?? '';
-    final username = _extractUsername(
-          userData,
-          fallback: fallbackUsername,
-        ) ??
-        '';
+    final username =
+        _extractUsername(userData, fallback: fallbackUsername) ?? '';
 
     if (namePart.isNotEmpty && username.isNotEmpty) {
       return '$namePart(@$username)';
@@ -599,10 +637,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return null;
   }
 
-  String? _extractUsername(
-    Map<String, dynamic>? userData, {
-    String? fallback,
-  }) {
+  String? _extractUsername(Map<String, dynamic>? userData, {String? fallback}) {
     if (userData != null) {
       final direct = _normalizeUsername(userData['username'] as String?);
       if (direct != null) {
@@ -705,208 +740,374 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   List<TextSpan> _buildMessageTextSpans(NotificationItem notification) {
     final spans = <TextSpan>[];
-    final userDisplay = notification.userName.trim();
-    final hasUser = userDisplay.isNotEmpty;
+    final userDisplay = _normalizeInline(notification.userName);
+    final suffix = _buildNormalizedSuffix(notification);
 
-    if (hasUser) {
-      final fullMessage = notification.message;
-      final nameIndex = fullMessage.indexOf(userDisplay);
-      final prefix =
-          nameIndex > 0 ? fullMessage.substring(0, nameIndex) : '';
-      final suffix = notification.messageSuffix.isNotEmpty
-          ? notification.messageSuffix
-          : nameIndex >= 0
-              ? fullMessage.substring(nameIndex + userDisplay.length)
-              : ' $fullMessage';
+    if (userDisplay.isEmpty) {
+      spans.add(TextSpan(text: suffix));
+      return spans;
+    }
 
-      if (prefix.isNotEmpty) {
-        spans.add(TextSpan(text: prefix));
-      }
+    spans.add(
+      TextSpan(
+        text: userDisplay,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+    );
 
-      spans.add(
-        TextSpan(
-          text: userDisplay,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-      );
-
-      if (suffix.isNotEmpty) {
-        spans.add(TextSpan(text: suffix));
-      }
-    } else {
-      spans.add(TextSpan(text: notification.message));
+    if (suffix.isNotEmpty) {
+      spans.add(TextSpan(text: ' $suffix'));
     }
 
     return spans;
   }
 
+  String _buildNormalizedSuffix(NotificationItem notification) {
+    final rawBody = notification.messageSuffix.isNotEmpty
+        ? notification.messageSuffix
+        : _removeUserNameFromMessage(
+            notification.message,
+            notification.userName,
+          );
+    final normalized = _normalizeInline(
+      rawBody.isNotEmpty ? rawBody : notification.message,
+    );
+    return normalized;
+  }
+
+  String _removeUserNameFromMessage(String message, String userName) {
+    final candidate = _normalizeInline(userName);
+    if (candidate.isEmpty) {
+      return message;
+    }
+    final normalizedMessage = _normalizeInline(message);
+    final index = normalizedMessage.indexOf(candidate);
+    if (index == -1) {
+      return message;
+    }
+    return normalizedMessage.substring(index + candidate.length);
+  }
+
+  String _normalizeInline(String value) {
+    return value.replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final gradients = theme.extension<WishLinkGradients>();
+    final titleStyle = theme.textTheme.titleLarge?.copyWith(
+      fontWeight: FontWeight.w700,
+      color: theme.colorScheme.onSurface,
+    );
     final hasUnreadNotifications = _notifications.any(
       (notification) =>
           !(notification.isRead ||
               _locallyReadNotificationIds.contains(notification.id)),
     );
+
     return Scaffold(
+      extendBody: true,
+      backgroundColor:
+          theme.appBarTheme.backgroundColor ?? theme.colorScheme.surface,
       appBar: AppBar(
-        title: Text(l10n.t('notifications.title')),
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
+        titleSpacing: Navigator.canPop(context) ? 0 : 16,
+        title: GestureDetector(
+          onTap: _handleLogoTap,
+          behavior: HitTestBehavior.opaque,
+          child: Text(l10n.t('notifications.title'), style: titleStyle),
+        ),
+        centerTitle: false,
+        leadingWidth: Navigator.canPop(context) ? 56 : 0,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                onPressed: () => Navigator.of(context).maybePop(),
+              )
+            : null,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.done_all),
-            tooltip: l10n.t('notifications.markAllAsRead'),
-            onPressed:
-                hasUnreadNotifications ? _markAllNotificationsAsRead : null,
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: hasUnreadNotifications
+                    ? theme.colorScheme.primary.withOpacity(0.18)
+                    : theme.colorScheme.surface.withOpacity(
+                        theme.brightness == Brightness.dark ? 0.25 : 0.7,
+                      ),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withOpacity(
+                    hasUnreadNotifications ? 0.5 : 0.25,
+                  ),
+                ),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.done_all_rounded),
+                tooltip: l10n.t('notifications.markAllAsRead'),
+                onPressed: hasUnreadNotifications
+                    ? _markAllNotificationsAsRead
+                    : null,
+              ),
+            ),
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text(
-                    l10n.t('notifications.errorLoading'),
-                    style: const TextStyle(
-                      fontSize: 18,
-                      color: Colors.red,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _errorMessage!,
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _refreshNotifications,
-                    child: Text(l10n.t('notifications.retry')),
-                  ),
-                ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: gradients?.primary ?? _backgroundGradient(theme),
+        ),
+        child: SafeArea(
+          top: false,
+          bottom: false,
+          child: _buildBodyContent(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBodyContent(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 32, 20, 32),
+          child: _buildErrorStateCard(context),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      color: Theme.of(context).colorScheme.primary,
+      displacement: 32,
+      onRefresh: _refreshNotifications,
+      child: _buildScrollableContent(context),
+    );
+  }
+
+  Widget _buildScrollableContent(BuildContext context) {
+    final bottomPadding =
+        MediaQuery.paddingOf(context).bottom + 140; // room for bottom nav
+
+    if (_notifications.isEmpty) {
+      return ListView(
+        controller: _scrollController,
+        padding: EdgeInsets.fromLTRB(20, 32, 20, bottomPadding),
+        physics: const BouncingScrollPhysics(
+          parent: AlwaysScrollableScrollPhysics(),
+        ),
+        children: [_buildEmptyStateCard(context)],
+      );
+    }
+
+    return ListView.separated(
+      controller: _scrollController,
+      padding: EdgeInsets.fromLTRB(16, 12, 16, bottomPadding),
+      physics: const BouncingScrollPhysics(
+        parent: AlwaysScrollableScrollPhysics(),
+      ),
+      itemCount: _notifications.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) =>
+          _buildNotificationCard(context, _notifications[index]),
+    );
+  }
+
+  Widget _buildEmptyStateCard(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final subtitleColor = theme.colorScheme.onSurface.withOpacity(
+      theme.brightness == Brightness.dark ? 0.7 : 0.6,
+    );
+
+    return WishLinkCard(
+      margin: EdgeInsets.zero,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.notifications_none_rounded,
+            size: 56,
+            color: theme.colorScheme.primary,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            l10n.t('notifications.emptyTitle'),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.t('notifications.emptySubtitle'),
+            style: theme.textTheme.bodyMedium?.copyWith(color: subtitleColor),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorStateCard(BuildContext context) {
+    final l10n = context.l10n;
+    final theme = Theme.of(context);
+    final captionColor = theme.colorScheme.onSurface.withOpacity(
+      theme.brightness == Brightness.dark ? 0.7 : 0.6,
+    );
+
+    return WishLinkCard(
+      margin: EdgeInsets.zero,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.error_outline_rounded,
+            size: 56,
+            color: theme.colorScheme.error,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            l10n.t('notifications.errorLoading'),
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.error,
+              fontWeight: FontWeight.w700,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _errorMessage!,
+              style: theme.textTheme.bodyMedium?.copyWith(color: captionColor),
+              textAlign: TextAlign.center,
+            ),
+          ],
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _refreshNotifications,
+            child: Text(l10n.t('notifications.retry')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationCard(
+    BuildContext context,
+    NotificationItem notification,
+  ) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final isRead =
+        notification.isRead ||
+        _locallyReadNotificationIds.contains(notification.id);
+    final timestampColor = theme.colorScheme.onSurface.withOpacity(
+      theme.brightness == Brightness.dark ? 0.65 : 0.55,
+    );
+
+    return WishLinkCard(
+      margin: EdgeInsets.zero,
+      padding: const EdgeInsets.all(20),
+      gradient: _resolveCardGradient(theme, isRead),
+      onTap: () => _onNotificationTap(notification),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 52,
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: _buildNotificationAvatar(notification),
+                ),
               ),
-            )
-          : RefreshIndicator(
-              onRefresh: _refreshNotifications,
-              child: _notifications.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.notifications_none,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            l10n.t('notifications.emptyTitle'),
-                            style: const TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            l10n.t('notifications.emptySubtitle'),
-                            style: const TextStyle(
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _NotificationTitlePill(
+                      title: notification.title,
+                      theme: theme,
+                      textTheme: textTheme,
+                    ),
+                    const SizedBox(height: 4),
+                    RichText(
+                      text: TextSpan(
+                        style:
+                            textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurface,
                               fontSize: 14,
-                              color: Colors.grey,
+                            ) ??
+                            TextStyle(
+                              color: theme.colorScheme.onSurface,
+                              fontSize: 14,
                             ),
-                            textAlign: TextAlign.center,
+                        children: _buildMessageTextSpans(notification),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    _getTimeAgo(notification.timestamp),
+                    style:
+                        textTheme.labelSmall?.copyWith(
+                          color: timestampColor,
+                          fontWeight: FontWeight.w600,
+                        ) ??
+                        TextStyle(fontSize: 12, color: timestampColor),
+                  ),
+                  const SizedBox(height: 10),
+                  if (!isRead)
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: theme.colorScheme.primary.withOpacity(0.35),
+                            blurRadius: 8,
                           ),
                         ],
                       ),
-                    )
-                    : ListView.builder(
-                      itemCount: _notifications.length,
-                      itemBuilder: (context, index) {
-                        final notification = _notifications[index];
-                        final isRead = notification.isRead ||
-                            _locallyReadNotificationIds.contains(
-                              notification.id,
-                            );
-                        final theme = Theme.of(context);
-                        final textTheme = theme.textTheme;
-                        final onSurface = theme.colorScheme.onSurface;
-                        final timestampColor =
-                            theme.colorScheme.onSurface.withValues(alpha: 0.6);
-                        return Card(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 4,
-                          ),
-                          child: ListTile(
-                            leading: _buildNotificationAvatar(notification),
-                            title: Text(
-                              notification.title,
-                              style: textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: onSurface,
-                                  ) ??
-                                  TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: onSurface,
-                                  ),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                RichText(
-                                  text: TextSpan(
-                                    style: textTheme.bodyMedium?.copyWith(
-                                          color: onSurface,
-                                          fontSize: 14,
-                                        ) ??
-                                        TextStyle(
-                                          color: onSurface,
-                                          fontSize: 14,
-                                        ),
-                                    children:
-                                        _buildMessageTextSpans(notification),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _getTimeAgo(notification.timestamp),
-                                  style: textTheme.bodySmall?.copyWith(
-                                        color: timestampColor,
-                                      ) ??
-                                      TextStyle(
-                                        fontSize: 12,
-                                        color: timestampColor,
-                                      ),
-                                ),
-                              ],
-                            ),
-                            trailing: isRead
-                                ? null
-                                : Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.blue,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                            onTap: () => _onNotificationTap(notification),
-                          ),
-                        );
-                      },
                     ),
-            ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
     );
+  }
+
+  Gradient _resolveCardGradient(ThemeData theme, bool isRead) {
+    final gradients = theme.extension<WishLinkGradients>();
+    if (gradients != null) {
+      return isRead ? gradients.secondary : gradients.primary;
+    }
+    return isRead ? _readCardFallbackGradient : _unreadCardFallbackGradient;
+  }
+
+  Gradient _backgroundGradient(ThemeData theme) {
+    return theme.brightness == Brightness.dark
+        ? _darkNotificationsBackground
+        : _lightNotificationsBackground;
   }
 }
 
@@ -972,6 +1173,49 @@ class NotificationItem {
       wishName: wishName ?? this.wishName,
       timestamp: timestamp ?? this.timestamp,
       isRead: isRead ?? this.isRead,
+    );
+  }
+}
+
+class _NotificationTitlePill extends StatelessWidget {
+  const _NotificationTitlePill({
+    required this.title,
+    required this.theme,
+    required this.textTheme,
+  });
+
+  final String title;
+  final ThemeData theme;
+  final TextTheme textTheme;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDark = theme.brightness == Brightness.dark;
+    final Color background = isDark
+        ? theme.colorScheme.surface.withOpacity(0.35)
+        : theme.colorScheme.primary.withOpacity(0.12);
+    final Color borderColor = theme.colorScheme.primary.withOpacity(
+      isDark ? 0.35 : 0.45,
+    );
+    final Color textColor = isDark
+        ? theme.colorScheme.onSurface
+        : theme.colorScheme.primary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Text(
+        title,
+        style: textTheme.titleMedium?.copyWith(
+          color: textColor,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }
