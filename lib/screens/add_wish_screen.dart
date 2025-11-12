@@ -864,49 +864,6 @@ class _AddWishScreenState extends State<AddWishScreen> {
                       children: [
                         _buildSectionTitle(
                           context,
-                          l10n.t('addWish.listSectionTitle'),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildListSelector(context, l10n),
-                      ],
-                    ),
-                    _buildSectionCard(
-                      context: context,
-                      children: [
-                        _buildSectionTitle(
-                          context,
-                          l10n.t('addWish.detailsSectionTitle'),
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _nameController,
-                          decoration: _wishFieldDecoration(
-                            context: context,
-                            label: l10n.t('addWish.wishNameLabel'),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().isEmpty) {
-                              return l10n.t('addWish.wishNameValidation');
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        TextFormField(
-                          controller: _descriptionController,
-                          decoration: _wishFieldDecoration(
-                            context: context,
-                            label: l10n.t('addWish.descriptionLabel'),
-                          ),
-                          maxLines: 3,
-                        ),
-                      ],
-                    ),
-                    _buildSectionCard(
-                      context: context,
-                      children: [
-                        _buildSectionTitle(
-                          context,
                           l10n.t('addWish.pricingSectionTitle'),
                         ),
                         const SizedBox(height: 16),
@@ -1014,6 +971,49 @@ class _AddWishScreenState extends State<AddWishScreen> {
                               ),
                             ),
                           ),
+                      ],
+                    ),
+                    _buildSectionCard(
+                      context: context,
+                      children: [
+                        _buildSectionTitle(
+                          context,
+                          l10n.t('addWish.listSectionTitle'),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildListSelector(context, l10n),
+                      ],
+                    ),
+                    _buildSectionCard(
+                      context: context,
+                      children: [
+                        _buildSectionTitle(
+                          context,
+                          l10n.t('addWish.detailsSectionTitle'),
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: _wishFieldDecoration(
+                            context: context,
+                            label: l10n.t('addWish.wishNameLabel'),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return l10n.t('addWish.wishNameValidation');
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _descriptionController,
+                          decoration: _wishFieldDecoration(
+                            context: context,
+                            label: l10n.t('addWish.descriptionLabel'),
+                          ),
+                          maxLines: 3,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
