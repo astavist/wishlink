@@ -782,6 +782,58 @@ class FirestoreService {
     });
   }
 
+  Future<void> deleteWish(String wishId) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('Not authenticated');
+    }
+
+    final wishRef = _firestore.collection('wishes').doc(wishId);
+    final wishSnapshot = await wishRef.get();
+
+    String? ownerId;
+    if (wishSnapshot.exists) {
+      final wishData =
+          (wishSnapshot.data() as Map<String, dynamic>?) ?? <String, dynamic>{};
+      ownerId =
+          (wishData['ownerId'] as String?)?.trim() ??
+          (wishData['userId'] as String?)?.trim();
+    }
+
+    final activitySnapshot = await _firestore
+        .collection('friend_activities')
+        .where('wishItemId', isEqualTo: wishId)
+        .get();
+
+    if (ownerId == null || ownerId.isEmpty) {
+      for (final doc in activitySnapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final activityOwner = (data['userId'] as String?)?.trim();
+        if (activityOwner != null && activityOwner.isNotEmpty) {
+          ownerId = activityOwner;
+          break;
+        }
+      }
+    }
+
+    if (ownerId != null && ownerId.isNotEmpty && ownerId != currentUser.uid) {
+      throw Exception('Not authorized to delete this wish');
+    }
+
+    for (final activityDoc in activitySnapshot.docs) {
+      final commentsSnapshot =
+          await activityDoc.reference.collection('comments').get();
+      for (final commentDoc in commentsSnapshot.docs) {
+        await commentDoc.reference.delete();
+      }
+      await activityDoc.reference.delete();
+    }
+
+    if (wishSnapshot.exists) {
+      await wishRef.delete();
+    }
+  }
+
   Future<List<DocumentSnapshot>> getWishesByList(String listId) async {
     final snapshot = await _firestore
         .collection('wishes')

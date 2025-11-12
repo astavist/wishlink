@@ -549,6 +549,25 @@ class AppLocalizations {
     'wishDetail.title': {'en': 'Wish Details', 'tr': 'Wish Detayları'},
     'wishDetail.backTooltip': {'en': 'Back', 'tr': 'Geri'},
     'wishDetail.editTooltip': {'en': 'Edit wish', 'tr': 'Wishi düzenle'},
+    'wishDetail.menuTooltip': {'en': 'Wish options', 'tr': 'Wish seçenekleri'},
+    'wishDetail.deleteConfirmTitle': {
+      'en': 'Delete wish?',
+      'tr': 'Wish silinsin mi?',
+    },
+    'wishDetail.deleteConfirmMessage': {
+      'en':
+          'Are you sure you want to delete {wish}? This action cannot be undone.',
+      'tr':
+          '{wish} wishini silmek istediğine emin misin? Bu işlem geri alınamaz.',
+    },
+    'wishDetail.deleteSuccess': {
+      'en': 'Wish deleted.',
+      'tr': 'Wish silindi.',
+    },
+    'wishDetail.deleteFailed': {
+      'en': 'Could not delete wish: {error}',
+      'tr': 'Wish silinemedi: {error}',
+    },
     // Edit wish
     'editWish.sessionMissing': {
       'en': 'Session not found.',
@@ -931,8 +950,8 @@ class AppLocalizations {
     'addWish.assignList': {'en': 'Assign to List', 'tr': 'Liste seç'},
     'addWish.noList': {'en': 'No list', 'tr': 'Liste yok'},
     'addWish.createListOption': {
-      'en': '? Create new list',
-      'tr': '? Yeni liste oluştur',
+      'en': 'Create new list',
+      'tr': 'Yeni liste oluştur',
     },
     'addWish.newListTitle': {
       'en': 'Create New List',
@@ -1026,16 +1045,16 @@ class AppLocalizations {
     },
     'addWish.heroSubtitle': {
       'en': 'Share your next wish with the people you care about.',
-      'tr': 'Yeni dile?Yini sevdiklerinle payla?.',
+      'tr': 'Yeni dileğini sevdiklerinle paylaş.',
     },
     'addWish.listSectionTitle': {'en': 'Wish lists', 'tr': 'Listeler'},
     'addWish.detailsSectionTitle': {
       'en': 'Wish details',
-      'tr': 'Wish detaylar??',
+      'tr': 'Wish detayları',
     },
     'addWish.mediaSectionTitle': {
       'en': 'Image & preview',
-      'tr': 'G??rsel ve ??n izleme',
+      'tr': 'Görsel ve ön izleme',
     },
     'addWish.pricingSectionTitle': {
       'en': 'Price & currency',
@@ -1043,7 +1062,7 @@ class AppLocalizations {
     },
     'addWish.noListInfo': {
       'en': 'Create a list to keep your wishes organized.',
-      'tr': 'Wishlerini d??zenlemek i??in yeni bir liste olu?Ytur.',
+      'tr': 'Wishlerini düzenlemek için yeni bir liste oluştur.',
     },
     'addWish.activityDescription': {
       'en': 'added a new wish',

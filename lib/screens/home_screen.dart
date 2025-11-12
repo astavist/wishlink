@@ -456,14 +456,6 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  l10n.t('home.friendActivityTitle'),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
                 Expanded(
                   child: RefreshIndicator(
                     onRefresh: _loadData,
@@ -559,6 +551,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                 onBuyNow: () {
                                   _buyNow(activity);
                                 },
+                                onEdit: () => _openEditWish(activity),
+                                onDelete: () => _deleteWish(activity),
                               ),
                             );
                           },
@@ -815,6 +809,61 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (result == true && mounted) {
       setState(() {});
+    }
+  }
+
+  Future<void> _deleteWish(FriendActivity activity) async {
+    final l10n = context.l10n;
+    final wishLabel = activity.wishItem.name.isNotEmpty
+        ? activity.wishItem.name
+        : l10n.t('wishDetail.title');
+
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.t('wishDetail.deleteConfirmTitle')),
+        content: Text(
+          l10n.t(
+            'wishDetail.deleteConfirmMessage',
+            params: {'wish': wishLabel},
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.t('common.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.t('common.delete')),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) {
+      return;
+    }
+
+    try {
+      await _firestoreService.deleteWish(activity.wishItem.id);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.t('wishDetail.deleteSuccess'))),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      final message = l10n.t(
+        'wishDetail.deleteFailed',
+        params: {'error': error.toString()},
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
     }
   }
 

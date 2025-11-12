@@ -13,6 +13,8 @@ import '../widgets/activity_comments_sheet.dart';
 import 'edit_wish_screen.dart';
 import '../utils/currency_utils.dart';
 
+enum _WishOwnerAction { edit, delete }
+
 class WishDetailScreen extends StatefulWidget {
   final WishItem wish;
 
@@ -132,6 +134,61 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
 
     if (updated == true) {
       await _reloadWish();
+    }
+  }
+
+  Future<void> _confirmDeleteWish() async {
+    final l10n = context.l10n;
+    final wishLabel =
+        _wish.name.isNotEmpty ? _wish.name : l10n.t('wishDetail.title');
+
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.t('wishDetail.deleteConfirmTitle')),
+        content: Text(
+          l10n.t(
+            'wishDetail.deleteConfirmMessage',
+            params: {'wish': wishLabel},
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.t('common.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.t('common.delete')),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) {
+      return;
+    }
+
+    try {
+      await _firestoreService.deleteWish(_wish.id);
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.t('wishDetail.deleteSuccess'))),
+      );
+      Navigator.of(context).pop(true);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      final message = l10n.t(
+        'wishDetail.deleteFailed',
+        params: {'error': error.toString()},
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
     }
   }
 
@@ -646,10 +703,29 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
         ),
         actions: [
           if (_isOwnActivity)
-            IconButton(
-              icon: const Icon(Icons.edit_outlined),
-              tooltip: l10n.t('wishDetail.editTooltip'),
-              onPressed: _openEditWish,
+            PopupMenuButton<_WishOwnerAction>(
+              icon: const Icon(Icons.more_vert),
+              tooltip: l10n.t('wishDetail.menuTooltip'),
+              onSelected: (action) async {
+                switch (action) {
+                  case _WishOwnerAction.edit:
+                    await _openEditWish();
+                    break;
+                  case _WishOwnerAction.delete:
+                    await _confirmDeleteWish();
+                    break;
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: _WishOwnerAction.edit,
+                  child: Text(l10n.t('common.edit')),
+                ),
+                PopupMenuItem(
+                  value: _WishOwnerAction.delete,
+                  child: Text(l10n.t('common.delete')),
+                ),
+              ],
             ),
         ],
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,

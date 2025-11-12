@@ -29,13 +29,16 @@ PageRouteBuilder<dynamic> _createSlideRoute(Widget page) {
   );
 }
 
+enum _OwnerAction { edit, delete }
+
 class FriendActivityCard extends StatefulWidget {
   final FriendActivity activity;
   final VoidCallback? onLike;
   final Future<int> Function()? onComment;
   final VoidCallback? onShare;
   final VoidCallback? onBuyNow;
-  final VoidCallback? onEdit;
+  final Future<void> Function()? onEdit;
+  final Future<void> Function()? onDelete;
 
   const FriendActivityCard({
     super.key,
@@ -45,6 +48,7 @@ class FriendActivityCard extends StatefulWidget {
     this.onShare,
     this.onBuyNow,
     this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -175,6 +179,19 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
         : l10n.t('wishDetail.unknownUser');
     final handle = widget.activity.userUsername;
     final relativeTime = l10n.relativeTime(widget.activity.activityTime);
+    final ownerActionItems = <PopupMenuEntry<_OwnerAction>>[
+      if (widget.onEdit != null)
+        PopupMenuItem<_OwnerAction>(
+          value: _OwnerAction.edit,
+          child: Text(l10n.t('common.edit')),
+        ),
+      if (widget.onDelete != null)
+        PopupMenuItem<_OwnerAction>(
+          value: _OwnerAction.delete,
+          child: Text(l10n.t('common.delete')),
+        ),
+    ];
+    final hasOwnerActions = _isOwnActivity && ownerActionItems.isNotEmpty;
 
     return WishLinkCard(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -288,11 +305,21 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                   ),
                 ),
               ),
-              if (_isOwnActivity && widget.onEdit != null)
-                IconButton(
-                  icon: const Icon(Icons.edit_outlined),
-                  tooltip: l10n.t('wishDetail.editTooltip'),
-                  onPressed: widget.onEdit,
+              if (hasOwnerActions)
+                PopupMenuButton<_OwnerAction>(
+                  icon: const Icon(Icons.more_vert),
+                  tooltip: l10n.t('wishDetail.menuTooltip'),
+                  onSelected: (action) async {
+                    switch (action) {
+                      case _OwnerAction.edit:
+                        await widget.onEdit?.call();
+                        break;
+                      case _OwnerAction.delete:
+                        await widget.onDelete?.call();
+                        break;
+                    }
+                  },
+                  itemBuilder: (context) => ownerActionItems,
                 ),
             ],
           ),
@@ -460,34 +487,6 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
             ],
           ),
 
-          // Etkinlik açıklaması
-          if (widget.activity.activityDescription != null)
-            Column(
-              children: [
-                const Divider(),
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: handle.isNotEmpty
-                              ? '$displayName (@$handle) '
-                              : '$displayName ',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        TextSpan(
-                          text: widget.activity.activityDescription!,
-                          style: theme.textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
         ],
       ),
     );
