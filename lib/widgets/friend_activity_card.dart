@@ -170,6 +170,15 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
     }
   }
 
+  void _openWishDetail() {
+    Navigator.push(
+      context,
+      createRightToLeftSlideRoute(
+        WishDetailScreen(wish: widget.activity.wishItem),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -284,8 +293,9 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                           if (handle.isNotEmpty)
                             _InfoPill(
                               label: '@$handle',
-                              background: theme.colorScheme.surface
-                                  .withOpacity(0.6),
+                              background: theme.colorScheme.surface.withOpacity(
+                                0.6,
+                              ),
                               foreground: _brandColor,
                               borderColor: Colors.transparent,
                             ),
@@ -324,70 +334,54 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
             ],
           ),
           const SizedBox(height: 16),
-
-          // Ürün görseli
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: InkWell(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  createRightToLeftSlideRoute(
-                    WishDetailScreen(wish: widget.activity.wishItem),
-                  ),
-                );
-              },
-              child: AspectRatio(
-                aspectRatio: 16 / 10,
-                child: widget.activity.wishItem.imageUrl.isNotEmpty
-                    ? Image.network(
-                        widget.activity.wishItem.imageUrl,
-                        width: double.infinity,
-                        height: 200,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
+          InkWell(
+            onTap: _openWishDetail,
+            borderRadius: BorderRadius.circular(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: AspectRatio(
+                    aspectRatio: 16 / 10,
+                    child: widget.activity.wishItem.imageUrl.isNotEmpty
+                        ? Image.network(
+                            widget.activity.wishItem.imageUrl,
+                            width: double.infinity,
+                            height: 200,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: double.infinity,
+                                height: 200,
+                                color: theme.colorScheme.primary.withOpacity(
+                                  0.06,
+                                ),
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  Icons.image_not_supported,
+                                  size: 48,
+                                  color: theme.colorScheme.primary.withOpacity(
+                                    0.4,
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : Container(
                             width: double.infinity,
                             height: 200,
                             color: theme.colorScheme.primary.withOpacity(0.06),
                             alignment: Alignment.center,
                             child: Icon(
-                              Icons.image_not_supported,
+                              Icons.image_outlined,
                               size: 48,
                               color: theme.colorScheme.primary.withOpacity(0.4),
                             ),
-                          );
-                        },
-                      )
-                    : Container(
-                        width: double.infinity,
-                        height: 200,
-                        color: theme.colorScheme.primary.withOpacity(0.06),
-                        alignment: Alignment.center,
-                        child: Icon(
-                          Icons.image_outlined,
-                          size: 48,
-                          color: theme.colorScheme.primary.withOpacity(0.4),
-                        ),
-                      ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Ürün bilgileri (tıklanabilir)
-          InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                createRightToLeftSlideRoute(
-                  WishDetailScreen(wish: widget.activity.wishItem),
+                          ),
+                  ),
                 ),
-              );
-            },
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+                const SizedBox(height: 16),
                 Text(
                   widget.activity.wishItem.name,
                   style: theme.textTheme.titleLarge?.copyWith(
@@ -402,8 +396,6 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // Fiyat
                 if (widget.activity.wishItem.price > 0)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
@@ -486,7 +478,6 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
               ),
             ],
           ),
-
         ],
       ),
     );

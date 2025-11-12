@@ -139,8 +139,9 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
 
   Future<void> _confirmDeleteWish() async {
     final l10n = context.l10n;
-    final wishLabel =
-        _wish.name.isNotEmpty ? _wish.name : l10n.t('wishDetail.title');
+    final wishLabel = _wish.name.isNotEmpty
+        ? _wish.name
+        : l10n.t('wishDetail.title');
 
     final shouldDelete = await showDialog<bool>(
       context: context,
@@ -186,9 +187,9 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
         'wishDetail.deleteFailed',
         params: {'error': error.toString()},
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -363,59 +364,46 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
   Widget _buildOwnerSection(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
-    final decoration = BoxDecoration(
-      color: theme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          color: theme.colorScheme.shadow.withValues(alpha: 0.06),
-          offset: const Offset(0, 8),
-          blurRadius: 20,
-        ),
-      ],
-    );
 
     if (!_hasLoadedActivity) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: decoration,
-        child: Row(
-          children: [
-            const SizedBox(
-              width: 44,
-              height: 44,
-              child: CircularProgressIndicator(strokeWidth: 2),
+      return Row(
+        children: [
+          const SizedBox(
+            width: 26,
+            height: 26,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            l10n.t('wishDetail.ownerLoading'),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                l10n.t('wishDetail.ownerLoading'),
-                style: const TextStyle(color: Colors.grey),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       );
     }
 
     final activity = _activity;
 
     if (activity == null) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        decoration: decoration,
-        child: Row(
-          children: [
-            const Icon(Icons.person_outline, size: 28, color: Colors.grey),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                l10n.t('wishDetail.ownerMissing'),
-                style: const TextStyle(color: Colors.grey),
+      return Row(
+        children: [
+          Icon(
+            Icons.person_outline,
+            size: 26,
+            color: theme.colorScheme.primary.withOpacity(0.6),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              l10n.t('wishDetail.ownerMissing'),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       );
     }
 
@@ -428,12 +416,6 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
         ? activity.userName
         : l10n.t('wishDetail.unknownUser');
     final handle = activity.userUsername;
-    final initials = displayName.isNotEmpty
-        ? displayName.trim()[0].toUpperCase()
-        : '?';
-
-    final baseBodyColor = theme.textTheme.bodyMedium?.color ?? Colors.grey;
-    final subtleColor = baseBodyColor.withValues(alpha: 0.6);
     final title = _isOwnActivity
         ? l10n.t('wishDetail.ownWish')
         : handle.isNotEmpty
@@ -443,49 +425,73 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
       'wishDetail.addedLabel',
       params: {'time': l10n.relativeTime(activity.activityTime)},
     );
+    final initials = displayName.isNotEmpty
+        ? displayName.trim()[0].toUpperCase()
+        : '?';
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: decoration,
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 26,
-            backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-            backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
-            child: hasAvatar
-                ? null
-                : Text(
-                    initials,
-                    style: TextStyle(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+    return Row(
+      children: [
+        CircleAvatar(
+          radius: 28,
+          backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
+          backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
+          child: hasAvatar
+              ? null
+              : Text(
+                  initials,
+                  style: TextStyle(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: subtleColor,
-                  ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        if (_isOwnActivity)
+          PopupMenuButton<_WishOwnerAction>(
+            icon: const Icon(Icons.more_vert),
+            tooltip: l10n.t('wishDetail.menuTooltip'),
+            onSelected: (action) async {
+              switch (action) {
+                case _WishOwnerAction.edit:
+                  await _openEditWish();
+                  break;
+                case _WishOwnerAction.delete:
+                  await _confirmDeleteWish();
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: _WishOwnerAction.edit,
+                child: Text(l10n.t('common.edit')),
+              ),
+              PopupMenuItem(
+                value: _WishOwnerAction.delete,
+                child: Text(l10n.t('common.delete')),
+              ),
+            ],
+          ),
+      ],
     );
   }
 
@@ -495,78 +501,68 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     final createdLabel =
         '${wish.createdAt.day}.${wish.createdAt.month}.${wish.createdAt.year}';
 
-    final chips = <Widget>[];
+    Widget? priceChip;
     if (wish.price > 0) {
-      chips.add(
-        Chip(
-          avatar: CircleAvatar(
-            backgroundColor: Colors.green.withOpacity(0.1),
-            child: Text(
-              currencySymbol(wish.currency),
-              style: const TextStyle(
-                color: Colors.green,
-                fontWeight: FontWeight.bold,
-              ),
+      priceChip = Chip(
+        avatar: CircleAvatar(
+          backgroundColor: Colors.green.withOpacity(0.1),
+          child: Text(
+            currencySymbol(wish.currency),
+            style: const TextStyle(
+              color: Colors.green,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          label: Text(
-            l10n.t(
-              'wishDetail.priceLabel',
-              params: {'amount': formatAmount(wish.price)},
-            ),
+        ),
+        label: Text(
+          '${currencySymbol(wish.currency)} ${formatAmount(wish.price)}',
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
           ),
         ),
       );
     }
-    chips.add(
-      Chip(
-        avatar: const Icon(Icons.event_outlined, size: 18),
-        label: Text(
-          l10n.t('wishDetail.createdLabel', params: {'date': createdLabel}),
-        ),
+    final createdChip = Chip(
+      avatar: const Icon(Icons.event_outlined, size: 18),
+      label: Text(
+        l10n.t('wishDetail.createdLabel', params: {'date': createdLabel}),
       ),
     );
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              wish.name,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            if (wish.description.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(wish.description, style: theme.textTheme.bodyLarge),
-            ],
-            const SizedBox(height: 16),
-            Wrap(spacing: 12, runSpacing: 8, children: chips),
-            if (wish.productUrl.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _launchUrl(wish.productUrl),
-                  icon: const Icon(Icons.link),
-                  label: Text(l10n.t('wishDetail.viewProduct')),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          wish.name,
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        if (wish.description.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Text(wish.description, style: theme.textTheme.bodyLarge),
+        ],
+        const SizedBox(height: 16),
+        if (priceChip != null) ...[priceChip, const SizedBox(height: 12)],
+        createdChip,
+        if (wish.productUrl.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => _launchUrl(wish.productUrl),
+              icon: const Icon(Icons.link),
+              label: Text(l10n.t('wishDetail.viewProduct')),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
                 ),
               ),
-            ],
-          ],
-        ),
-      ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -577,114 +573,108 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     required VoidCallback? onTap,
     Color? iconColor,
     int? count,
+    bool isActive = false,
   }) {
     final theme = Theme.of(context);
-    final disabled = onTap == null;
-    final baseLabelColor = theme.textTheme.bodyMedium?.color ?? Colors.grey;
-    final textColor = disabled
-        ? baseLabelColor.withValues(alpha: 0.4)
-        : baseLabelColor;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: disabled ? null : onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 20, color: iconColor ?? textColor),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: theme.textTheme.bodyMedium?.copyWith(
+    final enabled = onTap != null;
+    final effectiveIconColor =
+        iconColor ??
+        (isActive
+            ? theme.colorScheme.primary
+            : theme.colorScheme.onSurface.withOpacity(enabled ? 0.85 : 0.35));
+    final textColor = isActive
+        ? theme.colorScheme.primary
+        : theme.textTheme.bodyMedium?.color?.withOpacity(enabled ? 0.9 : 0.4) ??
+              theme.colorScheme.onSurface.withOpacity(enabled ? 0.9 : 0.4);
+    final borderColor = isActive
+        ? theme.colorScheme.primary.withOpacity(0.55)
+        : theme.dividerColor;
+    final backgroundColor = isActive
+        ? theme.colorScheme.primary.withOpacity(0.08)
+        : Colors.transparent;
+
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        side: BorderSide(color: borderColor),
+        backgroundColor: backgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: effectiveIconColor),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: theme.textTheme.labelLarge?.copyWith(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if ((count ?? 0) > 0) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                count.toString(),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.primary,
                   fontWeight: FontWeight.w600,
-                  color: textColor,
                 ),
               ),
-              if ((count ?? 0) > 0) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    count.toString(),
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
+            ),
+          ],
+        ],
       ),
     );
   }
 
   Widget _buildEngagementSection(BuildContext context) {
-    final theme = Theme.of(context);
     final l10n = context.l10n;
 
     if (!_hasLoadedActivity) {
-      return Padding(
-        padding: const EdgeInsets.only(top: 24),
-        child: const Center(child: CircularProgressIndicator()),
+      return const Padding(
+        padding: EdgeInsets.only(top: 24),
+        child: Center(child: CircularProgressIndicator()),
       );
     }
 
-    if (_activity == null || _isOwnActivity) {
-      return const SizedBox.shrink();
-    }
+    final likeLabel = _isLiked
+        ? l10n.t('wishDetail.liked')
+        : l10n.t('wishDetail.like');
+    final likeEnabled =
+        _activity != null && !_isOwnActivity && !_isProcessingLike;
+    final commentEnabled = _activity != null && !_isOwnActivity;
 
-    return Container(
-      margin: const EdgeInsets.only(top: 24),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: theme.colorScheme.shadow.withValues(alpha: 0.05),
-            offset: const Offset(0, 8),
-            blurRadius: 18,
+    return Row(
+      children: [
+        Expanded(
+          child: _buildEngagementButton(
+            context: context,
+            icon: _isLiked ? Icons.favorite : Icons.favorite_border,
+            label: likeLabel,
+            onTap: likeEnabled ? _handleLike : null,
+            count: _likesCount,
+            isActive: _isLiked,
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildEngagementButton(
-              context: context,
-              icon: _isLiked ? Icons.favorite : Icons.favorite_border,
-              iconColor: _isLiked ? Colors.red : null,
-              label: _isLiked
-                  ? l10n.t('wishDetail.liked')
-                  : l10n.t('wishDetail.like'),
-              onTap: _isProcessingLike ? null : _handleLike,
-              count: _likesCount,
-            ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildEngagementButton(
+            context: context,
+            icon: Icons.chat_bubble_outline,
+            label: l10n.t('wishDetail.comments'),
+            onTap: commentEnabled ? _openComments : null,
+            count: _commentsCount,
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _buildEngagementButton(
-              context: context,
-              icon: Icons.chat_bubble_outline,
-              label: l10n.t('wishDetail.comments'),
-              onTap: _openComments,
-              count: _commentsCount,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -735,18 +725,32 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
         surfaceTintColor: Colors.transparent,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeroImage(context, wish),
-            const SizedBox(height: 16),
-            _buildOwnerSection(context),
-            const SizedBox(height: 16),
-            _buildWishInfoCard(context, wish),
-            _buildEngagementSection(context),
-            const SizedBox(height: 24),
-          ],
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 30,
+                offset: const Offset(0, 14),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeroImage(context, wish),
+              const SizedBox(height: 20),
+              _buildOwnerSection(context),
+              const SizedBox(height: 20),
+              _buildWishInfoCard(context, wish),
+              const SizedBox(height: 24),
+              _buildEngagementSection(context),
+            ],
+          ),
         ),
       ),
     );
