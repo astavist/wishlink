@@ -560,10 +560,7 @@ class AppLocalizations {
       'tr':
           '{wish} wishini silmek istediğine emin misin? Bu işlem geri alınamaz.',
     },
-    'wishDetail.deleteSuccess': {
-      'en': 'Wish deleted.',
-      'tr': 'Wish silindi.',
-    },
+    'wishDetail.deleteSuccess': {'en': 'Wish deleted.', 'tr': 'Wish silindi.'},
     'wishDetail.deleteFailed': {
       'en': 'Could not delete wish: {error}',
       'tr': 'Wish silinemedi: {error}',
@@ -928,17 +925,14 @@ class AppLocalizations {
       'tr': '{user} sana arkadaşlık isteği gönderdi',
     },
     'notifications.friendshipAcceptedTitle': {
-      'en': 'Friendship confirmed',
-      'tr': 'Arkadaşlık onaylandı',
+      'en': 'New Friend!',
+      'tr': 'Yeni arkadaş!',
     },
     'notifications.friendshipAcceptedMessage': {
       'en': 'You and {user} are now friends',
       'tr': '{user} ile artık arkadaşsınız',
     },
-    'notifications.newWishTitle': {
-      'en': 'New Wish Added',
-      'tr': 'Yeni wish eklendi',
-    },
+    'notifications.newWishTitle': {'en': 'New Wish!', 'tr': 'Yeni wish!'},
     'notifications.newWishMessage': {
       'en': '{user} added \"{wish}\" to their wishlist',
       'tr': '{user} wish listesine \"{wish}\" ekledi',

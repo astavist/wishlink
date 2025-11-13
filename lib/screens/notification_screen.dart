@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
 import 'package:wishlink/theme/app_theme.dart';
 
+import '../models/wish_item.dart';
 import '../screens/friends_screen.dart';
 import '../screens/user_profile_screen.dart';
+import '../screens/wish_detail_screen.dart';
 import '../services/firestore_service.dart';
 import '../widgets/wishlink_card.dart';
 
@@ -396,6 +398,20 @@ class _NotificationScreenState extends State<NotificationScreen> {
               ? l10n.t('notifications.unknownWishFallback')
               : rawWishName;
 
+          final candidateWishIdSources = [
+            activityData['wishItemId'] as String?,
+            wishData['wishItemId'] as String?,
+            wishData['id'] as String?,
+            wishData['wishId'] as String?,
+          ];
+          final normalizedWishId = candidateWishIdSources
+                  .firstWhere(
+                    (value) => (value?.trim().isNotEmpty ?? false),
+                    orElse: () => null,
+                  )
+                  ?.trim() ??
+              '';
+
           final message = l10n.t(
             'notifications.newWishMessage',
             params: {'user': displayName, 'wish': displayWishName},
@@ -413,7 +429,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               userName: displayName,
               userUsername: usernameValue,
               userAvatarUrl: avatarUrl,
-              wishId: wishData['id'] as String? ?? '',
+              wishId: normalizedWishId.isNotEmpty ? normalizedWishId : null,
               wishName: displayWishName,
               timestamp: activityTimestamp,
               isRead: readNotificationIds.contains(activity.id),
@@ -519,28 +535,109 @@ class _NotificationScreenState extends State<NotificationScreen> {
     await _markAsRead(notification.id);
 
     if (notification.type == NotificationType.friendRequest) {
-      // Navigate to Friends screen with incoming requests tab
-      if (mounted) {
-        Navigator.push(
-          context,
-          _createSlideRoute(const FriendsScreen(initialTabIndex: 1)),
-        );
+      _openFriendsScreen();
+      return;
+    }
+
+    if (notification.type == NotificationType.friendshipAccepted) {
+      _openUserProfile(notification);
+      return;
+    }
+
+    if (notification.type == NotificationType.newWish) {
+      final wishId = notification.wishId;
+      if (wishId != null && wishId.isNotEmpty) {
+        await _openWishDetail(wishId);
+        return;
       }
-    } else if (notification.type == NotificationType.friendshipAccepted ||
-        notification.type == NotificationType.newWish) {
-      // Navigate to user's profile
-      if (mounted) {
+      _openUserProfile(notification);
+    }
+  }
+
+  void _openFriendsScreen() {
+    if (!mounted) {
+      return;
+    }
+    Navigator.push(
+      context,
+      _createSlideRoute(const FriendsScreen(initialTabIndex: 1)),
+    );
+  }
+
+  void _openUserProfile(NotificationItem notification) {
+    if (!mounted) {
+      return;
+    }
+    Navigator.push(
+      context,
+      _createSlideRoute(
+        UserProfileScreen(
+          userId: notification.userId,
+          userName: notification.userName,
+          userUsername: notification.userUsername,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openWishDetail(String wishId) async {
+    if (wishId.isEmpty) {
+      return;
+    }
+
+    final l10n = context.l10n;
+
+    try {
+      final activity = await _firestoreService.fetchActivityForWish(wishId);
+      if (activity != null) {
+        if (!mounted) {
+          return;
+        }
+
         Navigator.push(
           context,
-          _createSlideRoute(
-            UserProfileScreen(
-              userId: notification.userId,
-              userName: notification.userName,
-              userUsername: notification.userUsername,
-            ),
+          _createSlideRoute(WishDetailScreen(wish: activity.wishItem)),
+        );
+        return;
+      }
+    } catch (_) {
+      // ignore, fallback to direct wish document
+    }
+
+    try {
+      final snapshot = await _firestore.collection('wishes').doc(wishId).get();
+      final data = snapshot.data();
+      if (data == null) {
+        if (!mounted) {
+          return;
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.t('common.tryAgain')),
+            backgroundColor: Colors.red,
           ),
         );
+        return;
       }
+
+      final wish = WishItem.fromMap(data, snapshot.id);
+      if (!mounted) {
+        return;
+      }
+      Navigator.push(
+        context,
+        _createSlideRoute(WishDetailScreen(wish: wish)),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.t('common.tryAgain')),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -750,30 +847,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
     }
   }
 
-  List<TextSpan> _buildMessageTextSpans(NotificationItem notification) {
-    final spans = <TextSpan>[];
-    final userDisplay = _normalizeInline(notification.userName);
-    final suffix = _buildNormalizedSuffix(notification);
-
-    if (userDisplay.isEmpty) {
-      spans.add(TextSpan(text: suffix));
-      return spans;
-    }
-
-    spans.add(
-      TextSpan(
-        text: userDisplay,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
-    );
-
-    if (suffix.isNotEmpty) {
-      spans.add(TextSpan(text: ' $suffix'));
-    }
-
-    return spans;
-  }
-
   String _buildNormalizedSuffix(NotificationItem notification) {
     final rawBody = notification.messageSuffix.isNotEmpty
         ? notification.messageSuffix
@@ -802,6 +875,24 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
   String _normalizeInline(String value) {
     return value.replaceAll(RegExp(r'\s+'), ' ').trim();
+  }
+
+  String _extractNameOnly(String displayName) {
+    final normalizedDisplayName = _normalizeInline(displayName);
+    if (normalizedDisplayName.isEmpty) {
+      return '';
+    }
+
+    final parenIndex = normalizedDisplayName.indexOf('(@');
+    if (parenIndex != -1) {
+      return normalizedDisplayName.substring(0, parenIndex).trim();
+    }
+
+    if (normalizedDisplayName.startsWith('@')) {
+      return '';
+    }
+
+    return normalizedDisplayName;
   }
 
   @override
@@ -1023,6 +1114,11 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final timestampColor = theme.colorScheme.onSurface.withOpacity(
       theme.brightness == Brightness.dark ? 0.65 : 0.55,
     );
+    final userDisplay = _extractNameOnly(notification.userName);
+    final normalizedUsername = _normalizeInline(notification.userUsername ?? '');
+    final usernameDisplay =
+        normalizedUsername.isNotEmpty ? '@$normalizedUsername' : '';
+    final messageContent = _buildNormalizedSuffix(notification);
 
     return WishLinkCard(
       margin: EdgeInsets.zero,
@@ -1047,26 +1143,49 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (userDisplay.isNotEmpty) ...[
+                      Text(
+                        userDisplay,
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                    ],
+                    if (usernameDisplay.isNotEmpty) ...[
+                      Text(
+                        usernameDisplay,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 13,
+                        ) ??
+                            TextStyle(
+                              color: theme.colorScheme.onSurface,
+                              fontSize: 13,
+                            ),
+                      ),
+                      const SizedBox(height: 6),
+                    ],
                     _NotificationTitlePill(
                       title: notification.title,
                       theme: theme,
                       textTheme: textTheme,
                     ),
-                    const SizedBox(height: 4),
-                    RichText(
-                      text: TextSpan(
-                        style:
-                            textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface,
-                              fontSize: 14,
-                            ) ??
+                    if (messageContent.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        messageContent,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface,
+                          fontSize: 14,
+                        ) ??
                             TextStyle(
                               color: theme.colorScheme.onSurface,
                               fontSize: 14,
                             ),
-                        children: _buildMessageTextSpans(notification),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
