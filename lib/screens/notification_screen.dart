@@ -21,16 +21,28 @@ const LinearGradient _darkNotificationsBackground = LinearGradient(
   colors: [Color(0xFF1F1F1F), Color(0xFF101216)],
 );
 
-const LinearGradient _unreadCardFallbackGradient = LinearGradient(
+const LinearGradient _unreadCardFallbackGradientLight = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
   colors: [Color(0xFFFFF4DC), Color(0xFFFDE9C9)],
 );
 
-const LinearGradient _readCardFallbackGradient = LinearGradient(
+const LinearGradient _readCardFallbackGradientLight = LinearGradient(
   begin: Alignment.topLeft,
   end: Alignment.bottomRight,
   colors: [Color(0xFFFFF8F1), Color(0xFFF8FDF9)],
+);
+
+const LinearGradient _unreadCardFallbackGradientDark = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFF2F251C), Color(0xFF1F1812)],
+);
+
+const LinearGradient _readCardFallbackGradientDark = LinearGradient(
+  begin: Alignment.topLeft,
+  end: Alignment.bottomRight,
+  colors: [Color(0xFF292019), Color(0xFF1A150F)],
 );
 
 // Custom page route for right-to-left slide animation
@@ -1101,7 +1113,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
     if (gradients != null) {
       return isRead ? gradients.secondary : gradients.primary;
     }
-    return isRead ? _readCardFallbackGradient : _unreadCardFallbackGradient;
+    final bool isDarkMode = theme.brightness == Brightness.dark;
+    if (isDarkMode) {
+      return isRead
+          ? _readCardFallbackGradientDark
+          : _unreadCardFallbackGradientDark;
+    }
+    return isRead
+        ? _readCardFallbackGradientLight
+        : _unreadCardFallbackGradientLight;
   }
 
   Gradient _backgroundGradient(ThemeData theme) {
