@@ -14,6 +14,7 @@ import '../services/firestore_service.dart';
 import '../utils/currency_utils.dart';
 import 'all_wishes_screen.dart';
 import 'wish_list_detail_screen.dart';
+import 'settings_screen.dart';
 import '../widgets/wish_list_editor_dialog.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -355,6 +356,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -362,322 +364,197 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final l10n = context.l10n;
+    final theme = Theme.of(context);
     final displayName = '$_firstName $_lastName'.trim();
     final headerTitle = displayName.isNotEmpty
         ? displayName
         : _username.isNotEmpty
-        ? '@$_username'
-        : l10n.t('profile.title');
+            ? '@$_username'
+            : l10n.t('profile.title');
     final secondaryText = _username.isNotEmpty ? '@$_username' : _email;
+    final bool showStandaloneAppBar = Navigator.canPop(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.t('profile.title')),
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
-        notificationPredicate: (_) => false,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        surfaceTintColor: Colors.transparent,
-      ),
+      backgroundColor:
+          theme.appBarTheme.backgroundColor ?? theme.colorScheme.surface,
+      extendBodyBehindAppBar: !showStandaloneAppBar,
+      appBar: showStandaloneAppBar ? _buildProfileAppBar(context) : null,
       body: RefreshIndicator(
         onRefresh: _refreshPage,
+        color: theme.primaryColor,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            showStandaloneAppBar ? 24 : 16,
+            16,
+            32 + MediaQuery.paddingOf(context).bottom,
+          ),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Profile Header
-              Center(
+              _ProfileHeaderCard(
+                title: headerTitle,
+                subtitle: secondaryText.isNotEmpty ? secondaryText : null,
+                birthdayText:
+                    _birthday != null ? _formatBirthday(_birthday!, l10n) : null,
+                imageUrl: _profilePhotoUrl,
+                isUploading: _isUploadingPhoto,
+                onAvatarTap: _isUploadingPhoto ? null : _showProfilePhotoOptions,
+                wishCount: _userWishes.length,
+                listCount: _wishLists.length,
+                wishLabel: l10n.t('profile.myWishes'),
+                listLabel: l10n.t('profile.wishLists'),
+              ),
+              const SizedBox(height: 24),
+              _SectionCard(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Stack(
+                    Row(
                       children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundImage: _profilePhotoUrl.isNotEmpty
-                              ? NetworkImage(_profilePhotoUrl)
-                              : null,
-                          child: _profilePhotoUrl.isEmpty
-                              ? const Icon(Icons.person, size: 50)
-                              : null,
+                        Expanded(
+                          child: Text(
+                            l10n.t('profile.wishLists'),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ),
-                        if (_isUploadingPhoto)
-                          Positioned.fill(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.black54,
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).primaryColor,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: Colors.white, width: 3),
-                            ),
-                            child: GestureDetector(
-                              onTap: _isUploadingPhoto
-                                  ? null
-                                  : _showProfilePhotoOptions,
-                              child: Container(
-                                width: 30,
-                                height: 30,
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).primaryColor,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Icon(
-                                  Icons.camera_alt,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                          ),
+                        IconButton(
+                          onPressed: () => _showCreateListDialog(),
+                          tooltip: l10n.t('profile.createList'),
+                          icon: const Icon(Icons.add_circle_outline),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      headerTitle,
-                      style: Theme.of(context).textTheme.headlineSmall,
+                    const SizedBox(height: 20),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final spacing = 12.0;
+                        final tileWidth =
+                            (constraints.maxWidth - spacing) / 2;
+                        final tiles = <Widget>[
+                          _ListTileCard(
+                            title: l10n.t('profile.allWishes'),
+                            imageUrl: _userWishes.isNotEmpty
+                                ? _userWishes.first.imageUrl
+                                : '',
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                createRightToLeftSlideRoute(
+                                  const AllWishesScreen(),
+                                ),
+                              );
+                            },
+                            leadingIcon: Icons.grid_view,
+                          ),
+                          ..._wishLists.map(
+                            (list) => _ListTileCard(
+                              title: list.name,
+                              imageUrl: list.coverImageUrl,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  createRightToLeftSlideRoute(
+                                    WishListDetailScreen(wishList: list),
+                                  ),
+                                );
+                              },
+                              menuBuilder: _buildListMenu(list),
+                            ),
+                          ),
+                        ];
+
+                        return Wrap(
+                          spacing: spacing,
+                          runSpacing: spacing,
+                          children: tiles
+                              .map(
+                                (tile) => SizedBox(
+                                  width: tileWidth,
+                                  child: AspectRatio(
+                                    aspectRatio: 1,
+                                    child: tile,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        );
+                      },
                     ),
-                    if (secondaryText.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        secondaryText,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                    if (_birthday != null) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.cake_outlined,
-                            size: 18,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            _formatBirthday(_birthday!, l10n),
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
-
-              // Wish Lists header with Create List button
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    l10n.t('profile.wishLists'),
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: _showCreateListDialog,
-                    icon: const Icon(Icons.add),
-                    label: Text(l10n.t('profile.createList')),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEFB652),
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1,
-                ),
-                itemCount: (_wishLists.length + 1),
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    // All Wishes tile
-                    return _ListTileCard(
-                      title: l10n.t('profile.allWishes'),
-                      imageUrl: _userWishes.isNotEmpty
-                          ? _userWishes.first.imageUrl
-                          : '',
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          createRightToLeftSlideRoute(const AllWishesScreen()),
-                        );
-                      },
-                      leadingIcon: Icons.grid_view,
-                    );
-                  }
-
-                  final list = _wishLists[index - 1];
-                  return _ListTileCard(
-                    title: list.name,
-                    imageUrl: list.coverImageUrl,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        createRightToLeftSlideRoute(
-                          WishListDetailScreen(wishList: list),
-                        ),
-                      );
-                    },
-                    menuBuilder: _buildListMenu(list),
-                  );
-                },
-              ),
-              const SizedBox(height: 8),
               const SizedBox(height: 24),
-              Text(
-                l10n.t('profile.myWishes'),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+              _SectionCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.t('profile.myWishes'),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_userWishes.isEmpty)
+                      _buildEmptyWishState(theme, l10n)
+                    else
+                      Column(
+                        children: List.generate(_userWishes.length, (index) {
+                          final wish = _userWishes[index];
+                          return Padding(
+                            padding: EdgeInsets.only(
+                              bottom:
+                                  index == _userWishes.length - 1 ? 0 : 12,
+                            ),
+                            child: _buildWishCard(wish, theme, l10n),
+                          );
+                        }),
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              if (_userWishes.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 24,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    l10n.t('profile.emptyWishes'),
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.black54),
-                  ),
-                )
-              else
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _userWishes.length,
-                  separatorBuilder: (context, index) =>
-                      const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final wish = _userWishes[index];
-                    return Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ListTile(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            createRightToLeftSlideRoute(
-                              WishDetailScreen(wish: wish),
-                            ),
-                          );
-                        },
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: wish.imageUrl.isNotEmpty
-                              ? Image.network(
-                                  wish.imageUrl,
-                                  width: 60,
-                                  height: 60,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      _buildWishPlaceholder(),
-                                )
-                              : _buildWishPlaceholder(),
-                        ),
-                        title: Text(
-                          wish.name,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (wish.description.isNotEmpty)
-                              Text(
-                                wish.description,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            if (wish.price > 0) ...[
-                              const SizedBox(height: 6),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      currencySymbol(wish.currency),
-                                      style: const TextStyle(
-                                        color: Colors.green,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  Text(
-                                    formatAmount(wish.price),
-                                    style: const TextStyle(
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ],
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.edit_outlined),
-                          tooltip: l10n.t('profile.editWishTooltip'),
-                          onPressed: () => _openEditWish(wish),
-                        ),
-                      ),
-                    );
-                  },
-                ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  PreferredSizeWidget _buildProfileAppBar(BuildContext context) {
+    final l10n = context.l10n;
+    return AppBar(
+      title: Image.asset(
+        _resolveAppBarAsset(context),
+        height: 56,
+      ),
+      centerTitle: true,
+      backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+      foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: Colors.transparent,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.settings_outlined),
+          tooltip: l10n.t('settings.title'),
+          onPressed: () {
+            Navigator.of(context).push(
+              createRightToLeftSlideRoute(const SettingsScreen()),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  String _resolveAppBarAsset(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? 'assets/images/AppBarDark.png'
+        : 'assets/images/AppBar.png';
   }
 
   Future<void> _showCreateListDialog() async {
@@ -819,6 +696,386 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: const Icon(Icons.image, color: Colors.grey),
     );
   }
+
+  Widget _buildWishCard(
+    WishItem wish,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    final tileColor = theme.brightness == Brightness.dark
+        ? const Color(0xFF262626)
+        : Colors.white;
+    final borderColor = theme.brightness == Brightness.dark
+        ? Colors.white.withAlpha(13)
+        : Colors.black.withAlpha(13);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: tileColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+        boxShadow: theme.brightness == Brightness.dark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withAlpha(10),
+                  blurRadius: 24,
+                  offset: const Offset(0, 16),
+                ),
+              ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        onTap: () {
+          Navigator.push(
+            context,
+            createRightToLeftSlideRoute(
+              WishDetailScreen(wish: wish),
+            ),
+          );
+        },
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: wish.imageUrl.isNotEmpty
+              ? Image.network(
+                  wish.imageUrl,
+                  width: 60,
+                  height: 60,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                      _buildWishPlaceholder(),
+                )
+              : _buildWishPlaceholder(),
+        ),
+        title: Text(
+          wish.name,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (wish.description.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  wish.description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            if (wish.price > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0x1A2ECC71),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      currencySymbol(wish.currency),
+                      style: const TextStyle(
+                        color: Color(0xFF2ECC71),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    formatAmount(wish.price),
+                    style: const TextStyle(
+                      color: Color(0xFF2ECC71),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.edit_outlined),
+          tooltip: l10n.t('profile.editWishTooltip'),
+          onPressed: () => _openEditWish(wish),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyWishState(ThemeData theme, AppLocalizations l10n) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      decoration: BoxDecoration(
+        color: theme.brightness == Brightness.dark
+            ? Colors.white.withAlpha(13)
+            : const Color(0xFFF7F7F7),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.favorite_border,
+            size: 36,
+            color: theme.brightness == Brightness.dark
+                ? Colors.white70
+                : Colors.grey[500],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.t('profile.emptyWishes'),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.brightness == Brightness.dark
+                  ? Colors.white70
+                  : Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionCard extends StatelessWidget {
+  final Widget child;
+
+  const _SectionCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1F1F1F) : Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withAlpha(13)
+              : Colors.black.withAlpha(10),
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withAlpha(13),
+                  blurRadius: 32,
+                  offset: const Offset(0, 22),
+                ),
+              ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _ProfileHeaderCard extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final String? birthdayText;
+  final String imageUrl;
+  final bool isUploading;
+  final VoidCallback? onAvatarTap;
+  final int wishCount;
+  final int listCount;
+  final String wishLabel;
+  final String listLabel;
+
+  const _ProfileHeaderCard({
+    required this.title,
+    this.subtitle,
+    this.birthdayText,
+    required this.imageUrl,
+    required this.isUploading,
+    this.onAvatarTap,
+    required this.wishCount,
+    required this.listCount,
+    required this.wishLabel,
+    required this.listLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final contentColor = theme.colorScheme.onSurface;
+    final captionColor = theme.colorScheme.onSurfaceVariant;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 18),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: const Color(0xFFF6A441),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              CircleAvatar(
+                radius: 56,
+                backgroundColor: Colors.white.withAlpha(77),
+                backgroundImage:
+                    imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
+                child: imageUrl.isEmpty
+                    ? const Icon(Icons.person, size: 48, color: Colors.white)
+                    : null,
+              ),
+              if (isUploading)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withAlpha(115),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
+                  ),
+                ),
+              if (onAvatarTap != null)
+                Positioned(
+                  bottom: 6,
+                  right: 6,
+                  child: Material(
+                    color: Colors.white,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      onTap: onAvatarTap,
+                      customBorder: const CircleBorder(),
+                      child: const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Icon(
+                          Icons.camera_alt,
+                          size: 18,
+                          color: Color(0xFFF6A441),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: contentColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          if (subtitle != null && subtitle!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              subtitle!,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: captionColor,
+              ),
+            ),
+          ],
+          if (birthdayText != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.cake_outlined, color: contentColor, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  birthdayText!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: contentColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _StatChip(
+                  label: listLabel,
+                  value: listCount.toString(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatChip(
+                  label: wishLabel,
+                  value: wishCount.toString(),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatChip({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: theme.colorScheme.onSurface.withAlpha(80),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _ListTileCard extends StatelessWidget {
@@ -841,7 +1098,7 @@ class _ListTileCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(20),
         child: Stack(
           fit: StackFit.expand,
           children: [
