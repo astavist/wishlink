@@ -14,7 +14,6 @@ import '../services/firestore_service.dart';
 import '../utils/currency_utils.dart';
 import 'all_wishes_screen.dart';
 import 'wish_list_detail_screen.dart';
-import 'settings_screen.dart';
 import '../widgets/wish_list_editor_dialog.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -372,13 +371,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ? '@$_username'
             : l10n.t('profile.title');
     final secondaryText = _username.isNotEmpty ? '@$_username' : _email;
-    final bool showStandaloneAppBar = Navigator.canPop(context);
 
     return Scaffold(
       backgroundColor:
           theme.appBarTheme.backgroundColor ?? theme.colorScheme.surface,
-      extendBodyBehindAppBar: !showStandaloneAppBar,
-      appBar: showStandaloneAppBar ? _buildProfileAppBar(context) : null,
       body: RefreshIndicator(
         onRefresh: _refreshPage,
         color: theme.primaryColor,
@@ -386,7 +382,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(
             16,
-            showStandaloneAppBar ? 24 : 16,
+            16,
             16,
             32 + MediaQuery.paddingOf(context).bottom,
           ),
@@ -522,39 +518,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
-  }
-
-  PreferredSizeWidget _buildProfileAppBar(BuildContext context) {
-    final l10n = context.l10n;
-    return AppBar(
-      title: Image.asset(
-        _resolveAppBarAsset(context),
-        height: 56,
-      ),
-      centerTitle: true,
-      backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-      foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      surfaceTintColor: Colors.transparent,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.settings_outlined),
-          tooltip: l10n.t('settings.title'),
-          onPressed: () {
-            Navigator.of(context).push(
-              createRightToLeftSlideRoute(const SettingsScreen()),
-            );
-          },
-        ),
-      ],
-    );
-  }
-
-  String _resolveAppBarAsset(BuildContext context) {
-    return Theme.of(context).brightness == Brightness.dark
-        ? 'assets/images/AppBarDark.png'
-        : 'assets/images/AppBar.png';
   }
 
   Future<void> _showCreateListDialog() async {

@@ -291,14 +291,14 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                         runSpacing: 4,
                         children: [
                           if (handle.isNotEmpty)
-                            _InfoPill(
-                              label: '@$handle',
-                              background: theme.colorScheme.surface.withOpacity(
-                                0.6,
-                              ),
-                              foreground: _brandColor,
-                              borderColor: Colors.transparent,
+                          _InfoPill(
+                            label: '@$handle',
+                            background: theme.colorScheme.surface.withOpacity(
+                              0.6,
                             ),
+                            foreground: _brandColor,
+                            borderColor: _brandColor,
+                          ),
                           _InfoPill(
                             label: relativeTime,
                             background: theme.colorScheme.surface.withOpacity(
@@ -307,7 +307,8 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                             foreground:
                                 theme.textTheme.bodySmall?.color ??
                                 theme.colorScheme.onSurface,
-                            borderColor: Colors.transparent,
+                            borderColor:
+                                theme.colorScheme.onSurface.withOpacity(0.35),
                           ),
                         ],
                       ),
