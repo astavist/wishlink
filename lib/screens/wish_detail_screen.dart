@@ -466,31 +466,6 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
             ],
           ),
         ),
-        if (_isOwnActivity)
-          PopupMenuButton<_WishOwnerAction>(
-            icon: const Icon(Icons.more_vert),
-            tooltip: l10n.t('wishDetail.menuTooltip'),
-            onSelected: (action) async {
-              switch (action) {
-                case _WishOwnerAction.edit:
-                  await _openEditWish();
-                  break;
-                case _WishOwnerAction.delete:
-                  await _confirmDeleteWish();
-                  break;
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: _WishOwnerAction.edit,
-                child: Text(l10n.t('common.edit')),
-              ),
-              PopupMenuItem(
-                value: _WishOwnerAction.delete,
-                child: Text(l10n.t('common.delete')),
-              ),
-            ],
-          ),
       ],
     );
   }
