@@ -575,8 +575,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       bottomNavigationBar: Builder(
         builder: (context) {
-          const double navBarHeight = 88;
-          const double stackExtraSpace = 34;
+          const double navBarHeight = 75;
+          const double stackExtraSpace = 10;
           const double addButtonSize = 60;
           final double bottomInset = MediaQuery.paddingOf(context).bottom;
           final double stackHeight =
@@ -599,7 +599,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     bottom: 0,
                     child: Container(
                       height: containerHeight,
-                      padding: EdgeInsets.fromLTRB(32, 0, 32, bottomInset),
+                      padding: EdgeInsets.fromLTRB(20, 0, 20, bottomInset),
                       decoration: BoxDecoration(
                         color: Theme.of(context).brightness == Brightness.dark
                             ? const Color(0xFF1F1F1F)
@@ -631,23 +631,26 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _buildBottomNavItem(
                             icon: Icons.home_rounded,
                             index: 0,
                           ),
+                          const SizedBox(width: 8),
                           _buildBottomNavItem(
                             icon: Icons.group_outlined,
                             index: 1,
                             showBadge: _hasFriendRequests,
                           ),
-                          const SizedBox(width: 70),
+                          const Spacer(),
+                          SizedBox(width: addButtonSize - 4),
+                          const Spacer(),
                           _buildBottomNavItem(
                             icon: Icons.notifications_none_rounded,
                             index: 3,
                             showBadge: _unreadNotificationsCount > 0,
                           ),
+                          const SizedBox(width: 8),
                           _buildBottomNavItem(
                             icon: Icons.person_outline_rounded,
                             index: 4,
@@ -658,38 +661,38 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   Positioned(
                     bottom: bottomInset + addButtonBottomOffset,
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        _createBottomToTopSlideRoute(const AddWishScreen()),
-                      );
-                    },
-                    child: Container(
-                      width: addButtonSize,
-                      height: addButtonSize,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFDD27B), Color(0xFFF6A441)],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          _createBottomToTopSlideRoute(const AddWishScreen()),
+                        );
+                      },
+                      child: Container(
+                        width: addButtonSize,
+                        height: addButtonSize,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFDD27B), Color(0xFFF6A441)],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                          boxShadow:
+                              Theme.of(context).brightness == Brightness.dark
+                              ? null
+                              : const [
+                                  BoxShadow(
+                                    color: Color(0x66F6A441),
+                                    blurRadius: 30,
+                                    offset: Offset(0, 18),
+                                  ),
+                                ],
                         ),
-                        boxShadow:
-                            Theme.of(context).brightness == Brightness.dark
-                                ? null
-                                : const [
-                                    BoxShadow(
-                                      color: Color(0x66F6A441),
-                                      blurRadius: 30,
-                                      offset: Offset(0, 18),
-                                    ),
-                                  ],
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        color: Colors.white,
-                        size: 30,
+                        child: const Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 30,
                         ),
                       ),
                     ),
@@ -745,7 +748,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
             decoration: BoxDecoration(
               color: isSelected
                   ? activeColor.withOpacity(
@@ -861,9 +864,9 @@ class _HomeScreenState extends State<HomeScreen> {
         'wishDetail.deleteFailed',
         params: {'error': error.toString()},
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
