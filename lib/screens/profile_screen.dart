@@ -411,14 +411,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _ProfileHeaderCard(
                 title: headerTitle,
                 subtitle: secondaryText.isNotEmpty ? secondaryText : null,
-                birthdayText: _birthday != null
-                    ? _formatBirthday(_birthday!, l10n)
-                    : null,
+                birthdayText:
+                    _birthday != null ? _formatBirthday(_birthday!, l10n) : null,
                 imageUrl: _profilePhotoUrl,
                 isUploading: _isUploadingPhoto,
-                onAvatarTap: _isUploadingPhoto
-                    ? null
-                    : _showProfilePhotoOptions,
+                onAvatarTap:
+                    _isUploadingPhoto ? null : _showProfilePhotoOptions,
                 wishCount: _userWishes.length,
                 listCount: _wishLists.length,
                 wishLabel: l10n.t('profile.myWishes'),

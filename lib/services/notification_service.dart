@@ -22,6 +22,7 @@ class NotificationService {
   bool _permissionsGranted = false;
   String? _cachedToken;
   String? _lastUserId;
+  bool _notificationsAllowed = true;
 
   static const AndroidNotificationChannel _defaultAndroidChannel =
       AndroidNotificationChannel(
@@ -51,19 +52,27 @@ class NotificationService {
       (user) async {
         if (user == null) {
           await _removeTokenFromPreviousUser();
+          _notificationsAllowed = true;
           return;
         }
 
         _lastUserId = user.uid;
+        await _loadNotificationPreference(user.uid);
+        if (!_notificationsAllowed) {
+          return;
+        }
+
         if (!_permissionsGranted) {
           await _requestPermissions();
         }
-        if (!_permissionsGranted) {
+        if (!_permissionsGranted || !_notificationsAllowed) {
           return;
         }
 
         final token = await _messaging.getToken();
-        await _persistToken(token);
+        if (_notificationsAllowed) {
+          await _persistToken(token);
+        }
       },
     );
   }
@@ -126,6 +135,35 @@ class NotificationService {
     await androidImplementation?.requestNotificationsPermission();
   }
 
+  Future<void> _loadNotificationPreference(String userId) async {
+    try {
+      final snapshot = await _firestore.collection('users').doc(userId).get();
+      final data = snapshot.data();
+      if (data == null) {
+        _notificationsAllowed = true;
+        return;
+      }
+
+      final prefMap = data['notificationPreferences'];
+      if (prefMap is Map<String, dynamic>) {
+        final pushEnabled = prefMap['pushEnabled'];
+        if (pushEnabled is bool) {
+          _notificationsAllowed = pushEnabled;
+          return;
+        }
+      }
+
+      final globalFlag = data['notificationsEnabled'];
+      if (globalFlag is bool) {
+        _notificationsAllowed = globalFlag;
+        return;
+      }
+    } catch (_) {
+      // Ignore lookup errors and fall back to defaults.
+    }
+    _notificationsAllowed = true;
+  }
+
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
     if (kIsWeb) return;
 
@@ -164,6 +202,9 @@ class NotificationService {
 
   Future<void> _handleTokenRefresh(String token) async {
     _cachedToken = token;
+    if (!_notificationsAllowed) {
+      return;
+    }
     await _persistToken(token);
   }
 
@@ -195,20 +236,56 @@ class NotificationService {
   }
 
   Future<void> _removeTokenFromPreviousUser() async {
-    if (_cachedToken == null || _lastUserId == null) {
+    if (_lastUserId == null) {
+      return;
+    }
+
+    await _removeTokenForUser(_lastUserId!);
+    _cachedToken = null;
+    _lastUserId = null;
+  }
+
+  Future<void> _removeTokenForUser(String userId) async {
+    final token = _cachedToken ?? await _messaging.getToken();
+    if (token == null) {
       return;
     }
 
     try {
-      await _firestore.collection('users').doc(_lastUserId!).update(
+      await _firestore.collection('users').doc(userId).update(
         {
-          'fcmTokens': FieldValue.arrayRemove([_cachedToken]),
+          'fcmTokens': FieldValue.arrayRemove([token]),
         },
       );
     } catch (_) {
-      // Ignore cleanup errors if the document was already removed.
-    } finally {
-      _lastUserId = null;
+      // Ignore errors if the document or field does not exist.
     }
+  }
+
+  Future<bool> updateUserPreference(bool enabled) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      _notificationsAllowed = enabled;
+      return false;
+    }
+
+    _notificationsAllowed = enabled;
+    if (!enabled) {
+      await _removeTokenForUser(userId);
+      _cachedToken = null;
+      return true;
+    }
+
+    if (!_permissionsGranted) {
+      await _requestPermissions();
+    }
+    if (!_permissionsGranted) {
+      _notificationsAllowed = false;
+      return false;
+    }
+
+    final token = await _messaging.getToken();
+    await _persistToken(token);
+    return true;
   }
 }

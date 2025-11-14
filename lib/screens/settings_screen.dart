@@ -5,6 +5,7 @@ import 'package:wishlink/locale/locale_controller.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
 import 'change_password_screen.dart';
 import 'edit_profile_screen.dart';
+import 'notification_settings_screen.dart';
 
 const _lightBackground = Color(0xFFFDF9F4);
 const _darkBackground = Color(0xFF0F0F0F);
@@ -16,10 +17,6 @@ const _cardLightColor = Colors.white;
 const _cardDarkColor = Color(0xFF161616);
 const _cardBorderLight = Color(0xFFFFE1C0);
 const _cardBorderDark = Color(0x19FFFFFF);
-const _tileIconLight = Color(0xFFF2753A);
-const _tileIconDark = Color(0xFFFDD27B);
-const _tileIconLightBg = Color(0xFFFFF1E0);
-const _tileIconDarkBg = Color(0x1AFFFFFF);
 const _dangerGradientStart = Color(0xFFFF7C7C);
 const _dangerGradientEnd = Color(0xFFD81E5B);
 const double _appBarToolbarHeight = 72;
@@ -70,6 +67,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Navigator.of(
       context,
     ).push<void>(_buildSlideRoute<void>(const ChangePasswordScreen()));
+  }
+
+  void _openNotificationSettings() {
+    Navigator.of(
+      context,
+    ).push<void>(
+      _buildSlideRoute<void>(const NotificationSettingsScreen()),
+    );
   }
 
   Route<T> _buildSlideRoute<T>(Widget page) {
@@ -206,10 +211,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       context: context,
                       icon: Icons.notifications_none_rounded,
                       title: l10n.t('settings.notifications'),
-                      subtitle: l10n.t('settings.notificationsComing'),
-                      onTap: () => _showComingSoon(
-                        l10n.t('settings.notificationsComing'),
-                      ),
+                      subtitle: l10n.t('settings.notifications.lede'),
+                      onTap: _openNotificationSettings,
                     ),
                     _buildSettingTile(
                       context: context,
@@ -422,6 +425,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final iconBackground = theme.colorScheme.primary.withOpacity(
+      isDark ? 0.15 : 0.08,
+    );
+    final iconColor = theme.colorScheme.primary;
 
     return Material(
       color: Colors.transparent,
@@ -435,13 +442,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isDark ? _tileIconDarkBg : _tileIconLightBg,
+                  color: iconBackground,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Icon(
                   icon,
                   size: 24,
-                  color: isDark ? _tileIconDark : _tileIconLight,
+                  color: iconColor,
                 ),
               ),
               const SizedBox(width: 16),

@@ -255,6 +255,70 @@ class AppLocalizations {
       'en': 'Notifications - Coming Soon',
       'tr': 'Bildirimler - Yakında',
     },
+    'settings.notifications.lede': {
+      'en': 'Choose which alerts you want WishLink to send.',
+      'tr': 'WishLink\'ten almak istediğin bildirimleri seç.',
+    },
+    'settings.notifications.loadError': {
+      'en': 'Could not load notification settings: {error}',
+      'tr': 'Bildirim ayarları yüklenemedi: {error}',
+    },
+    'settings.notifications.pushTitle': {
+      'en': 'Push notifications',
+      'tr': 'Anlık bildirimler',
+    },
+    'settings.notifications.pushSubtitle': {
+      'en': 'Allow WishLink to alert you on this device',
+      'tr': 'WishLink\'in bu cihazda bildirim göndermesine izin ver',
+    },
+    'settings.notifications.friendRequests': {
+      'en': 'Friend requests',
+      'tr': 'Arkadaşlık istekleri',
+    },
+    'settings.notifications.friendRequestsSubtitle': {
+      'en': 'Get notified when someone wants to connect with you',
+      'tr': 'Biri seninle bağlantı kurmak istediğinde haber al',
+    },
+    'settings.notifications.friendActivity': {
+      'en': 'Friend activity',
+      'tr': 'Arkadaş aktiviteleri',
+    },
+    'settings.notifications.friendActivitySubtitle': {
+      'en': 'Hear when friends share or update wishes',
+      'tr': 'Arkadaşların wish paylaştığında ya da güncellediğinde haberdar ol',
+    },
+    'settings.notifications.tips': {
+      'en': 'Inspiration & tips',
+      'tr': 'İlham & ipuçları',
+    },
+    'settings.notifications.tipsSubtitle': {
+      'en': 'Occasional ideas to keep your lists fresh',
+      'tr': 'Listeni canlı tutan ara sıra öneriler al',
+    },
+    'settings.notifications.saving': {
+      'en': 'Saving your preferences...',
+      'tr': 'Tercihlerin kaydediliyor...',
+    },
+    'settings.notifications.saved': {
+      'en': 'All changes saved',
+      'tr': 'Tüm değişiklikler kaydedildi',
+    },
+    'settings.notifications.saveError': {
+      'en': 'Could not save notification settings: {error}',
+      'tr': 'Bildirim ayarları kaydedilemedi: {error}',
+    },
+    'settings.notifications.permissionDenied': {
+      'en': 'Notifications are blocked in your device settings',
+      'tr': 'Bildirim izni cihaz ayarlarında kapalı',
+    },
+    'settings.notifications.statusEnabled': {
+      'en': 'Notifications are active',
+      'tr': 'Bildirimler açık',
+    },
+    'settings.notifications.statusDisabled': {
+      'en': 'Notifications are turned off',
+      'tr': 'Bildirimler kapalı',
+    },
     'settings.privacy': {'en': 'Privacy Settings', 'tr': 'Gizlilik Ayarları'},
     'settings.privacyComing': {
       'en': 'Privacy Settings - Coming Soon',
