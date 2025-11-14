@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:characters/characters.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -199,6 +200,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (user != null) {
       await _loadUserData();
     }
+  }
+
+  String _profileInitials() {
+    final first = _firstName.trim();
+    final last = _lastName.trim();
+    final buffer = StringBuffer();
+    if (first.isNotEmpty) {
+      buffer.write(first.characters.first);
+    }
+    if (last.isNotEmpty) {
+      buffer.write(last.characters.first);
+    }
+    if (buffer.isEmpty && _username.trim().isNotEmpty) {
+      buffer.write(_username.trim().characters.first);
+    }
+    if (buffer.isEmpty && _email.trim().isNotEmpty) {
+      buffer.write(_email.trim().characters.first);
+    }
+    return buffer.isNotEmpty ? buffer.toString().toUpperCase() : 'WL';
   }
 
   Future<void> _openEditWish(WishItem wish) async {
@@ -403,6 +423,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 listCount: _wishLists.length,
                 wishLabel: l10n.t('profile.myWishes'),
                 listLabel: l10n.t('profile.wishLists'),
+                initials: _profileInitials(),
               ),
               const SizedBox(height: 24),
               _SectionCard(
@@ -856,6 +877,7 @@ class _ProfileHeaderCard extends StatelessWidget {
   final int listCount;
   final String wishLabel;
   final String listLabel;
+  final String initials;
 
   const _ProfileHeaderCard({
     required this.title,
@@ -868,6 +890,7 @@ class _ProfileHeaderCard extends StatelessWidget {
     required this.listCount,
     required this.wishLabel,
     required this.listLabel,
+    required this.initials,
   });
 
   @override
@@ -890,12 +913,24 @@ class _ProfileHeaderCard extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 56,
-                backgroundColor: Colors.white.withAlpha(77),
+                backgroundColor: imageUrl.isNotEmpty
+                    ? Colors.white.withAlpha(77)
+                    : theme.colorScheme.primary.withOpacity(
+                        theme.brightness == Brightness.dark ? 0.35 : 0.12,
+                      ),
                 backgroundImage: imageUrl.isNotEmpty
                     ? NetworkImage(imageUrl)
                     : null,
                 child: imageUrl.isEmpty
-                    ? const Icon(Icons.person, size: 48, color: Colors.white)
+                    ? Text(
+                        initials,
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.brightness == Brightness.dark
+                              ? Colors.white
+                              : theme.colorScheme.primary,
+                        ),
+                      )
                     : null,
               ),
               if (isUploading)

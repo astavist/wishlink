@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:wishlink/screens/login_screen.dart';
 import 'package:wishlink/screens/home_screen.dart';
 import 'package:wishlink/screens/email_verification_required_screen.dart';
@@ -11,10 +12,18 @@ import 'package:wishlink/screens/google_account_setup_screen.dart';
 import 'package:wishlink/theme/theme_controller.dart';
 import 'package:wishlink/locale/locale_controller.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
+import 'package:wishlink/services/notification_service.dart';
+
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  await NotificationService.instance.initialize();
   final themeController = ThemeController();
   await themeController.loadThemeMode();
   final localeController = LocaleController();
