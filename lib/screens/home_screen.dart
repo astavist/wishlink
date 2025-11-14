@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
 import '../widgets/friend_activity_card.dart';
@@ -872,17 +873,60 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _shareActivity(FriendActivity activity) {
     final l10n = context.l10n;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          l10n.t(
-            'home.activityShared',
-            params: {'wish': activity.wishItem.name},
-          ),
+    final wishName = activity.wishItem.name.trim().isNotEmpty
+        ? activity.wishItem.name.trim()
+        : l10n.t('wishDetail.title');
+    final ownerLabel = _activityOwnerLabel(activity, l10n);
+
+    final sections = <String>[
+      l10n.t(
+        'share.friendMessage',
+        params: {'user': ownerLabel, 'wish': wishName},
+      ),
+    ];
+
+    final description = activity.wishItem.description.trim();
+    if (description.isNotEmpty) {
+      sections.add(
+        l10n.t(
+          'share.descriptionLine',
+          params: {'description': description},
         ),
-        duration: const Duration(seconds: 2),
+      );
+    }
+
+    final productUrl = activity.wishItem.productUrl.trim();
+    if (productUrl.isNotEmpty) {
+      sections.add(
+        l10n.t(
+          'share.productLine',
+          params: {'url': productUrl},
+        ),
+      );
+    }
+
+    Share.share(
+      sections.join('\n\n'),
+      subject: l10n.t(
+        'share.friendSubject',
+        params: {'user': ownerLabel, 'wish': wishName},
       ),
     );
+  }
+
+  String _activityOwnerLabel(
+    FriendActivity activity,
+    AppLocalizations l10n,
+  ) {
+    final displayName = activity.userName.trim();
+    if (displayName.isNotEmpty) {
+      return displayName;
+    }
+    final username = activity.userUsername.trim();
+    if (username.isNotEmpty) {
+      return username.startsWith('@') ? username : '@$username';
+    }
+    return l10n.t('share.someone');
   }
 
   void _buyNow(FriendActivity activity) {

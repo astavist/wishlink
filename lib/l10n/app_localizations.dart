@@ -610,6 +610,39 @@ class AppLocalizations {
     'wishDetail.like': {'en': 'Like', 'tr': 'Beğen'},
     'wishDetail.liked': {'en': 'Liked', 'tr': 'Beğenildi'},
     'wishDetail.comments': {'en': 'Comments', 'tr': 'Yorumlar'},
+    'wishDetail.share': {'en': 'Share', 'tr': 'Paylaş'},
+    'wishDetail.shareSuccess': {
+      'en': '{wish} shared!',
+      'tr': '{wish} paylaşıldı!',
+    },
+    'share.defaultMessage': {
+      'en': 'Check out "{wish}" on WishLink!',
+      'tr': '"{wish}" wishine WishLink\'te goz at!',
+    },
+    'share.friendMessage': {
+      'en': '{user} wants "{wish}" on WishLink. Take a look!',
+      'tr': '{user}, WishLink\'te "{wish}" wishini istiyor. Bir goz at!',
+    },
+    'share.wishSubject': {
+      'en': 'Wish "{wish}" on WishLink',
+      'tr': 'WishLink wishi "{wish}"',
+    },
+    'share.friendSubject': {
+      'en': "{user}'s wish \"{wish}\"",
+      'tr': '{user} wishi "{wish}"',
+    },
+    'share.descriptionLine': {
+      'en': 'Details: {description}',
+      'tr': 'Detaylar: {description}',
+    },
+    'share.productLine': {
+      'en': 'Product link: {url}',
+      'tr': 'Urun linki: {url}',
+    },
+    'share.someone': {
+      'en': 'a friend',
+      'tr': 'bir arkadas',
+    },
     'wishDetail.title': {'en': 'Wish Details', 'tr': 'Wish Detayları'},
     'wishDetail.backTooltip': {'en': 'Back', 'tr': 'Geri'},
     'wishDetail.editTooltip': {'en': 'Edit wish', 'tr': 'Wishi düzenle'},

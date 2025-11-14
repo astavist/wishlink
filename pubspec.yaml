@@ -25,6 +25,7 @@ dependencies:
   url_launcher_android: ^6.3.17
   url_launcher_ios: ^6.3.4
   url_launcher: ^6.2.5
+  share_plus: ^10.0.0
   http: ^1.2.2
   html: ^0.15.4
 

@@ -4,12 +4,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
 
 import '../models/friend_activity.dart';
+import '../models/friend_activity_comment.dart';
 import '../models/wish_item.dart';
 import '../services/firestore_service.dart';
-import '../widgets/activity_comments_sheet.dart';
+import '../widgets/wishlink_card.dart';
 import 'edit_wish_screen.dart';
 import '../utils/currency_utils.dart';
 
@@ -33,11 +35,14 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
   bool _isLiked = false;
   bool _isOwnActivity = false;
   bool _isProcessingLike = false;
+  bool _isSendingComment = false;
   bool _hasLoadedActivity = false;
   int _likesCount = 0;
   int _commentsCount = 0;
   String _ownerAvatarUrl = '';
   late WishItem _wish;
+  final TextEditingController _commentController = TextEditingController();
+  final GlobalKey _commentsSectionKey = GlobalKey();
 
   @override
   void initState() {
@@ -107,6 +112,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
   @override
   void dispose() {
     _activitySubscription?.cancel();
+    _commentController.dispose();
     super.dispose();
   }
 
@@ -289,28 +295,124 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     }
   }
 
-  Future<void> _openComments() async {
+  void _scrollToComments() {
+    if (_isOwnActivity) {
+      return;
+    }
+    final contextRef = _commentsSectionKey.currentContext;
+    if (contextRef != null) {
+      Scrollable.ensureVisible(
+        contextRef,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  Future<void> _submitComment() async {
     final activity = _activity;
-    if (activity == null || _isOwnActivity) {
+    final text = _commentController.text.trim();
+
+    if (activity == null ||
+        text.isEmpty ||
+        _isOwnActivity ||
+        _isSendingComment) {
       return;
     }
 
-    final addedCounter = ValueNotifier<int>(0);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) =>
-          ActivityCommentsSheet(activity: activity, addedCounter: addedCounter),
-    );
+    setState(() {
+      _isSendingComment = true;
+    });
 
-    final added = addedCounter.value;
-    addedCounter.dispose();
-
-    if (added > 0 && mounted) {
-      setState(() {
-        _commentsCount += added;
-      });
+    try {
+      await _firestoreService.addCommentToActivity(activity.id, text);
+      if (mounted) {
+        setState(() {
+          _commentsCount += 1;
+        });
+        _commentController.clear();
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.t('comments.addFailed'))),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSendingComment = false;
+        });
+      }
     }
+  }
+
+  void _shareWish() {
+    final l10n = context.l10n;
+    final wishName = _resolveWishName(l10n);
+    final isFriendWish = _activity != null && !_isOwnActivity;
+    final friendLabel =
+        isFriendWish && _activity != null ? _ownerLabel(_activity!, l10n) : null;
+
+    final sections = <String>[
+      isFriendWish
+          ? l10n.t(
+              'share.friendMessage',
+              params: {'user': friendLabel!, 'wish': wishName},
+            )
+          : l10n.t('share.defaultMessage', params: {'wish': wishName}),
+    ];
+
+    final description = _wish.description.trim();
+    if (description.isNotEmpty) {
+      sections.add(
+        l10n.t(
+          'share.descriptionLine',
+          params: {'description': description},
+        ),
+      );
+    }
+
+    final productUrl = _wish.productUrl.trim();
+    if (productUrl.isNotEmpty) {
+      sections.add(
+        l10n.t(
+          'share.productLine',
+          params: {'url': productUrl},
+        ),
+      );
+    }
+
+    final subjectKey =
+        isFriendWish ? 'share.friendSubject' : 'share.wishSubject';
+    final subjectParams = isFriendWish
+        ? {'user': friendLabel!, 'wish': wishName}
+        : {'wish': wishName};
+
+    Share.share(
+      sections.join('\n\n'),
+      subject: l10n.t(subjectKey, params: subjectParams),
+    );
+  }
+
+  String _resolveWishName(AppLocalizations l10n) {
+    final activityWishName = _activity?.wishItem.name ?? '';
+    final baseName = activityWishName.trim().isNotEmpty
+        ? activityWishName.trim()
+        : _wish.name.trim();
+    return baseName.isNotEmpty ? baseName : l10n.t('wishDetail.title');
+  }
+
+  String _ownerLabel(FriendActivity activity, AppLocalizations l10n) {
+    final displayName = activity.userName.trim();
+    if (displayName.isNotEmpty) {
+      return displayName;
+    }
+    final username = activity.userUsername.trim();
+    if (username.isNotEmpty) {
+      return username.startsWith('@') ? username : '@$username';
+    }
+    return l10n.t('share.someone');
   }
 
   Widget _buildHeroImage(BuildContext context, WishItem wish) {
@@ -369,15 +471,17 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
       return Row(
         children: [
           const SizedBox(
-            width: 26,
-            height: 26,
+            width: 24,
+            height: 24,
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
           const SizedBox(width: 12),
-          Text(
-            l10n.t('wishDetail.ownerLoading'),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+          Expanded(
+            child: Text(
+              l10n.t('wishDetail.ownerLoading'),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
+              ),
             ),
           ),
         ],
@@ -416,12 +520,12 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
         ? activity.userName
         : l10n.t('wishDetail.unknownUser');
     final handle = activity.userUsername;
-    final title = _isOwnActivity
+    final handleLabel =
+        handle.startsWith('@') ? handle.substring(1) : handle;
+    final header = _isOwnActivity
         ? l10n.t('wishDetail.ownWish')
-        : handle.isNotEmpty
-        ? '$displayName (@$handle)'
         : l10n.t('wishDetail.ownerWish', params: {'owner': displayName});
-    final subtitle = l10n.t(
+    final addedLabel = l10n.t(
       'wishDetail.addedLabel',
       params: {'time': l10n.relativeTime(activity.activityTime)},
     );
@@ -430,18 +534,19 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
         : '?';
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         CircleAvatar(
           radius: 28,
-          backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
+          backgroundColor: theme.colorScheme.primary.withOpacity(0.14),
           backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
           child: hasAvatar
               ? null
               : Text(
                   initials,
-                  style: TextStyle(
+                  style: theme.textTheme.titleMedium?.copyWith(
                     color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
         ),
@@ -451,17 +556,32 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                title,
+                header,
                 style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.2,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
-                ),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (handle.isNotEmpty)
+                    _DetailInfoPill(
+                      label: handleLabel,
+                      icon: Icons.alternate_email,
+                      background: theme.colorScheme.surface.withOpacity(0.65),
+                      foreground: theme.colorScheme.primary,
+                      borderColor: theme.colorScheme.primary.withOpacity(0.35),
+                    ),
+                  _DetailInfoPill(
+                    label: addedLabel,
+                    icon: Icons.history,
+                    background: theme.colorScheme.surface.withOpacity(0.65),
+                    foreground: theme.colorScheme.onSurface.withOpacity(0.8),
+                  ),
+                ],
               ),
             ],
           ),
@@ -476,33 +596,32 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     final createdLabel =
         '${wish.createdAt.day}.${wish.createdAt.month}.${wish.createdAt.year}';
 
-    Widget? priceChip;
-    if (wish.price > 0) {
-      priceChip = Chip(
-        avatar: CircleAvatar(
-          backgroundColor: Colors.green.withOpacity(0.1),
-          child: Text(
-            currencySymbol(wish.currency),
-            style: const TextStyle(
-              color: Colors.green,
-              fontWeight: FontWeight.bold,
-            ),
+    final priceLabel = wish.price > 0
+        ? '${currencySymbol(wish.currency)} ${formatAmount(wish.price)}'
+        : '';
+
+    final pillWidgets = <Widget>[
+      if (priceLabel.isNotEmpty)
+        _DetailInfoPill(
+          label: l10n.t(
+            'wishDetail.priceLabel',
+            params: {'amount': priceLabel},
           ),
+          icon: Icons.sell_outlined,
+          background: theme.colorScheme.primary.withOpacity(0.15),
+          foreground: theme.colorScheme.primary,
+          borderColor: theme.colorScheme.primary.withOpacity(0.35),
         ),
-        label: Text(
-          '${currencySymbol(wish.currency)} ${formatAmount(wish.price)}',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
+      _DetailInfoPill(
+        label: l10n.t(
+          'wishDetail.createdLabel',
+          params: {'date': createdLabel},
         ),
-      );
-    }
-    final createdChip = Chip(
-      avatar: const Icon(Icons.event_outlined, size: 18),
-      label: Text(
-        l10n.t('wishDetail.createdLabel', params: {'date': createdLabel}),
+        icon: Icons.event_outlined,
+        background: theme.colorScheme.surface.withOpacity(0.65),
+        foreground: theme.colorScheme.onSurface.withOpacity(0.85),
       ),
-    );
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -510,103 +629,37 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
         Text(
           wish.name,
           style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
           ),
         ),
         if (wish.description.isNotEmpty) ...[
           const SizedBox(height: 12),
-          Text(wish.description, style: theme.textTheme.bodyLarge),
+          Text(
+            wish.description,
+            style: theme.textTheme.bodyLarge?.copyWith(height: 1.4),
+          ),
         ],
-        const SizedBox(height: 16),
-        if (priceChip != null) ...[priceChip, const SizedBox(height: 12)],
-        createdChip,
+        const SizedBox(height: 18),
+        Wrap(spacing: 10, runSpacing: 10, children: pillWidgets),
         if (wish.productUrl.isNotEmpty) ...[
-          const SizedBox(height: 20),
+          const SizedBox(height: 22),
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
               onPressed: () => _launchUrl(wish.productUrl),
-              icon: const Icon(Icons.link),
+              icon: const Icon(Icons.open_in_new),
               label: Text(l10n.t('wishDetail.viewProduct')),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(18),
                 ),
               ),
             ),
           ),
         ],
       ],
-    );
-  }
-
-  Widget _buildEngagementButton({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    required VoidCallback? onTap,
-    Color? iconColor,
-    int? count,
-    bool isActive = false,
-  }) {
-    final theme = Theme.of(context);
-    final enabled = onTap != null;
-    final effectiveIconColor =
-        iconColor ??
-        (isActive
-            ? theme.colorScheme.primary
-            : theme.colorScheme.onSurface.withOpacity(enabled ? 0.85 : 0.35));
-    final textColor = isActive
-        ? theme.colorScheme.primary
-        : theme.textTheme.bodyMedium?.color?.withOpacity(enabled ? 0.9 : 0.4) ??
-              theme.colorScheme.onSurface.withOpacity(enabled ? 0.9 : 0.4);
-    final borderColor = isActive
-        ? theme.colorScheme.primary.withOpacity(0.55)
-        : theme.dividerColor;
-    final backgroundColor = isActive
-        ? theme.colorScheme.primary.withOpacity(0.08)
-        : Colors.transparent;
-
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        side: BorderSide(color: borderColor),
-        backgroundColor: backgroundColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        padding: const EdgeInsets.symmetric(vertical: 14),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: effectiveIconColor),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: theme.textTheme.labelLarge?.copyWith(
-              color: textColor,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          if ((count ?? 0) > 0) ...[
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.18),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Text(
-                count.toString(),
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 
@@ -630,26 +683,158 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     return Row(
       children: [
         Expanded(
-          child: _buildEngagementButton(
-            context: context,
+          child: _EngagementPillButton(
             icon: _isLiked ? Icons.favorite : Icons.favorite_border,
-            label: likeLabel,
-            onTap: likeEnabled ? _handleLike : null,
             count: _likesCount,
             isActive: _isLiked,
+            onTap: likeEnabled ? _handleLike : null,
+            tooltip: likeLabel,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildEngagementButton(
-            context: context,
+          child: _EngagementPillButton(
             icon: Icons.chat_bubble_outline,
-            label: l10n.t('wishDetail.comments'),
-            onTap: commentEnabled ? _openComments : null,
             count: _commentsCount,
+            onTap: commentEnabled ? _scrollToComments : null,
+            tooltip: l10n.t('wishDetail.comments'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _EngagementPillButton(
+            icon: Icons.share_outlined,
+            onTap: _shareWish,
+            tooltip: l10n.t('wishDetail.share'),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCommentsSection(BuildContext context) {
+    final activity = _activity;
+    if (_isOwnActivity || activity == null) {
+      return const SizedBox.shrink();
+    }
+
+    final l10n = context.l10n;
+    final stream = _firestoreService.streamActivityComments(activity.id);
+
+    return Column(
+      key: _commentsSectionKey,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.t('comments.title'),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 12),
+        StreamBuilder<List<FriendActivityComment>>(
+          stream: stream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 24),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            if (snapshot.hasError) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Text(
+                  l10n.t('comments.unableToLoad'),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              );
+            }
+
+            final comments = snapshot.data ?? <FriendActivityComment>[];
+
+            if (comments.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  l10n.t('comments.empty'),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.6),
+                  ),
+                ),
+              );
+            }
+
+            return ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: comments.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final comment = comments[index];
+                final relativeTime = l10n.relativeTime(comment.createdAt);
+                return _CommentTile(
+                  comment: comment,
+                  relativeTime: relativeTime,
+                );
+              },
+            );
+          },
+        ),
+        const SizedBox(height: 16),
+        _buildCommentInput(context),
+      ],
+    );
+  }
+
+  Widget _buildCommentInput(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.12)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _commentController,
+              enabled: !_isSendingComment,
+              minLines: 1,
+              maxLines: 4,
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => _submitComment(),
+              decoration: InputDecoration(
+                hintText: l10n.t('comments.hint'),
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          if (_isSendingComment)
+            const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            IconButton(
+              onPressed: _submitComment,
+              icon: const Icon(Icons.send_rounded),
+              color: theme.colorScheme.primary,
+              tooltip: l10n.t('wishDetail.comments'),
+            ),
+        ],
+      ),
     );
   }
 
@@ -701,33 +886,237 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 30,
-                offset: const Offset(0, 14),
-              ),
-            ],
-          ),
+        child: WishLinkCard(
+          margin: EdgeInsets.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildHeroImage(context, wish),
-              const SizedBox(height: 20),
               _buildOwnerSection(context),
+              const SizedBox(height: 20),
+              _buildHeroImage(context, wish),
               const SizedBox(height: 20),
               _buildWishInfoCard(context, wish),
               const SizedBox(height: 24),
               _buildEngagementSection(context),
+              if (!_isOwnActivity) ...[
+                const SizedBox(height: 28),
+                _buildCommentsSection(context),
+              ],
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _EngagementPillButton extends StatelessWidget {
+  const _EngagementPillButton({
+    required this.icon,
+    this.onTap,
+    this.isActive = false,
+    this.count,
+    this.tooltip,
+  });
+
+  final IconData icon;
+  final VoidCallback? onTap;
+  final bool isActive;
+  final int? count;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final enabled = onTap != null;
+    final activeColor = isActive
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurface.withOpacity(enabled ? 0.85 : 0.35);
+    final backgroundColor = isActive
+        ? theme.colorScheme.primary.withOpacity(0.16)
+        : theme.colorScheme.surface.withOpacity(enabled ? 0.7 : 0.45);
+
+    Widget button = InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            Icon(icon, size: 20, color: activeColor),
+            if ((count ?? 0) > 0) ...[
+              const SizedBox(width: 6),
+              Text(
+                '$count',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: activeColor,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+
+    if (tooltip != null && tooltip!.isNotEmpty) {
+      button = Tooltip(message: tooltip!, child: button);
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: Material(color: Colors.transparent, child: button),
+    );
+  }
+}
+
+class _DetailInfoPill extends StatelessWidget {
+  const _DetailInfoPill({
+    required this.label,
+    this.icon,
+    this.background,
+    this.foreground,
+    this.borderColor,
+  });
+
+  final String label;
+  final IconData? icon;
+  final Color? background;
+  final Color? foreground;
+  final Color? borderColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fillColor = background ?? theme.colorScheme.surface.withOpacity(0.8);
+    final textColor =
+        foreground ??
+        theme.textTheme.bodySmall?.color ??
+        theme.colorScheme.onSurface;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: fillColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: borderColor ?? theme.colorScheme.primary.withOpacity(0.08),
+          width: 1.1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 16, color: textColor),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: textColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CommentTile extends StatelessWidget {
+  const _CommentTile({required this.comment, required this.relativeTime});
+
+  final FriendActivityComment comment;
+  final String relativeTime;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+    final displayName = comment.userName.isNotEmpty
+        ? comment.userName
+        : l10n.t('wishDetail.unknownUser');
+    final handle = comment.userUsername;
+    final avatarUrl = comment.profilePhotoUrl?.trim() ?? '';
+    final hasAvatar = avatarUrl.isNotEmpty;
+    final initials = displayName.isNotEmpty
+        ? displayName.trim()[0].toUpperCase()
+        : 'U';
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CircleAvatar(
+          radius: 18,
+          backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
+          backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
+          child: hasAvatar
+              ? null
+              : Text(
+                  initials,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surface.withOpacity(0.75),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: theme.colorScheme.primary.withOpacity(0.08),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        displayName,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      relativeTime,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ),
+                if (handle.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '@$handle',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Text(comment.comment, style: theme.textTheme.bodyMedium),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
