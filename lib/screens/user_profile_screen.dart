@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/wish_item.dart';
+import '../models/wish_list.dart';
 import '../utils/currency_utils.dart';
 import '../models/user_private_note.dart';
 import '../services/firestore_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'wish_detail_screen.dart';
+import 'wish_list_detail_screen.dart';
+import 'all_wishes_screen.dart';
 import 'package:intl/intl.dart';
-import 'package:wishlink/l10n/app_localizations.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -181,8 +183,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   DateTime? _birthday;
   String _birthdayDisplayPreference = 'dayMonthYear';
   List<WishItem> _userWishes = [];
+  List<WishList> _wishLists = [];
   List<UserPrivateNote> _privateNotes = [];
   bool _isFriend = false;
+  bool _friendRequestPending = false;
+  bool _isSendingFriendRequest = false;
 
   bool get _isViewingOwnProfile => _auth.currentUser?.uid == widget.userId;
 
@@ -236,6 +241,13 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Future<void> _loadUserData() async {
     try {
       await _checkFriendshipStatus();
+      if (!_isViewingOwnProfile && !_isFriend) {
+        await _checkFriendRequestStatus();
+      } else if (mounted) {
+        setState(() {
+          _friendRequestPending = false;
+        });
+      }
 
       // Load user profile data
       final userData = await _firestore
@@ -270,6 +282,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
       // Load user's wishes from friend_activities
       await _loadUserWishes(widget.userId);
+      await _loadUserWishLists(widget.userId);
 
       if (_isViewingOwnProfile) {
         if (mounted) {
@@ -305,6 +318,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       }
       setState(() {
         _isFriend = isFriend;
+        if (isFriend) {
+          _friendRequestPending = false;
+        }
       });
     } catch (_) {
       if (!mounted) {
@@ -313,6 +329,71 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       setState(() {
         _isFriend = false;
       });
+    }
+  }
+
+  Future<void> _checkFriendRequestStatus() async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        return;
+      }
+      final outgoingRequest = await _firestore
+          .collection('friendships')
+          .where('userId', isEqualTo: currentUser.uid)
+          .where('friendId', isEqualTo: widget.userId)
+          .where('status', isEqualTo: 'pending')
+          .where('type', isEqualTo: 'request')
+          .limit(1)
+          .get();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _friendRequestPending = outgoingRequest.docs.isNotEmpty;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _friendRequestPending = false;
+      });
+    }
+  }
+
+  Future<void> _sendFriendRequest() async {
+    if (_isSendingFriendRequest || _isViewingOwnProfile) {
+      return;
+    }
+    setState(() {
+      _isSendingFriendRequest = true;
+    });
+    try {
+      await _firestoreService.sendFriendRequest(widget.userId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _friendRequestPending = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.t('friends.snackbarRequestSent'))),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.l10n.t('friends.snackbarRequestFailed')),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSendingFriendRequest = false;
+        });
+      }
     }
   }
 
@@ -345,6 +426,24 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(context.l10n.t('profile.errorLoadingWishes'))),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadUserWishLists(String userId) async {
+    try {
+      final lists = await _firestoreService.getUserWishLists(userId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _wishLists = lists;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.t('profile.errorLoadingLists'))),
         );
       }
     }
@@ -472,141 +571,526 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildPrivateNotesSection(AppLocalizations l10n) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                l10n.t('profile.myNotes'),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+  Widget _buildPrivateNotesSection(ThemeData theme, AppLocalizations l10n) {
+    return _SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.t('profile.myNotes'),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
+              const SizedBox(width: 4),
+              IconButton(
+                onPressed: _handleAddOrEditNote,
+                tooltip: l10n.t('profile.addNoteTooltip'),
+                icon: const Icon(Icons.note_add_outlined),
+                style: IconButton.styleFrom(
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.all(8),
+                  minimumSize: const Size(32, 32),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_privateNotes.isEmpty)
+            _buildEmptyNotesState(theme, l10n)
+          else
+            ..._privateNotes.map((note) => _buildNoteTile(note, theme, l10n)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyNotesState(ThemeData theme, AppLocalizations l10n) {
+    final backgroundColor = theme.brightness == Brightness.dark
+        ? Colors.white.withAlpha(13)
+        : const Color(0xFFF7F7F7);
+    final textColor = theme.brightness == Brightness.dark
+        ? Colors.white70
+        : Colors.grey[600];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.t('profile.noNotes'),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
-            IconButton(
-              onPressed: () => _handleAddOrEditNote(),
-              tooltip: l10n.t('profile.addNoteTooltip'),
-              icon: const Icon(Icons.note_add_outlined),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.t('profile.notesDescription'),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: textColor,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _handleAddOrEditNote,
+            icon: const Icon(Icons.add),
+            label: Text(l10n.t('profile.addNoteButton')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoteTile(
+    UserPrivateNote note,
+    ThemeData theme,
+    AppLocalizations l10n,
+  ) {
+    final tileColor = theme.brightness == Brightness.dark
+        ? const Color(0xFF262626)
+        : Colors.white;
+    final borderColor = theme.brightness == Brightness.dark
+        ? Colors.white.withAlpha(13)
+        : Colors.black.withAlpha(13);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: tileColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+        boxShadow: theme.brightness == Brightness.dark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withAlpha(10),
+                  blurRadius: 24,
+                  offset: const Offset(0, 16),
+                ),
+              ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
+        title: Text(
+          note.text,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w500,
+          ),
+          maxLines: 4,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: (note.noteDate != null || note.updatedAt != null)
+            ? Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (note.noteDate != null) ...[
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.event,
+                            size: 16,
+                            color: Color(0xFFEFB652),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _formatNoteDate(note.noteDate!, l10n),
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                    ],
+                    if (note.updatedAt != null)
+                      Text(
+                        l10n.t(
+                          'profile.noteUpdatedAt',
+                          params: {
+                            'date': _formatNoteDate(note.updatedAt!, l10n),
+                          },
+                        ),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+              )
+            : null,
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'edit') {
+              _handleAddOrEditNote(note: note);
+            } else if (value == 'delete') {
+              _handleDeleteNote(note);
+            }
+          },
+          itemBuilder: (context) => [
+            PopupMenuItem<String>(
+              value: 'edit',
+              child: Text(l10n.t('profile.noteEdit')),
+            ),
+            PopupMenuItem<String>(
+              value: 'delete',
+              child: Text(l10n.t('profile.noteDelete')),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        if (_privateNotes.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l10n.t('profile.noNotes'),
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  l10n.t('profile.notesDescription'),
-                  style: TextStyle(color: Colors.grey[600], height: 1.4),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  onPressed: () => _handleAddOrEditNote(),
-                  icon: const Icon(Icons.add),
-                  label: Text(l10n.t('profile.addNoteButton')),
-                ),
-              ],
-            ),
-          )
-        else
-          ..._privateNotes.map(
-            (note) => Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                title: Text(
-                  note.text,
-                  style: const TextStyle(fontWeight: FontWeight.w500),
-                  maxLines: 4,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: (note.noteDate != null || note.updatedAt != null)
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (note.noteDate != null) ...[
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.event,
-                                  size: 16,
-                                  color: Color(0xFFEFB652),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  _formatNoteDate(note.noteDate!, l10n),
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                          if (note.updatedAt != null) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              l10n.t(
-                                'profile.noteUpdatedAt',
-                                params: {
-                                  'date': _formatNoteDate(
-                                    note.updatedAt!,
-                                    l10n,
-                                  ),
-                                },
-                              ),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ],
-                      )
-                    : null,
-                isThreeLine: note.noteDate != null || note.updatedAt != null,
-                trailing: PopupMenuButton<String>(
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      _handleAddOrEditNote(note: note);
-                    } else if (value == 'delete') {
-                      _handleDeleteNote(note);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem<String>(
-                      value: 'edit',
-                      child: Text(l10n.t('profile.noteEdit')),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'delete',
-                      child: Text(l10n.t('profile.noteDelete')),
-                    ),
-                  ],
-                ),
-              ),
+      ),
+    );
+  }
+
+  Widget _buildWishesSection(
+    ThemeData theme,
+    AppLocalizations l10n,
+    String wishesTitle,
+    String emptyStateName,
+  ) {
+    return _SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            wishesTitle,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
             ),
           ),
-      ],
+          const SizedBox(height: 20),
+          if (_userWishes.isEmpty)
+            _buildEmptyWishState(theme, l10n, emptyStateName)
+          else
+            ..._userWishes.map(
+              (wish) => Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: _buildWishCard(wish, theme, l10n),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWishListsSection(ThemeData theme, AppLocalizations l10n) {
+    return _SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.t('profile.wishLists'),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 20),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final spacing = 12.0;
+              final tileWidth = (constraints.maxWidth - spacing) / 2;
+              final tiles = <Widget>[
+                _buildAllWishesTile(tileWidth, l10n),
+                ..._wishLists.map(
+                  (list) => _buildWishListTile(tileWidth, list),
+                ),
+              ];
+              return Wrap(
+                spacing: spacing,
+                runSpacing: spacing,
+                children: tiles,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAllWishesTile(double tileWidth, AppLocalizations l10n) {
+    return SizedBox(
+      width: tileWidth,
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: _ListTileCard(
+          title: l10n.t('profile.allWishes'),
+          imageUrl: _userWishes.isNotEmpty ? _userWishes.first.imageUrl : '',
+          leadingIcon: Icons.grid_view,
+          onTap: () {
+            Navigator.of(
+              context,
+            ).push(createRightToLeftSlideRoute(const AllWishesScreen()));
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWishListTile(double tileWidth, WishList list) {
+    return SizedBox(
+      width: tileWidth,
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: _ListTileCard(
+          title: list.name,
+          imageUrl: list.coverImageUrl,
+          onTap: () {
+            Navigator.of(context).push(
+              createRightToLeftSlideRoute(WishListDetailScreen(wishList: list)),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget? _buildFriendStatusWidget(ThemeData theme, AppLocalizations l10n) {
+    if (_isViewingOwnProfile) {
+      return null;
+    }
+    if (_isFriend) {
+      return _buildStatusPill(
+        backgroundColor: const Color(0xFFE6F4EA),
+        icon: Icons.check_circle,
+        iconColor: Colors.green,
+        label: l10n.t('friends.statusFriends'),
+        textStyle: theme.textTheme.bodyMedium?.copyWith(
+          color: Colors.green[700],
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    }
+    if (_friendRequestPending) {
+      return _buildStatusPill(
+        backgroundColor: theme.colorScheme.surfaceContainerHighest,
+        icon: Icons.hourglass_top,
+        iconColor: theme.colorScheme.primary,
+        label: l10n.t('friends.statusRequestSent'),
+        textStyle: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurface,
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    }
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: _isSendingFriendRequest ? null : _sendFriendRequest,
+        icon: const Icon(Icons.person_add_alt),
+        label: Text(l10n.t('friends.buttonSendRequest')),
+      ),
+    );
+  }
+
+  Widget _buildStatusPill({
+    required Color backgroundColor,
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    TextStyle? textStyle,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: iconColor),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              label,
+              style: textStyle,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWishCard(WishItem wish, ThemeData theme, AppLocalizations l10n) {
+    final tileColor = theme.brightness == Brightness.dark
+        ? const Color(0xFF262626)
+        : Colors.white;
+    final borderColor = theme.brightness == Brightness.dark
+        ? Colors.white.withAlpha(13)
+        : Colors.black.withAlpha(13);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: tileColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+        boxShadow: theme.brightness == Brightness.dark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withAlpha(10),
+                  blurRadius: 24,
+                  offset: const Offset(0, 16),
+                ),
+              ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ListTile(
+            contentPadding: const EdgeInsets.all(16),
+            onTap: () {
+              Navigator.of(
+                context,
+              ).push(createRightToLeftSlideRoute(WishDetailScreen(wish: wish)));
+            },
+            leading: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: wish.imageUrl.isNotEmpty
+                  ? Image.network(
+                      wish.imageUrl,
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          _buildWishPlaceholder(),
+                    )
+                  : _buildWishPlaceholder(),
+            ),
+            title: Text(
+              wish.name,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (wish.description.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      wish.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                if (wish.price > 0) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0x1A2ECC71),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          currencySymbol(wish.currency),
+                          style: const TextStyle(
+                            color: Color(0xFF2ECC71),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        formatAmount(wish.price),
+                        style: const TextStyle(
+                          color: Color(0xFF2ECC71),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (wish.productUrl.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: OutlinedButton.icon(
+                onPressed: () => _launchUrl(wish.productUrl),
+                icon: const Icon(Icons.link),
+                label: Text(l10n.t('common.viewProduct')),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWishPlaceholder() {
+    return Container(
+      width: 60,
+      height: 60,
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Icon(Icons.image, color: Colors.grey),
+    );
+  }
+
+  Widget _buildEmptyWishState(
+    ThemeData theme,
+    AppLocalizations l10n,
+    String emptyStateName,
+  ) {
+    final isDark = theme.brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.white.withAlpha(13) : const Color(0xFFF7F7F7),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.favorite_border,
+            size: 36,
+            color: isDark ? Colors.white70 : Colors.grey[500],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.t('profile.noWishesTitle'),
+            style: theme.textTheme.titleMedium,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l10n.t(
+              'profile.noWishesSubtitle',
+              params: {'name': emptyStateName},
+            ),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -632,6 +1116,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final theme = Theme.of(context);
     final handle =
         (_username.isNotEmpty ? _username : (widget.userUsername ?? '')).trim();
     final resolvedName = [
@@ -650,284 +1135,398 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       'profile.wishesTitle',
       params: {'handle': emptyStateName},
     );
-
-    final appBar = AppBar(
-      title: Text(profileTitle),
-      backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-      foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      surfaceTintColor: Colors.transparent,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () => Navigator.of(context).pop(),
-      ),
-    );
+    final headerSubtitleLines = <String>[
+      if (handleLabel.isNotEmpty) handleLabel,
+      if (_email.isNotEmpty) _email,
+    ];
+    final backgroundColor =
+        theme.appBarTheme.backgroundColor ?? theme.colorScheme.surface;
 
     if (_isLoading) {
       return Scaffold(
-        appBar: appBar,
+        backgroundColor: backgroundColor,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: appBar,
-      body: RefreshIndicator(
-        onRefresh: _refreshPage,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Profile Header
-              Center(
-                child: Column(
+      backgroundColor: backgroundColor,
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: _refreshPage,
+          color: theme.primaryColor,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              32 + MediaQuery.paddingOf(context).bottom,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
                   children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundImage: _profilePhotoUrl.isNotEmpty
-                          ? NetworkImage(_profilePhotoUrl)
-                          : null,
-                      child: _profilePhotoUrl.isEmpty
-                          ? const Icon(Icons.person, size: 50)
-                          : null,
+                    Container(
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: const Icon(Icons.arrow_back),
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      fallbackName,
-                      style: Theme.of(context).textTheme.headlineSmall,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        profileTitle,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    if (_isFriend && !_isViewingOwnProfile) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE6F4EA),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.check_circle,
-                              size: 18,
-                              color: Colors.green,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              l10n.t('friends.statusFriends'),
-                              style: const TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-                    if (_email.isNotEmpty)
-                      Text(
-                        _email,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    if (_birthday != null) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.cake_outlined,
-                            size: 18,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            _formatBirthday(_birthday!, context.l10n),
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
                 ),
-              ),
-              const SizedBox(height: 32),
-
-              if (!_isViewingOwnProfile) ...[
-                _buildPrivateNotesSection(l10n),
-                const SizedBox(height: 32),
-              ],
-
-              // User's Wishes Section
-              Text(
-                wishesTitle,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+                const SizedBox(height: 16),
+                _ProfileHeaderCard(
+                  title: fallbackName,
+                  subtitleLines: headerSubtitleLines,
+                  birthdayText: _birthday != null
+                      ? _formatBirthday(_birthday!, l10n)
+                      : null,
+                  imageUrl: _profilePhotoUrl,
+                  isUploading: false,
+                  onAvatarTap: null,
+                  wishCount: _userWishes.length,
+                  listCount: 0,
+                  wishLabel: l10n.t('profile.myWishes'),
+                  listLabel: l10n.t('profile.wishLists'),
+                  statusWidget: _buildFriendStatusWidget(theme, l10n),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 24),
+                if (!_isViewingOwnProfile) ...[
+                  _buildPrivateNotesSection(theme, l10n),
+                  const SizedBox(height: 24),
+                ],
+                _buildWishListsSection(theme, l10n),
+                const SizedBox(height: 24),
+                _buildWishesSection(theme, l10n, wishesTitle, emptyStateName),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-              if (_userWishes.isEmpty)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
+class _SectionCard extends StatelessWidget {
+  final Widget child;
+
+  const _SectionCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1F1F1F) : Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withAlpha(13)
+              : Colors.black.withAlpha(10),
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withAlpha(13),
+                  blurRadius: 32,
+                  offset: const Offset(0, 22),
+                ),
+              ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _ProfileHeaderCard extends StatelessWidget {
+  final String title;
+  final List<String>? subtitleLines;
+  final String? birthdayText;
+  final String imageUrl;
+  final bool isUploading;
+  final VoidCallback? onAvatarTap;
+  final int wishCount;
+  final int listCount;
+  final String wishLabel;
+  final String listLabel;
+  final Widget? statusWidget;
+
+  const _ProfileHeaderCard({
+    required this.title,
+    this.subtitleLines,
+    this.birthdayText,
+    required this.imageUrl,
+    required this.isUploading,
+    this.onAvatarTap,
+    required this.wishCount,
+    required this.listCount,
+    required this.wishLabel,
+    required this.listLabel,
+    this.statusWidget,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final contentColor = theme.colorScheme.onSurface;
+    final captionColor = theme.colorScheme.onSurfaceVariant;
+    final effectiveLines =
+        subtitleLines
+            ?.map((line) => line.trim())
+            .where((line) => line.isNotEmpty)
+            .toList(growable: false) ??
+        const <String>[];
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 18),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: const Color(0xFFF6A441), width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              CircleAvatar(
+                radius: 56,
+                backgroundColor: Colors.white.withAlpha(77),
+                backgroundImage: imageUrl.isNotEmpty
+                    ? NetworkImage(imageUrl)
+                    : null,
+                child: imageUrl.isEmpty
+                    ? const Icon(Icons.person, size: 48, color: Colors.white)
+                    : null,
+              ),
+              if (isUploading)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withAlpha(115),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    ),
                   ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.favorite_border,
-                        size: 48,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        l10n.t('profile.noWishesTitle'),
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
+                ),
+              if (onAvatarTap != null)
+                Positioned(
+                  bottom: 6,
+                  right: 6,
+                  child: Material(
+                    color: Colors.white,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      onTap: onAvatarTap,
+                      customBorder: const CircleBorder(),
+                      child: const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Icon(
+                          Icons.camera_alt,
+                          size: 18,
+                          color: Color(0xFFF6A441),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        l10n.t(
-                          'profile.noWishesSubtitle',
-                          params: {'name': emptyStateName},
-                        ),
-                        style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                    ),
                   ),
-                )
-              else
-                ...(_userWishes
-                    .map(
-                      (wish) => Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          onTap: () {
-                            Navigator.of(context).push(
-                              createRightToLeftSlideRoute(
-                                WishDetailScreen(wish: wish),
-                              ),
-                            );
-                          },
-                          leading: wish.imageUrl.isNotEmpty
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    wish.imageUrl,
-                                    width: 50,
-                                    height: 50,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        width: 50,
-                                        height: 50,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[300],
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: const Icon(Icons.image),
-                                      );
-                                    },
-                                  ),
-                                )
-                              : Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey[300],
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(Icons.image),
-                                ),
-                          title: Text(
-                            wish.name,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
-                          ),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (wish.description.isNotEmpty)
-                                Text(
-                                  wish.description,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              const SizedBox(height: 4),
-                              if (wish.price > 0) ...[
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 3,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.green.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        currencySymbol(wish.currency),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.green,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      formatAmount(wish.price),
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.green,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ],
-                          ),
-                          trailing: wish.productUrl.isNotEmpty
-                              ? ElevatedButton.icon(
-                                  onPressed: () => _launchUrl(wish.productUrl),
-                                  icon: const Icon(Icons.link, size: 16),
-                                  label: Text(l10n.t('common.viewProduct')),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFEFB652),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    minimumSize: const Size(0, 32),
-                                  ),
-                                )
-                              : null,
-                        ),
-                      ),
-                    )
-                    .toList()),
+                ),
             ],
           ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: contentColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          if (effectiveLines.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            ...effectiveLines.asMap().entries.map(
+              (entry) => Padding(
+                padding: EdgeInsets.only(
+                  bottom: entry.key == effectiveLines.length - 1 ? 0 : 4,
+                ),
+                child: Text(
+                  entry.value,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: captionColor,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          if (statusWidget != null) ...[
+            const SizedBox(height: 12),
+            statusWidget!,
+          ],
+          if (birthdayText != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.cake_outlined, size: 18, color: captionColor),
+                const SizedBox(width: 8),
+                Text(
+                  birthdayText!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: captionColor,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _StatChip(label: listLabel, value: listCount.toString()),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _StatChip(label: wishLabel, value: wishCount.toString()),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatChip({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: theme.colorScheme.onSurface.withAlpha(80)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ListTileCard extends StatelessWidget {
+  final String title;
+  final String imageUrl;
+  final VoidCallback onTap;
+  final IconData? leadingIcon;
+
+  const _ListTileCard({
+    required this.title,
+    required this.imageUrl,
+    required this.onTap,
+    this.leadingIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (imageUrl.isNotEmpty)
+              Image.network(
+                imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) =>
+                    Container(color: Colors.grey[300]),
+              )
+            else
+              Container(color: Colors.grey[200]),
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.transparent, Colors.black54],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+            Positioned(
+              left: 12,
+              right: 12,
+              bottom: 12,
+              child: Row(
+                children: [
+                  if (leadingIcon != null) ...[
+                    Icon(leadingIcon, color: Colors.white),
+                    const SizedBox(width: 6),
+                  ],
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

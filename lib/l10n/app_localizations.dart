@@ -661,6 +661,14 @@ class AppLocalizations {
     'profile.createList': {'en': 'Create List', 'tr': 'Liste oluştur'},
     'profile.allWishes': {'en': 'All Wishes', 'tr': 'Tüm wishler'},
     'profile.myWishes': {'en': 'My Wishes', 'tr': 'Wishlerim'},
+    'profile.noWishListsTitle': {
+      'en': 'No wish lists yet',
+      'tr': 'Henüz wish listesi yok',
+    },
+    'profile.noWishListsSubtitle': {
+      'en': '{name} has not created any wish lists yet.',
+      'tr': '{name} henüz wish listesi oluşturmadı.',
+    },
     'profile.emptyWishes': {
       'en': 'You have not added any wishes yet.',
       'tr': 'Henüz bir wish eklemedin.',
@@ -828,6 +836,10 @@ class AppLocalizations {
     'friends.statusPending': {'en': 'Pending', 'tr': 'Beklemede'},
     'friends.buttonRespond': {'en': 'Respond', 'tr': 'Yanıtla'},
     'friends.buttonAdd': {'en': 'Add Friend', 'tr': 'Arkadaş ekle'},
+    'friends.buttonSendRequest': {
+      'en': 'Send friend request',
+      'tr': 'Arkadaşlık isteği gönder',
+    },
     'friends.buttonRemove': {'en': 'Remove', 'tr': 'Kaldır'},
     'friends.buttonAccept': {'en': 'Accept', 'tr': 'Kabul et'},
     'friends.buttonReject': {'en': 'Reject', 'tr': 'Reddet'},
@@ -934,8 +946,8 @@ class AppLocalizations {
     },
     'notifications.newWishTitle': {'en': 'New Wish!', 'tr': 'Yeni wish!'},
     'notifications.newWishMessage': {
-      'en': '{user} added \"{wish}\" to their wishlist',
-      'tr': '{user} wish listesine \"{wish}\" ekledi',
+      'en': '{user} added "{wish}" to their wishlist',
+      'tr': '{user} wish listesine "{wish}" ekledi',
     },
     'notifications.unknownWishFallback': {'en': 'a wish', 'tr': 'bir wish'},
     // Add Wish

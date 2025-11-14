@@ -355,7 +355,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -368,8 +367,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final headerTitle = displayName.isNotEmpty
         ? displayName
         : _username.isNotEmpty
-            ? '@$_username'
-            : l10n.t('profile.title');
+        ? '@$_username'
+        : l10n.t('profile.title');
     final secondaryText = _username.isNotEmpty ? '@$_username' : _email;
 
     return Scaffold(
@@ -392,11 +391,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _ProfileHeaderCard(
                 title: headerTitle,
                 subtitle: secondaryText.isNotEmpty ? secondaryText : null,
-                birthdayText:
-                    _birthday != null ? _formatBirthday(_birthday!, l10n) : null,
+                birthdayText: _birthday != null
+                    ? _formatBirthday(_birthday!, l10n)
+                    : null,
                 imageUrl: _profilePhotoUrl,
                 isUploading: _isUploadingPhoto,
-                onAvatarTap: _isUploadingPhoto ? null : _showProfilePhotoOptions,
+                onAvatarTap: _isUploadingPhoto
+                    ? null
+                    : _showProfilePhotoOptions,
                 wishCount: _userWishes.length,
                 listCount: _wishLists.length,
                 wishLabel: l10n.t('profile.myWishes'),
@@ -408,6 +410,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Expanded(
                           child: Text(
@@ -417,10 +420,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                           ),
                         ),
+                        const SizedBox(width: 4),
                         IconButton(
                           onPressed: () => _showCreateListDialog(),
                           tooltip: l10n.t('profile.createList'),
                           icon: const Icon(Icons.add_circle_outline),
+                          style: IconButton.styleFrom(
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.all(8),
+                            minimumSize: const Size(32, 32),
+                          ),
                         ),
                       ],
                     ),
@@ -428,8 +438,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final spacing = 12.0;
-                        final tileWidth =
-                            (constraints.maxWidth - spacing) / 2;
+                        final tileWidth = (constraints.maxWidth - spacing) / 2;
                         final tiles = <Widget>[
                           _ListTileCard(
                             title: l10n.t('profile.allWishes'),
@@ -503,8 +512,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           final wish = _userWishes[index];
                           return Padding(
                             padding: EdgeInsets.only(
-                              bottom:
-                                  index == _userWishes.length - 1 ? 0 : 12,
+                              bottom: index == _userWishes.length - 1 ? 0 : 12,
                             ),
                             child: _buildWishCard(wish, theme, l10n),
                           );
@@ -660,11 +668,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildWishCard(
-    WishItem wish,
-    ThemeData theme,
-    AppLocalizations l10n,
-  ) {
+  Widget _buildWishCard(WishItem wish, ThemeData theme, AppLocalizations l10n) {
     final tileColor = theme.brightness == Brightness.dark
         ? const Color(0xFF262626)
         : Colors.white;
@@ -692,9 +696,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onTap: () {
           Navigator.push(
             context,
-            createRightToLeftSlideRoute(
-              WishDetailScreen(wish: wish),
-            ),
+            createRightToLeftSlideRoute(WishDetailScreen(wish: wish)),
           );
         },
         leading: ClipRRect(
@@ -878,10 +880,7 @@ class _ProfileHeaderCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: const Color(0xFFF6A441),
-          width: 1.2,
-        ),
+        border: Border.all(color: const Color(0xFFF6A441), width: 1.2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -892,8 +891,9 @@ class _ProfileHeaderCard extends StatelessWidget {
               CircleAvatar(
                 radius: 56,
                 backgroundColor: Colors.white.withAlpha(77),
-                backgroundImage:
-                    imageUrl.isNotEmpty ? NetworkImage(imageUrl) : null,
+                backgroundImage: imageUrl.isNotEmpty
+                    ? NetworkImage(imageUrl)
+                    : null,
                 child: imageUrl.isEmpty
                     ? const Icon(Icons.person, size: 48, color: Colors.white)
                     : null,
@@ -948,9 +948,7 @@ class _ProfileHeaderCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               subtitle!,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: captionColor,
-              ),
+              style: theme.textTheme.bodyMedium?.copyWith(color: captionColor),
             ),
           ],
           if (birthdayText != null) ...[
@@ -974,17 +972,11 @@ class _ProfileHeaderCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: _StatChip(
-                  label: listLabel,
-                  value: listCount.toString(),
-                ),
+                child: _StatChip(label: listLabel, value: listCount.toString()),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _StatChip(
-                  label: wishLabel,
-                  value: wishCount.toString(),
-                ),
+                child: _StatChip(label: wishLabel, value: wishCount.toString()),
               ),
             ],
           ),
@@ -999,10 +991,7 @@ class _StatChip extends StatelessWidget {
   final String label;
   final String value;
 
-  const _StatChip({
-    required this.label,
-    required this.value,
-  });
+  const _StatChip({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -1012,9 +1001,7 @@ class _StatChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(
-          color: theme.colorScheme.onSurface.withAlpha(80),
-        ),
+        border: Border.all(color: theme.colorScheme.onSurface.withAlpha(80)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
