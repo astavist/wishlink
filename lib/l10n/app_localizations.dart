@@ -478,8 +478,10 @@ class AppLocalizations {
       'tr': 'Apple girişi başarısız oldu. Lütfen tekrar dene.',
     },
     'login.appleAccountExists': {
-      'en': 'This email is already registered with another sign-in method. Please log in with that method and connect Apple from settings.',
-      'tr': 'Bu e-posta zaten baska bir giris yontemiyle kayitli. Lutfen once o yontemle giris yapip ayarlardan Apple'i bagla.',
+      'en':
+          'This email is already registered with another sign-in method. Please log in with that method and connect Apple from settings.',
+      'tr':
+          'Bu e-posta zaten baska bir giris yontemiyle kayitli. Lutfen once o yontemle giris yapip ayarlardan Apple\'i bagla.',
     },
     'login.error.invalidEmail': {
       'en': 'The email address is invalid.',
@@ -643,10 +645,7 @@ class AppLocalizations {
       'en': 'Product link: {url}',
       'tr': 'Urun linki: {url}',
     },
-    'share.someone': {
-      'en': 'a friend',
-      'tr': 'bir arkadas',
-    },
+    'share.someone': {'en': 'a friend', 'tr': 'bir arkadas'},
     'wishDetail.title': {'en': 'Wish Details', 'tr': 'Wish Detayları'},
     'wishDetail.backTooltip': {'en': 'Back', 'tr': 'Geri'},
     'wishDetail.editTooltip': {'en': 'Edit wish', 'tr': 'Wishi düzenle'},
