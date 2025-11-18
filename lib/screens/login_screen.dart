@@ -700,9 +700,20 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       }
     } on FirebaseAuthException catch (e) {
-      setState(() {
-        _errorMessage = _getErrorMessage(e.code);
-      });
+      if (e.code == 'account-exists-with-different-credential' ||
+          e.code == 'credential-already-in-use') {
+        setState(() {
+          _errorMessage = l10n.t('login.appleAccountExists');
+        });
+      } else if (e.code == 'invalid-credential') {
+        setState(() {
+          _errorMessage = l10n.t('login.appleFailed');
+        });
+      } else {
+        setState(() {
+          _errorMessage = _getErrorMessage(e.code);
+        });
+      }
     } catch (e) {
       setState(() {
         _errorMessage = l10n.t('login.appleFailed');

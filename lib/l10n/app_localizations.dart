@@ -477,6 +477,10 @@ class AppLocalizations {
       'en': 'Apple sign-in failed. Please try again.',
       'tr': 'Apple girişi başarısız oldu. Lütfen tekrar dene.',
     },
+    'login.appleAccountExists': {
+      'en': 'This email is already registered with another sign-in method. Please log in with that method and connect Apple from settings.',
+      'tr': 'Bu e-posta zaten baska bir giris yontemiyle kayitli. Lutfen once o yontemle giris yapip ayarlardan Apple'i bagla.',
+    },
     'login.error.invalidEmail': {
       'en': 'The email address is invalid.',
       'tr': 'E-posta adresi geçersiz.',
