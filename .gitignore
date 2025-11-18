@@ -51,3 +51,6 @@ assets/ui_ux_guidelines.md
 assets/fonts/WishLinkFont.ttf
 storage.rules
 firestore.rules
+/functions
+/.firebaserc
+/node_modules
