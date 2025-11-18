@@ -607,6 +607,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
         nonce: nonce,
       );
+      final appleUserId = appleCredential.userIdentifier;
 
       final oauthCredential = OAuthProvider(
         'apple.com',
@@ -626,7 +627,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final firstName = (appleCredential.givenName ?? '').trim();
       final lastName = (appleCredential.familyName ?? '').trim();
-      final email = user.email; // May be a private relay
+      // Prefer the email returned on the very first Apple login, fallback to Firebase user email.
+      final email = (appleCredential.email ?? user.email)?.trim();
 
       final suggestion = _generateUsernameSuggestion(
         firstName: firstName.isNotEmpty ? firstName : null,
@@ -643,7 +645,8 @@ class _LoginScreenState extends State<LoginScreen> {
         await userDocRef.set({
           if (firstName.isNotEmpty) 'firstName': firstName,
           if (lastName.isNotEmpty) 'lastName': lastName,
-          if (email != null) 'email': email,
+          if (email != null && email.isNotEmpty) 'email': email,
+          if (appleUserId != null) 'appleIdentifier': appleUserId,
           'emailVerified': true,
           if (isNewUser) 'createdAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
@@ -681,6 +684,10 @@ class _LoginScreenState extends State<LoginScreen> {
           await userDocRef.set({
             if (firstName.isNotEmpty) 'firstName': firstName,
             if (lastName.isNotEmpty) 'lastName': lastName,
+            if (appleUserId != null &&
+                ((userDoc.data()?['appleIdentifier'] as String?) ?? '')
+                    .isEmpty)
+              'appleIdentifier': appleUserId,
           }, SetOptions(merge: true));
         }
         final ensured = await _ensureUsernameForUser(

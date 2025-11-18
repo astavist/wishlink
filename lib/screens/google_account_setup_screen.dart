@@ -38,7 +38,9 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
   late final TextEditingController _lastNameController;
   late final TextEditingController _usernameController;
   late final TextEditingController _birthdayController;
+  late final TextEditingController _emailController;
   DateTime? _selectedBirthday;
+  late final bool _needsEmailInput;
 
   bool _isSaving = false;
   String? _errorMessage;
@@ -53,6 +55,7 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
 
     final providedFirstName = widget.firstName?.trim() ?? '';
     final providedLastName = widget.lastName?.trim() ?? '';
+    final providedEmail = widget.email?.trim() ?? '';
 
     final initialFirstName = providedFirstName.isNotEmpty
         ? providedFirstName
@@ -66,6 +69,8 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
     _usernameController = TextEditingController(
       text: widget.suggestedUsername.toLowerCase(),
     );
+    _needsEmailInput = providedEmail.isEmpty;
+    _emailController = TextEditingController(text: providedEmail);
     _selectedBirthday = widget.initialBirthday;
     _birthdayController = TextEditingController(
       text: _selectedBirthday != null ? _formatDate(_selectedBirthday!) : '',
@@ -78,6 +83,7 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
     _lastNameController.dispose();
     _usernameController.dispose();
     _birthdayController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -130,6 +136,18 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
     return null;
   }
 
+  String? _validateEmail(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return context.l10n.t('login.validation.emailRequired');
+    }
+    final normalized = value.trim();
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(normalized)) {
+      return context.l10n.t('login.validation.emailInvalid');
+    }
+    return null;
+  }
+
   String? _validateUsername(String? value) {
     if (value == null || value.trim().isEmpty) {
       return context.l10n.t('login.validation.usernameRequired');
@@ -172,6 +190,9 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
     final firstName = _firstNameController.text.trim();
     final lastName = _lastNameController.text.trim();
     final username = _normalizeUsername(_usernameController.text);
+    final email = _needsEmailInput
+        ? _emailController.text.trim()
+        : (widget.email?.trim() ?? widget.user.email ?? '');
     final l10n = context.l10n;
 
     try {
@@ -181,6 +202,17 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
           _isSaving = false;
         });
         return;
+      }
+
+      if (_needsEmailInput) {
+        final emailValidation = _validateEmail(email);
+        if (emailValidation != null) {
+          setState(() {
+            _errorMessage = emailValidation;
+            _isSaving = false;
+          });
+          return;
+        }
       }
 
       final available = await _isUsernameAvailable(username);
@@ -195,7 +227,7 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
       final data = <String, dynamic>{
         'firstName': firstName,
         'lastName': lastName,
-        'email': widget.email ?? widget.user.email ?? '',
+        'email': email,
         'username': username,
         'emailVerified': true,
         'birthday': Timestamp.fromDate(_selectedBirthday!),
@@ -277,6 +309,16 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
                     validator: _validateLastName,
                   ),
                   const SizedBox(height: 16),
+                  if (_needsEmailInput) ...[
+                    TextFormField(
+                      controller: _emailController,
+                      textInputAction: TextInputAction.next,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(labelText: 'Email'),
+                      validator: _validateEmail,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   TextFormField(
                     controller: _birthdayController,
                     readOnly: true,
