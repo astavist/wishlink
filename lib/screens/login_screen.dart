@@ -607,13 +607,34 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
         nonce: nonce,
       );
+
+      debugPrint(
+        'Apple Credential received: userIdentifier=${appleCredential.userIdentifier}',
+      );
+      debugPrint('Apple identityToken: ${appleCredential.identityToken}');
+      debugPrint(
+        'Apple authorizationCode: ${appleCredential.authorizationCode}',
+      );
+
       final appleUserId = appleCredential.userIdentifier;
+      final identityToken = appleCredential.identityToken;
 
-      final oauthCredential = OAuthProvider(
-        'apple.com',
-      ).credential(idToken: appleCredential.identityToken, rawNonce: rawNonce);
+      if (identityToken == null || identityToken.isEmpty) {
+        throw Exception('Apple Sign In failed: identityToken is null or empty');
+      }
 
+      final oauthCredential = OAuthProvider('apple.com').credential(
+        idToken: identityToken,
+        rawNonce: rawNonce,
+        accessToken: appleCredential.authorizationCode,
+      );
+
+      debugPrint('Attempting Firebase sign in with Apple credential...');
       final userCredential = await _auth.signInWithCredential(oauthCredential);
+      debugPrint(
+        'Firebase sign in successful: uid=${userCredential.user?.uid}',
+      );
+
       final user = userCredential.user;
       if (user == null) {
         throw FirebaseAuthException(
@@ -622,8 +643,10 @@ class _LoginScreenState extends State<LoginScreen> {
         );
       }
 
+      debugPrint('Checking Firestore for user document...');
       final userDocRef = _firestore.collection('users').doc(user.uid);
       final userDoc = await userDocRef.get();
+      debugPrint('User doc exists: ${userDoc.exists}');
 
       final firstName = (appleCredential.givenName ?? '').trim();
       final lastName = (appleCredential.familyName ?? '').trim();
@@ -642,16 +665,28 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (isNewUser || currentUsername.isEmpty) {
         // Pre-fill minimal info for new users, then show setup screen
-        await userDocRef.set({
-          if (firstName.isNotEmpty) 'firstName': firstName,
-          if (lastName.isNotEmpty) 'lastName': lastName,
-          if (email != null && email.isNotEmpty) 'email': email,
-          if (appleUserId != null) 'appleIdentifier': appleUserId,
-          'emailVerified': true,
-          if (isNewUser) 'createdAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+        debugPrint('Creating/updating user document in Firestore...');
+        debugPrint(
+          'isNewUser: $isNewUser, firstName: $firstName, lastName: $lastName, email: $email',
+        );
+
+        try {
+          await userDocRef.set({
+            if (firstName.isNotEmpty) 'firstName': firstName,
+            if (lastName.isNotEmpty) 'lastName': lastName,
+            if (email != null && email.isNotEmpty) 'email': email,
+            if (appleUserId != null) 'appleIdentifier': appleUserId,
+            'emailVerified': true,
+            if (isNewUser) 'createdAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+          debugPrint('Firestore write successful');
+        } catch (firestoreError) {
+          debugPrint('Firestore write error: $firestoreError');
+          rethrow;
+        }
 
         if (!mounted) return;
+        debugPrint('Navigating to GoogleAccountSetupScreen...');
         final result = await Navigator.of(context).push<String>(
           MaterialPageRoute(
             builder: (context) => GoogleAccountSetupScreen(
@@ -677,36 +712,50 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else {
         // Existing user: ensure flags and username
+        debugPrint('Existing user found, updating info...');
+
         if (!(userDoc.data()?['emailVerified'] ?? false)) {
+          debugPrint('Updating emailVerified flag...');
           await userDocRef.update({'emailVerified': true});
         }
+
         if (firstName.isNotEmpty || lastName.isNotEmpty) {
+          debugPrint('Updating name and Apple identifier...');
           await userDocRef.set({
             if (firstName.isNotEmpty) 'firstName': firstName,
             if (lastName.isNotEmpty) 'lastName': lastName,
             if (appleUserId != null &&
-                ((userDoc.data()?['appleIdentifier'] as String?) ?? '')
-                    .isEmpty)
+                ((userDoc.data()?['appleIdentifier'] as String?) ?? '').isEmpty)
               'appleIdentifier': appleUserId,
           }, SetOptions(merge: true));
         }
+
+        debugPrint('Ensuring username for existing user...');
         final ensured = await _ensureUsernameForUser(
           user,
           suggestedUsername: suggestion,
         );
         if (!ensured) {
+          debugPrint('Username prompt was cancelled');
           return;
         }
+        debugPrint('Apple Sign In completed successfully for existing user');
       }
     } on SignInWithAppleAuthorizationException catch (e) {
       if (e.code == AuthorizationErrorCode.canceled) {
         // User canceled; just stop loading without error message.
       } else {
+        debugPrint(
+          'Apple Sign In Authorization Error: ${e.code} - ${e.message}',
+        );
         setState(() {
-          _errorMessage = l10n.t('login.appleFailed');
+          _errorMessage = kDebugMode
+              ? 'Apple Auth Error: ${e.code} - ${e.message}'
+              : l10n.t('login.appleFailed');
         });
       }
     } on FirebaseAuthException catch (e) {
+      debugPrint('Firebase Auth Error: ${e.code} - ${e.message}');
       if (e.code == 'account-exists-with-different-credential' ||
           e.code == 'credential-already-in-use') {
         setState(() {
@@ -714,16 +763,22 @@ class _LoginScreenState extends State<LoginScreen> {
         });
       } else if (e.code == 'invalid-credential') {
         setState(() {
-          _errorMessage = l10n.t('login.appleFailed');
+          _errorMessage = kDebugMode
+              ? 'Invalid Credential: ${e.message}'
+              : l10n.t('login.appleFailed');
         });
       } else {
         setState(() {
-          _errorMessage = _getErrorMessage(e.code);
+          _errorMessage = kDebugMode
+              ? 'Firebase Error [${e.code}]: ${e.message}'
+              : _getErrorMessage(e.code);
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('Apple Sign In General Error: $e');
+      debugPrint('Stack trace: $stackTrace');
       setState(() {
-        _errorMessage = l10n.t('login.appleFailed');
+        _errorMessage = kDebugMode ? 'Error: $e' : l10n.t('login.appleFailed');
       });
     } finally {
       if (mounted) {
