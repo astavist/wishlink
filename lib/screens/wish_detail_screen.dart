@@ -418,9 +418,12 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
   Widget _buildHeroImage(BuildContext context, WishItem wish) {
     final theme = Theme.of(context);
     const borderRadius = BorderRadius.all(Radius.circular(18));
+    final hasProductLink = wish.productUrl.trim().isNotEmpty;
+
+    Widget hero;
 
     if (wish.imageUrl.isEmpty) {
-      return Container(
+      hero = Container(
         height: 220,
         decoration: BoxDecoration(
           borderRadius: borderRadius,
@@ -439,26 +442,39 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
           color: theme.colorScheme.primary.withValues(alpha: 0.6),
         ),
       );
+    } else {
+      hero = ClipRRect(
+        borderRadius: borderRadius,
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Image.network(
+            wish.imageUrl,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: borderRadius,
+                ),
+                child: const Icon(Icons.image, size: 64, color: Colors.grey),
+              );
+            },
+          ),
+        ),
+      );
     }
 
-    return ClipRRect(
-      borderRadius: borderRadius,
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Image.network(
-          wish.imageUrl,
-          width: double.infinity,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: borderRadius,
-              ),
-              child: const Icon(Icons.image, size: 64, color: Colors.grey),
-            );
-          },
-        ),
+    if (!hasProductLink) {
+      return hero;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: borderRadius,
+        onTap: () => _launchUrl(wish.productUrl),
+        child: hero,
       ),
     );
   }
