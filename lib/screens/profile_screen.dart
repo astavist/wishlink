@@ -396,8 +396,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           theme.appBarTheme.backgroundColor ?? theme.colorScheme.surface,
       body: RefreshIndicator(
         onRefresh: _refreshPage,
-        color: theme.primaryColor,
-        child: SingleChildScrollView(
+        color: theme.colorScheme.primary,
+        backgroundColor: theme.colorScheme.surface.withOpacity(
+          theme.brightness == Brightness.dark ? 0.9 : 1,
+        ),
+        child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: EdgeInsets.fromLTRB(
             16,
@@ -405,143 +408,139 @@ class _ProfileScreenState extends State<ProfileScreen> {
             16,
             32 + MediaQuery.paddingOf(context).bottom,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _ProfileHeaderCard(
-                title: headerTitle,
-                subtitle: secondaryText.isNotEmpty ? secondaryText : null,
-                birthdayText:
-                    _birthday != null ? _formatBirthday(_birthday!, l10n) : null,
-                imageUrl: _profilePhotoUrl,
-                isUploading: _isUploadingPhoto,
-                onAvatarTap:
-                    _isUploadingPhoto ? null : _showProfilePhotoOptions,
-                wishCount: _userWishes.length,
-                listCount: _wishLists.length,
-                wishLabel: l10n.t('profile.myWishes'),
-                listLabel: l10n.t('profile.wishLists'),
-                initials: _profileInitials(),
-              ),
-              const SizedBox(height: 24),
-              _SectionCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            l10n.t('profile.wishLists'),
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
+          children: [
+            _ProfileHeaderCard(
+              title: headerTitle,
+              subtitle: secondaryText.isNotEmpty ? secondaryText : null,
+              birthdayText:
+                  _birthday != null ? _formatBirthday(_birthday!, l10n) : null,
+              imageUrl: _profilePhotoUrl,
+              isUploading: _isUploadingPhoto,
+              onAvatarTap: _isUploadingPhoto ? null : _showProfilePhotoOptions,
+              wishCount: _userWishes.length,
+              listCount: _wishLists.length,
+              wishLabel: l10n.t('profile.myWishes'),
+              listLabel: l10n.t('profile.wishLists'),
+              initials: _profileInitials(),
+            ),
+            const SizedBox(height: 24),
+            _SectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.t('profile.wishLists'),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        IconButton(
-                          onPressed: () => _showCreateListDialog(),
-                          tooltip: l10n.t('profile.createList'),
-                          icon: const Icon(Icons.add_circle_outline),
-                          style: IconButton.styleFrom(
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.all(8),
-                            minimumSize: const Size(32, 32),
-                          ),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        onPressed: () => _showCreateListDialog(),
+                        tooltip: l10n.t('profile.createList'),
+                        icon: const Icon(Icons.add_circle_outline),
+                        style: IconButton.styleFrom(
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          visualDensity: VisualDensity.compact,
+                          padding: const EdgeInsets.all(8),
+                          minimumSize: const Size(32, 32),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final spacing = 12.0;
-                        final tileWidth = (constraints.maxWidth - spacing) / 2;
-                        final tiles = <Widget>[
-                          _ListTileCard(
-                            title: l10n.t('profile.allWishes'),
-                            imageUrl: _userWishes.isNotEmpty
-                                ? _userWishes.first.imageUrl
-                                : '',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final spacing = 12.0;
+                      final tileWidth = (constraints.maxWidth - spacing) / 2;
+                      final tiles = <Widget>[
+                        _ListTileCard(
+                          title: l10n.t('profile.allWishes'),
+                          imageUrl: _userWishes.isNotEmpty
+                              ? _userWishes.first.imageUrl
+                              : '',
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              createRightToLeftSlideRoute(
+                                const AllWishesScreen(),
+                              ),
+                            );
+                          },
+                          leadingIcon: Icons.grid_view,
+                        ),
+                        ..._wishLists.map(
+                          (list) => _ListTileCard(
+                            title: list.name,
+                            imageUrl: list.coverImageUrl,
                             onTap: () {
                               Navigator.push(
                                 context,
                                 createRightToLeftSlideRoute(
-                                  const AllWishesScreen(),
+                                  WishListDetailScreen(wishList: list),
                                 ),
                               );
                             },
-                            leadingIcon: Icons.grid_view,
+                            menuBuilder: _buildListMenu(list),
                           ),
-                          ..._wishLists.map(
-                            (list) => _ListTileCard(
-                              title: list.name,
-                              imageUrl: list.coverImageUrl,
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  createRightToLeftSlideRoute(
-                                    WishListDetailScreen(wishList: list),
-                                  ),
-                                );
-                              },
-                              menuBuilder: _buildListMenu(list),
-                            ),
-                          ),
-                        ];
+                        ),
+                      ];
 
-                        return Wrap(
-                          spacing: spacing,
-                          runSpacing: spacing,
-                          children: tiles
-                              .map(
-                                (tile) => SizedBox(
-                                  width: tileWidth,
-                                  child: AspectRatio(
-                                    aspectRatio: 1,
-                                    child: tile,
-                                  ),
+                      return Wrap(
+                        spacing: spacing,
+                        runSpacing: spacing,
+                        children: tiles
+                            .map(
+                              (tile) => SizedBox(
+                                width: tileWidth,
+                                child: AspectRatio(
+                                  aspectRatio: 1,
+                                  child: tile,
                                 ),
-                              )
-                              .toList(),
+                              ),
+                            )
+                            .toList(),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            _SectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.t('profile.myWishes'),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_userWishes.isEmpty)
+                    _buildEmptyWishState(theme, l10n)
+                  else
+                    Column(
+                      children: List.generate(_userWishes.length, (index) {
+                        final wish = _userWishes[index];
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index == _userWishes.length - 1 ? 0 : 12,
+                          ),
+                          child: _buildWishCard(wish, theme, l10n),
                         );
-                      },
+                      }),
                     ),
-                  ],
-                ),
+                ],
               ),
-              const SizedBox(height: 24),
-              _SectionCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.t('profile.myWishes'),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    if (_userWishes.isEmpty)
-                      _buildEmptyWishState(theme, l10n)
-                    else
-                      Column(
-                        children: List.generate(_userWishes.length, (index) {
-                          final wish = _userWishes[index];
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              bottom: index == _userWishes.length - 1 ? 0 : 12,
-                            ),
-                            child: _buildWishCard(wish, theme, l10n),
-                          );
-                        }),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

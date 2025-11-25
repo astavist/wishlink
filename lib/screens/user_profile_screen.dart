@@ -1174,7 +1174,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _refreshPage,
-          color: theme.primaryColor,
+          color: theme.colorScheme.primary,
+          backgroundColor: theme.colorScheme.surface.withOpacity(
+            theme.brightness == Brightness.dark ? 0.9 : 1,
+          ),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: EdgeInsets.fromLTRB(
