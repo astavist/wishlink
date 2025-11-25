@@ -432,6 +432,24 @@ class AppLocalizations {
       'tr': 'Lütfen geçerli bir e-posta gir',
     },
     // Account setup
+    'accountSetup.title': {
+      'en': 'Complete your account',
+      'tr': 'Hesabını tamamla',
+    },
+    'accountSetup.intro': {
+      'en':
+          'Hi! Because you signed in with Google, we need to save a few details.\nFill these in to keep your WishLink journey going.',
+      'tr':
+          'Merhaba! Google ile giriş yaptığın için bazı bilgilerini kaydetmemiz gerekiyor.\nBu alanları doldurup onayladıktan sonra WishLink macerana devam edebilirsin.',
+    },
+    'accountSetup.saveButton': {
+      'en': 'Save and continue',
+      'tr': 'Kaydet ve devam et',
+    },
+    'accountSetup.cancelAndReturn': {
+      'en': 'Cancel and return to login',
+      'tr': 'İptal et ve girişe dön',
+    },
     'accountSetup.saveFailed': {
       'en': 'Could not complete setup. Please try again.',
       'tr': 'Kurulum tamamlanamadı. Lütfen tekrar dene.',

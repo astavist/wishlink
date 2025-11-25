@@ -251,6 +251,11 @@ class NotificationService {
       return;
     }
 
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null || currentUser.uid != userId) {
+      return;
+    }
+
     try {
       await _firestore.collection('users').doc(userId).update(
         {

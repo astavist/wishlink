@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
+import 'package:wishlink/screens/login_screen.dart';
 
 class GoogleAccountSetupScreen extends StatefulWidget {
   final User user;
@@ -273,14 +274,77 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
     }
   }
 
+  Future<void> _cancelSetup() async {
+    if (!widget.allowCancel || _isSaving) {
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+      _errorMessage = null;
+    });
+
+    final auth = FirebaseAuth.instance;
+    final user = auth.currentUser ?? widget.user;
+    final userId = user.uid;
+
+    try {
+      final userDoc =
+          FirebaseFirestore.instance.collection('users').doc(userId);
+      try {
+        final snapshot = await userDoc.get();
+        if (snapshot.exists) {
+          await userDoc.delete();
+        }
+      } catch (_) {
+        // Ignore document cleanup failures.
+      }
+
+      try {
+        await user.delete();
+      } on FirebaseAuthException catch (_) {
+        // Ignore deletion errors; we'll still sign out below.
+      }
+    } finally {
+      await auth.signOut();
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isSaving = false;
+    });
+
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (_) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     return WillPopScope(
-      onWillPop: () async => widget.allowCancel && !_isSaving,
+      onWillPop: () async {
+        if (!widget.allowCancel || _isSaving) {
+          return false;
+        }
+        await _cancelSetup();
+        return false;
+      },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Hesabını tamamla'),
-          automaticallyImplyLeading: widget.allowCancel && !_isSaving,
+          title: Text(l10n.t('accountSetup.title')),
+          automaticallyImplyLeading: false,
+          actions: [
+            if (widget.allowCancel)
+              TextButton(
+                onPressed: _isSaving ? null : _cancelSetup,
+                child: Text(l10n.t('common.backToLogin')),
+              ),
+          ],
         ),
         body: SafeArea(
           child: Padding(
@@ -290,22 +354,23 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Merhaba! Google ile giriş yaptığın için bilgilerini kaydetmen gerekiyor.\n'
-                    'Bu bilgileri doldurup onayladıktan sonra WishLink macerana devam edebilirsin.',
-                  ),
+                  Text(l10n.t('accountSetup.intro')),
                   const SizedBox(height: 24),
                   TextFormField(
                     controller: _firstNameController,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(labelText: 'Ad'),
+                    decoration: InputDecoration(
+                      labelText: l10n.t('login.label.firstName'),
+                    ),
                     validator: _validateFirstName,
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _lastNameController,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(labelText: 'Soyad'),
+                    decoration: InputDecoration(
+                      labelText: l10n.t('login.label.lastName'),
+                    ),
                     validator: _validateLastName,
                   ),
                   const SizedBox(height: 16),
@@ -314,7 +379,9 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
                       controller: _emailController,
                       textInputAction: TextInputAction.next,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(labelText: 'Email'),
+                      decoration: InputDecoration(
+                        labelText: l10n.t('login.label.email'),
+                      ),
                       validator: _validateEmail,
                     ),
                     const SizedBox(height: 16),
@@ -322,9 +389,9 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
                   TextFormField(
                     controller: _birthdayController,
                     readOnly: true,
-                    decoration: const InputDecoration(
-                      labelText: 'Birth date',
-                      prefixIcon: Icon(Icons.cake_outlined),
+                    decoration: InputDecoration(
+                      labelText: l10n.t('login.label.birthDate'),
+                      prefixIcon: const Icon(Icons.cake_outlined),
                     ),
                     validator: (_) {
                       if (_selectedBirthday == null) {
@@ -340,8 +407,8 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
                   TextFormField(
                     controller: _usernameController,
                     textInputAction: TextInputAction.done,
-                    decoration: const InputDecoration(
-                      labelText: 'Kullanıcı adı',
+                    decoration: InputDecoration(
+                      labelText: l10n.t('login.label.username'),
                       prefixText: '@',
                     ),
                     validator: _validateUsername,
@@ -364,9 +431,20 @@ class _GoogleAccountSetupScreenState extends State<GoogleAccountSetupScreen> {
                               height: 20,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Text('Kaydet ve devam et'),
+                          : Text(l10n.t('accountSetup.saveButton')),
                     ),
                   ),
+                  if (widget.allowCancel) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: _isSaving ? null : _cancelSetup,
+                        icon: const Icon(Icons.logout),
+                        label: Text(l10n.t('accountSetup.cancelAndReturn')),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

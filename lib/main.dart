@@ -133,11 +133,66 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
   @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _checkingRemoteAuthState = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshAuthState();
+  }
+
+  Future<void> _refreshAuthState() async {
+    final auth = FirebaseAuth.instance;
+    final user = auth.currentUser;
+    if (user == null) {
+      if (mounted) {
+        setState(() {
+          _checkingRemoteAuthState = false;
+        });
+      }
+      return;
+    }
+
+    try {
+      // Reload to ensure deletions/disablements made from Firebase console take effect.
+      await user.reload();
+      if (mounted && auth.currentUser == null) {
+        await auth.signOut();
+      }
+    } on FirebaseAuthException catch (e) {
+      if (_shouldForceLogout(e.code)) {
+        await auth.signOut();
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _checkingRemoteAuthState = false;
+        });
+      }
+    }
+  }
+
+  bool _shouldForceLogout(String code) {
+    return code == 'user-not-found' ||
+        code == 'user-disabled' ||
+        code == 'user-token-expired' ||
+        code == 'invalid-user-token';
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_checkingRemoteAuthState) {
+      return _buildLoadingScaffold();
+    }
+
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
@@ -164,17 +219,28 @@ class AuthWrapper extends StatelessWidget {
               return _buildLoadingScaffold();
             }
 
-            final data = userSnapshot.data?.data();
+            final userDoc = userSnapshot.data;
+            final docExists = userDoc?.exists ?? false;
+            final data = userDoc?.data();
             final firstName = (data?['firstName'] as String?)?.trim() ?? '';
             final lastName = (data?['lastName'] as String?)?.trim() ?? '';
             final username = (data?['username'] as String?)?.trim() ?? '';
+            final isAuthorized = data?['isAuthorized'] as bool? ?? true;
+            final isGoogleUser = _isGoogleProvider(user);
+
+            if (!isAuthorized) {
+              return const _ForcedLogoutView();
+            }
+
+            if (!docExists && !_isNewlyCreatedUser(user)) {
+              return const _ForcedLogoutView();
+            }
 
             final requiresProfile =
                 data == null ||
                 firstName.isEmpty ||
                 lastName.isEmpty ||
                 username.isEmpty;
-            final isGoogleUser = _isGoogleProvider(user);
 
             if (isGoogleUser && requiresProfile) {
               final inferredFirstName = firstName.isNotEmpty
@@ -204,6 +270,15 @@ class AuthWrapper extends StatelessWidget {
         );
       },
     );
+  }
+
+  bool _isNewlyCreatedUser(User user) {
+    final creationTime = user.metadata.creationTime;
+    if (creationTime == null) {
+      return false;
+    }
+    return DateTime.now().difference(creationTime) <
+        const Duration(minutes: 5);
   }
 }
 
@@ -254,7 +329,6 @@ class _GoogleProfileGateState extends State<_GoogleProfileGate> {
           email: widget.email,
           suggestedUsername: widget.suggestedUsername,
           isNewUser: widget.isNewUser,
-          allowCancel: false,
         ),
         fullscreenDialog: true,
       ),
@@ -277,6 +351,28 @@ class _GoogleProfileGateState extends State<_GoogleProfileGate> {
 
 Widget _buildLoadingScaffold() {
   return const Scaffold(body: Center(child: CircularProgressIndicator()));
+}
+
+class _ForcedLogoutView extends StatefulWidget {
+  const _ForcedLogoutView({super.key});
+
+  @override
+  State<_ForcedLogoutView> createState() => _ForcedLogoutViewState();
+}
+
+class _ForcedLogoutViewState extends State<_ForcedLogoutView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await FirebaseAuth.instance.signOut();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _buildLoadingScaffold();
+  }
 }
 
 bool _isGoogleProvider(User user) {
