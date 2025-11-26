@@ -229,6 +229,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
             final username = (data?['username'] as String?)?.trim() ?? '';
             final isAuthorized = data?['isAuthorized'] as bool? ?? true;
             final isGoogleUser = _isGoogleProvider(user);
+            final isAppleUser = _isAppleProvider(user);
 
             if (!isAuthorized) {
               return const _ForcedLogoutView();
@@ -244,7 +245,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 lastName.isEmpty ||
                 username.isEmpty;
 
-            if (isGoogleUser && requiresProfile) {
+            if ((isGoogleUser || isAppleUser) && requiresProfile) {
               final inferredFirstName = firstName.isNotEmpty
                   ? firstName
                   : _extractFirstName(user);
@@ -256,8 +257,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 lastName: inferredLastName,
                 email: user.email,
               );
-
-              return _GoogleProfileGate(
+              return _ProfileCompletionGate(
                 user: user,
                 firstName: inferredFirstName,
                 lastName: inferredLastName,
@@ -283,7 +283,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
   }
 }
 
-class _GoogleProfileGate extends StatefulWidget {
+class _ProfileCompletionGate extends StatefulWidget {
   final User user;
   final String? firstName;
   final String? lastName;
@@ -291,7 +291,7 @@ class _GoogleProfileGate extends StatefulWidget {
   final String suggestedUsername;
   final bool isNewUser;
 
-  const _GoogleProfileGate({
+  const _ProfileCompletionGate({
     required this.user,
     this.firstName,
     this.lastName,
@@ -301,10 +301,10 @@ class _GoogleProfileGate extends StatefulWidget {
   });
 
   @override
-  State<_GoogleProfileGate> createState() => _GoogleProfileGateState();
+  State<_ProfileCompletionGate> createState() => _ProfileCompletionGateState();
 }
 
-class _GoogleProfileGateState extends State<_GoogleProfileGate> {
+class _ProfileCompletionGateState extends State<_ProfileCompletionGate> {
   bool _dialogOpened = false;
 
   @override
@@ -379,6 +379,12 @@ class _ForcedLogoutViewState extends State<_ForcedLogoutView> {
 bool _isGoogleProvider(User user) {
   return user.providerData.any(
     (provider) => provider.providerId == 'google.com',
+  );
+}
+
+bool _isAppleProvider(User user) {
+  return user.providerData.any(
+    (provider) => provider.providerId == 'apple.com',
   );
 }
 
