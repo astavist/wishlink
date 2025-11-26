@@ -12,7 +12,7 @@ import 'package:http/http.dart' as http;
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:crypto/crypto.dart';
 import 'email_verification_required_screen.dart';
-import 'google_account_setup_screen.dart';
+import 'account_setup_screen.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -530,7 +530,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         final result = await Navigator.of(context).push<String>(
           MaterialPageRoute(
-            builder: (context) => GoogleAccountSetupScreen(
+            builder: (context) => AccountSetupScreen(
               user: user,
               firstName: firstName,
               lastName: lastName,
@@ -686,10 +686,10 @@ class _LoginScreenState extends State<LoginScreen> {
         }
 
         if (!mounted) return;
-        debugPrint('Navigating to GoogleAccountSetupScreen...');
+        debugPrint('Navigating to AccountSetupScreen...');
         final result = await Navigator.of(context).push<String>(
           MaterialPageRoute(
-            builder: (context) => GoogleAccountSetupScreen(
+            builder: (context) => AccountSetupScreen(
               user: user,
               firstName: firstName.isNotEmpty ? firstName : null,
               lastName: lastName.isNotEmpty ? lastName : null,

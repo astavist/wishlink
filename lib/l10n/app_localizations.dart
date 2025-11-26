@@ -438,9 +438,9 @@ class AppLocalizations {
     },
     'accountSetup.intro': {
       'en':
-          'Hi! Because you signed in with Google, we need to save a few details.\nFill these in to keep your WishLink journey going.',
+          'Hi! Because you signed in with a connected account, we need to save a few details.\nFill these in to keep your WishLink journey going.',
       'tr':
-          'Merhaba! Google ile giriş yaptığın için bazı bilgilerini kaydetmemiz gerekiyor.\nBu alanları doldurup onayladıktan sonra WishLink macerana devam edebilirsin.',
+          'Merhaba! Bağlı bir hesapla giriş yaptığın için bazı bilgilerini kaydetmemiz gerekiyor.\nBu alanları doldurup onayladıktan sonra WishLink macerana devam edebilirsin.',
     },
     'accountSetup.saveButton': {
       'en': 'Save and continue',

@@ -8,7 +8,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:wishlink/screens/login_screen.dart';
 import 'package:wishlink/screens/home_screen.dart';
 import 'package:wishlink/screens/email_verification_required_screen.dart';
-import 'package:wishlink/screens/google_account_setup_screen.dart';
+import 'package:wishlink/screens/account_setup_screen.dart';
 import 'package:wishlink/theme/theme_controller.dart';
 import 'package:wishlink/locale/locale_controller.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
@@ -95,8 +95,9 @@ class MyApp extends StatelessWidget {
       useMaterial3: true,
       visualDensity: VisualDensity.adaptivePlatformDensity,
       pageTransitionsTheme: _pageTransitionsTheme,
-      progressIndicatorTheme:
-          const ProgressIndicatorThemeData(color: _seedColor),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: _seedColor,
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -110,17 +111,18 @@ class MyApp extends StatelessWidget {
 
   ThemeData _buildDarkTheme() {
     final colorScheme = ColorScheme.fromSeed(
-        seedColor: _seedColor,
-        brightness: Brightness.dark,
-      );
+      seedColor: _seedColor,
+      brightness: Brightness.dark,
+    );
     return ThemeData(
       colorScheme: colorScheme.copyWith(primary: _seedColor),
       brightness: Brightness.dark,
       useMaterial3: true,
       visualDensity: VisualDensity.adaptivePlatformDensity,
       pageTransitionsTheme: _pageTransitionsTheme,
-      progressIndicatorTheme:
-          const ProgressIndicatorThemeData(color: _seedColor),
+      progressIndicatorTheme: const ProgressIndicatorThemeData(
+        color: _seedColor,
+      ),
       appBarTheme: const AppBarTheme(
         backgroundColor: Color(0xFF121212),
         foregroundColor: Colors.white,
@@ -277,8 +279,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
     if (creationTime == null) {
       return false;
     }
-    return DateTime.now().difference(creationTime) <
-        const Duration(minutes: 5);
+    return DateTime.now().difference(creationTime) < const Duration(minutes: 5);
   }
 }
 
@@ -322,7 +323,7 @@ class _GoogleProfileGateState extends State<_GoogleProfileGate> {
 
     final result = await Navigator.of(context).push<String>(
       MaterialPageRoute(
-        builder: (_) => GoogleAccountSetupScreen(
+        builder: (_) => AccountSetupScreen(
           user: widget.user,
           firstName: widget.firstName,
           lastName: widget.lastName,
