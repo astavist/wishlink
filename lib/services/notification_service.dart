@@ -1,16 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'dart:io' show Platform;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/services.dart';
 
 class NotificationService {
   NotificationService._internal();
 
   static final NotificationService instance = NotificationService._internal();
+  static const MethodChannel _badgeChannel = MethodChannel('app.badge');
 
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -53,6 +57,7 @@ class NotificationService {
         if (user == null) {
           await _removeTokenFromPreviousUser();
           _notificationsAllowed = true;
+          await clearBadge();
           return;
         }
 
@@ -206,6 +211,17 @@ class NotificationService {
       return;
     }
     await _persistToken(token);
+  }
+
+  Future<void> clearBadge() async {
+    if (kIsWeb || (!Platform.isIOS && !Platform.isMacOS)) {
+      return;
+    }
+    try {
+      await _badgeChannel.invokeMethod('clearBadge');
+    } catch (_) {
+      // Ignore platform errors so badge clearing never crashes the app.
+    }
   }
 
   Future<void> _persistToken(String? token) async {

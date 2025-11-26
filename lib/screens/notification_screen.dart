@@ -9,6 +9,7 @@ import '../screens/friends_screen.dart';
 import '../screens/user_profile_screen.dart';
 import '../screens/wish_detail_screen.dart';
 import '../services/firestore_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/wishlink_card.dart';
 
 const LinearGradient _lightNotificationsBackground = LinearGradient(
@@ -518,6 +519,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
 
     try {
       await batch.commit();
+      await _clearBadgeIfNoUnread();
     } catch (e) {
       if (!mounted) return;
       final l10n = context.l10n;
@@ -662,17 +664,18 @@ class _NotificationScreenState extends State<NotificationScreen> {
       try {
         final __uid2 = _auth.currentUser?.uid;
         if (__uid2 == null) return;
-        await _firestore
-            .collection('notifications')
-            .doc(__uid2)
-            .collection('items')
-            .doc(notificationId)
-            .set({'isRead': true, 'timestamp': FieldValue.serverTimestamp()});
-      } catch (e) {
-        // Fallback to local state only
-        _updateNotificationReadState(notificationId);
-      }
+      await _firestore
+          .collection('notifications')
+          .doc(__uid2)
+          .collection('items')
+          .doc(notificationId)
+          .set({'isRead': true, 'timestamp': FieldValue.serverTimestamp()});
+    } catch (e) {
+      // Fallback to local state only
+      _updateNotificationReadState(notificationId);
     }
+    await _clearBadgeIfNoUnread();
+  }
   }
 
   void _updateNotificationReadState(String notificationId) {
@@ -692,6 +695,21 @@ class _NotificationScreenState extends State<NotificationScreen> {
         _notifications[index] = _notifications[index].copyWith(isRead: true);
       }
     });
+  }
+
+  bool _hasUnreadNotifications() {
+    return _notifications.any(
+      (notification) =>
+          !(notification.isRead ||
+              _locallyReadNotificationIds.contains(notification.id)),
+    );
+  }
+
+  Future<void> _clearBadgeIfNoUnread() async {
+    if (_hasUnreadNotifications()) {
+      return;
+    }
+    await NotificationService.instance.clearBadge();
   }
 
   String _buildDisplayName({
