@@ -276,43 +276,49 @@ class _FriendsScreenState extends State<FriendsScreen>
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-          child: Row(
-            children: [
-              Icon(Icons.search_rounded, color: iconColor),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  focusNode: _searchFocusNode,
-                  onChanged: (value) {
-                    setState(() {});
-                    _searchUsers(value);
-                  },
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    hintText: l10n.t('friends.searchHint'),
-                    border: InputBorder.none,
-                    isDense: true,
+          child: SizedBox(
+            height: 48,
+            child: Row(
+              children: [
+                Icon(Icons.search_rounded, color: iconColor),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    onChanged: (value) {
+                      setState(() {});
+                      _searchUsers(value);
+                    },
+                    textInputAction: TextInputAction.search,
+                    textAlignVertical: TextAlignVertical.center,
+                    decoration: InputDecoration(
+                      hintText: l10n.t('friends.searchHint'),
+                      border: InputBorder.none,
+                      isDense: true,
+                    ),
+                    style: theme.textTheme.bodyLarge,
                   ),
-                  style: theme.textTheme.bodyLarge,
                 ),
-              ),
-              if (showClear)
-                IconButton(
-                  padding: EdgeInsets.zero,
-                  splashRadius: 18,
-                  icon: Icon(Icons.close_rounded, color: iconColor),
-                  onPressed: () {
-                    _searchController.clear();
-                    FocusScope.of(context).unfocus();
-                    setState(() {
-                      _searchResults = [];
-                      _isSearching = false;
-                      _isSearchFocused = false;
-                    });
-                  },
-                ),
-            ],
+                if (showClear)
+                  IconButton(
+                    padding: EdgeInsets.zero,
+                    splashRadius: 18,
+                    constraints:
+                        const BoxConstraints.tightFor(width: 40, height: 40),
+                    icon: Icon(Icons.close_rounded, color: iconColor),
+                    onPressed: () {
+                      _searchController.clear();
+                      FocusScope.of(context).unfocus();
+                      setState(() {
+                        _searchResults = [];
+                        _isSearching = false;
+                        _isSearchFocused = false;
+                      });
+                    },
+                  ),
+              ],
+            ),
           ),
         ),
       ),
