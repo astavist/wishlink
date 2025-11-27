@@ -52,15 +52,25 @@ flutter:
   assets:
     - assets/images/
   fonts:
-    - family: HelveticaNeue
+    - family: Geist
       fonts:
-        - asset: assets/fonts/HelveticaNeueLight.otf
+        - asset: assets/fonts/Geist-Thin.ttf
+          weight: 100
+        - asset: assets/fonts/Geist-ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/Geist-Light.ttf
           weight: 300
-        - asset: assets/fonts/HelveticaNeueRoman.otf
+        - asset: assets/fonts/Geist-Regular.ttf
           weight: 400
-        - asset: assets/fonts/HelveticaNeueBold.otf
+        - asset: assets/fonts/Geist-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Geist-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Geist-Bold.ttf
           weight: 700
-        - asset: assets/fonts/HelveticaNeueBlack.otf
+        - asset: assets/fonts/Geist-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/Geist-Black.ttf
           weight: 900
 
 flutter_launcher_icons:

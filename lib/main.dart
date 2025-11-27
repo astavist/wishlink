@@ -92,6 +92,7 @@ class MyApp extends StatelessWidget {
     return ThemeData(
       colorScheme: colorScheme.copyWith(primary: _seedColor),
       brightness: Brightness.light,
+      fontFamily: 'Geist',
       useMaterial3: true,
       visualDensity: VisualDensity.adaptivePlatformDensity,
       pageTransitionsTheme: _pageTransitionsTheme,
@@ -117,6 +118,7 @@ class MyApp extends StatelessWidget {
     return ThemeData(
       colorScheme: colorScheme.copyWith(primary: _seedColor),
       brightness: Brightness.dark,
+      fontFamily: 'Geist',
       useMaterial3: true,
       visualDensity: VisualDensity.adaptivePlatformDensity,
       pageTransitionsTheme: _pageTransitionsTheme,
