@@ -14,6 +14,7 @@ import 'package:crypto/crypto.dart';
 import 'email_verification_required_screen.dart';
 import 'account_setup_screen.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
+import '../widgets/wishlink_card.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -923,426 +924,510 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final showAppleSignIn =
-        !kIsWeb && Theme.of(context).platform == TargetPlatform.iOS;
+    final theme = Theme.of(context);
+    final mediaQuery = MediaQuery.of(context);
+    final showAppleSignIn = !kIsWeb && theme.platform == TargetPlatform.iOS;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      body: Container(
-        color: Colors.white,
-        child: GestureDetector(
-          onTap: () {
-            FocusScope.of(context).unfocus();
-          },
-          child: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 50),
-                    // Logo ve Başlık
-                    SizedBox(
-                      height: 150,
-                      child: Image.asset('assets/images/LogoPNG.png'),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Hata Mesajı
-                    if (_errorMessage != null)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 16.0),
-                        child: Text(
-                          _errorMessage!,
-                          style: const TextStyle(color: Colors.red),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-
-                    // Giriş/Kayıt Formu Card
-                    Card(
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Form(
-                          key: _formKey,
-                          child: Column(
-                            children: [
-                              if (_isSignUp) ...[
-                                // First Name
+      body: ColoredBox(
+        color: theme.scaffoldBackgroundColor,
+        child: SafeArea(
+          child: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+              physics: const BouncingScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight:
+                      mediaQuery.size.height - mediaQuery.padding.vertical - 56,
+                ),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 12),
+                        Image.asset('assets/images/LogoPNG.png', height: 120),
+                        const SizedBox(height: 24),
+                        WishLinkCard(
+                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+                          gradient: theme.brightness == Brightness.dark
+                              ? const LinearGradient(
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.transparent,
+                                  ],
+                                )
+                              : const LinearGradient(
+                                  colors: [Colors.white, Colors.white],
+                                ),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: theme.brightness == Brightness.dark
+                                        ? Colors.white.withOpacity(0.08)
+                                        : Colors.grey.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(28),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: _AuthModeButton(
+                                          text: l10n.t('login.login'),
+                                          isSelected: !_isSignUp,
+                                          onTap: _isSignUp && !_isLoading
+                                              ? _toggleMode
+                                              : null,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: _AuthModeButton(
+                                          text: l10n.t('login.signUp'),
+                                          isSelected: _isSignUp,
+                                          onTap: !_isSignUp && !_isLoading
+                                              ? _toggleMode
+                                              : null,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  child: _errorMessage == null
+                                      ? const SizedBox.shrink()
+                                      : Container(
+                                          key: ValueKey(_errorMessage),
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.error
+                                                .withOpacity(0.08),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Icon(
+                                                Icons.error_outline,
+                                                color: theme.colorScheme.error,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  _errorMessage!,
+                                                  style: theme
+                                                      .textTheme
+                                                      .bodyMedium
+                                                      ?.copyWith(
+                                                        color: theme
+                                                            .colorScheme
+                                                            .error,
+                                                      ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                ),
+                                const SizedBox(height: 12),
+                                if (_isSignUp) ...[
+                                  TextFormField(
+                                    controller: _firstNameController,
+                                    enabled: !_isLoading,
+                                    textCapitalization:
+                                        TextCapitalization.words,
+                                    decoration: _inputDecoration(
+                                      labelText: l10n.t(
+                                        'login.label.firstName',
+                                      ),
+                                      prefixIcon: Icons.person_outline,
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return l10n.t(
+                                          'login.validation.firstNameRequired',
+                                        );
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: _lastNameController,
+                                    enabled: !_isLoading,
+                                    textCapitalization:
+                                        TextCapitalization.words,
+                                    decoration: _inputDecoration(
+                                      labelText: l10n.t('login.label.lastName'),
+                                      prefixIcon: Icons.person_outline,
+                                    ),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return l10n.t(
+                                          'login.validation.lastNameRequired',
+                                        );
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: _birthdayController,
+                                    readOnly: true,
+                                    enabled: !_isLoading,
+                                    decoration: _inputDecoration(
+                                      labelText: l10n.t(
+                                        'login.label.birthDate',
+                                      ),
+                                      prefixIcon: Icons.cake_outlined,
+                                      suffixIcon: const Icon(
+                                        Icons.calendar_today_outlined,
+                                      ),
+                                    ),
+                                    validator: (_) {
+                                      if (_selectedBirthday == null) {
+                                        return l10n.t(
+                                          'login.validation.birthDateRequired',
+                                        );
+                                      }
+                                      return null;
+                                    },
+                                    onTap: _isLoading ? null : _pickBirthday,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: _usernameController,
+                                    enabled: !_isLoading,
+                                    textInputAction: TextInputAction.next,
+                                    autocorrect: false,
+                                    enableSuggestions: false,
+                                    decoration: _inputDecoration(
+                                      labelText: l10n.t('login.label.username'),
+                                      prefixIcon: Icons.alternate_email,
+                                    ),
+                                    validator: _validateUsernameFormat,
+                                  ),
+                                  const SizedBox(height: 12),
+                                ],
                                 TextFormField(
-                                  controller: _firstNameController,
+                                  controller: _emailController,
+                                  focusNode: _emailFocusNode,
                                   enabled: !_isLoading,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.t('login.label.firstName'),
-                                    prefixIcon: const Icon(
-                                      Icons.person_outline,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[100],
+                                  keyboardType: TextInputType.emailAddress,
+                                  decoration: _inputDecoration(
+                                    labelText: l10n.t('login.label.email'),
+                                    hintText: l10n.t('login.hint.email'),
+                                    prefixIcon: Icons.email_outlined,
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
                                       return l10n.t(
-                                        'login.validation.firstNameRequired',
+                                        'login.validation.emailRequired',
                                       );
                                     }
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 16),
-
-                                // Last Name
-                                TextFormField(
-                                  controller: _lastNameController,
-                                  enabled: !_isLoading,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.t('login.label.lastName'),
-                                    prefixIcon: const Icon(
-                                      Icons.person_outline,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[100],
-                                  ),
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) {
+                                    if (!value.contains('@') ||
+                                        !value.contains('.')) {
                                       return l10n.t(
-                                        'login.validation.lastNameRequired',
+                                        'login.validation.emailInvalid',
                                       );
                                     }
                                     return null;
                                   },
                                 ),
-                                const SizedBox(height: 16),
+                                const SizedBox(height: 12),
                                 TextFormField(
-                                  controller: _birthdayController,
-                                  readOnly: true,
-                                  enabled: !_isLoading,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.t('login.label.birthDate'),
-                                    prefixIcon: const Icon(Icons.cake_outlined),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[100],
-                                  ),
-                                  validator: (_) {
-                                    if (_selectedBirthday == null) {
-                                      return l10n.t(
-                                        'login.validation.birthDateRequired',
-                                      );
-                                    }
-                                    return null;
-                                  },
-                                  onTap: _isLoading ? null : _pickBirthday,
-                                ),
-                                const SizedBox(height: 16),
-
-                                // Username
-                                TextFormField(
-                                  controller: _usernameController,
-                                  enabled: !_isLoading,
-                                  textInputAction: TextInputAction.next,
-                                  autocorrect: false,
-                                  enableSuggestions: false,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.t('login.label.username'),
-                                    prefixIcon: const Icon(
-                                      Icons.alternate_email,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[100],
-                                  ),
-                                  validator: _validateUsernameFormat,
-                                ),
-                                const SizedBox(height: 16),
-                              ],
-
-                              // Email
-                              TextFormField(
-                                controller: _emailController,
-                                focusNode: _emailFocusNode,
-                                enabled: !_isLoading,
-                                keyboardType: TextInputType.emailAddress,
-                                decoration: InputDecoration(
-                                  labelText: l10n.t('login.label.email'),
-                                  hintText: l10n.t('login.hint.email'),
-                                  prefixIcon: const Icon(Icons.email_outlined),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[100],
-                                ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return l10n.t(
-                                      'login.validation.emailRequired',
-                                    );
-                                  }
-                                  if (!value.contains('@') ||
-                                      !value.contains('.')) {
-                                    return l10n.t(
-                                      'login.validation.emailInvalid',
-                                    );
-                                  }
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Password
-                              TextFormField(
-                                controller: _passwordController,
-                                focusNode: _passwordFocusNode,
-                                enabled: !_isLoading,
-                                obscureText: true,
-                                decoration: InputDecoration(
-                                  labelText: l10n.t('login.label.password'),
-                                  hintText: '••••••••',
-                                  prefixIcon: const Icon(Icons.lock_outline),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                  filled: true,
-                                  fillColor: Colors.grey[100],
-                                ),
-                                validator: _validatePassword,
-                              ),
-
-                              if (_isSignUp) ...[
-                                const SizedBox(height: 16),
-                                // Confirm Password
-                                TextFormField(
-                                  controller: _confirmPasswordController,
+                                  controller: _passwordController,
+                                  focusNode: _passwordFocusNode,
                                   enabled: !_isLoading,
                                   obscureText: true,
-                                  decoration: InputDecoration(
-                                    labelText: l10n.t(
-                                      'login.label.confirmPassword',
-                                    ),
-                                    prefixIcon: const Icon(Icons.lock_outline),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    filled: true,
-                                    fillColor: Colors.grey[100],
+                                  decoration: _inputDecoration(
+                                    labelText: l10n.t('login.label.password'),
+                                    hintText: '********',
+                                    prefixIcon: Icons.lock_outline,
                                   ),
-                                  validator: _validateConfirmPassword,
+                                  validator: _validatePassword,
                                 ),
-                              ],
-
-                              const SizedBox(height: 24),
-
-                              // Login/Sign Up Button
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: _isLoading
-                                      ? null
-                                      : (_isSignUp ? _signUp : _signIn),
-                                  icon: _isLoading
-                                      ? Container(
-                                          width: 24,
-                                          height: 24,
-                                          padding: const EdgeInsets.all(2.0),
-                                          child:
-                                              const CircularProgressIndicator(
-                                                color: Colors.white,
-                                                strokeWidth: 3,
-                                              ),
-                                        )
-                                      : Icon(
-                                          _isSignUp
-                                              ? Icons.person_add
-                                              : Icons.arrow_forward_ios,
-                                          size: 20,
-                                        ),
-                                  label: Text(
-                                    _isLoading
-                                        ? (_isSignUp
-                                              ? l10n.t('login.creatingAccount')
-                                              : l10n.t('login.loggingIn'))
-                                        : (_isSignUp
-                                              ? l10n.t('login.signUp')
-                                              : l10n.t('login.login')),
-                                    style: const TextStyle(fontSize: 18),
-                                  ),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFEFB652),
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
+                                if (_isSignUp) ...[
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: _confirmPasswordController,
+                                    enabled: !_isLoading,
+                                    obscureText: true,
+                                    decoration: _inputDecoration(
+                                      labelText: l10n.t(
+                                        'login.label.confirmPassword',
+                                      ),
+                                      prefixIcon: Icons.lock_outline,
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    elevation: 0,
+                                    validator: _validateConfirmPassword,
                                   ),
-                                ),
-                              ),
-
-                              if (!_isSignUp) ...[
-                                const SizedBox(height: 5),
-                                // Forgot Password
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton(
+                                ],
+                                const SizedBox(height: 24),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
                                     onPressed: _isLoading
                                         ? null
-                                        : () async {
-                                            if (_emailController.text
-                                                .trim()
-                                                .isEmpty) {
-                                              setState(() {
-                                                _errorMessage = l10n.t(
-                                                  'login.resetEmailInputRequired',
-                                                );
-                                              });
-                                              return;
-                                            }
-                                            try {
-                                              await _auth
-                                                  .sendPasswordResetEmail(
-                                                    email: _emailController.text
-                                                        .trim(),
-                                                  );
-                                              if (mounted) {
-                                                ScaffoldMessenger.of(
-                                                  context,
-                                                ).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                      l10n.t(
-                                                        'login.resetEmailSent',
-                                                      ),
-                                                    ),
-                                                  ),
-                                                );
-                                              }
-                                            } catch (e) {
-                                              setState(() {
-                                                _errorMessage = l10n.t(
-                                                  'login.resetEmailFailed',
-                                                );
-                                              });
-                                            }
-                                          },
-                                    child: Text(
-                                      l10n.t('login.forgotPassword'),
-                                      style: const TextStyle(
-                                        color: Colors.blue,
+                                        : (_isSignUp ? _signUp : _signIn),
+                                    icon: _isLoading
+                                        ? const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 3,
+                                            ),
+                                          )
+                                        : Icon(
+                                            _isSignUp
+                                                ? Icons.person_add
+                                                : Icons.arrow_forward_ios,
+                                            size: 20,
+                                          ),
+                                    label: Text(
+                                      _isLoading
+                                          ? (_isSignUp
+                                                ? l10n.t(
+                                                    'login.creatingAccount',
+                                                  )
+                                                : l10n.t('login.loggingIn'))
+                                          : (_isSignUp
+                                                ? l10n.t('login.signUp')
+                                                : l10n.t('login.login')),
+                                      style: const TextStyle(fontSize: 18),
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          theme.colorScheme.primary,
+                                      foregroundColor:
+                                          theme.colorScheme.onPrimary,
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 18,
                                       ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(18),
+                                      ),
+                                      elevation: 0,
                                     ),
                                   ),
                                 ),
-                              ],
-
-                              const SizedBox(height: 5),
-                              // Divider
-                              Row(
-                                children: [
-                                  const Expanded(child: Divider()),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16.0,
-                                    ),
-                                    child: Text(
-                                      l10n.t('login.orDivider'),
-                                      style: TextStyle(color: Colors.grey[600]),
-                                    ),
-                                  ),
-                                  const Expanded(child: Divider()),
-                                ],
-                              ),
-                              const SizedBox(height: 5),
-
-                              // Toggle Login/Sign Up
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    _isSignUp
-                                        ? l10n.t('login.alreadyHaveAccount')
-                                        : l10n.t('login.dontHaveAccount'),
-                                    style: TextStyle(
-                                      color: Colors.grey[700],
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  TextButton(
-                                    onPressed: _isLoading ? null : _toggleMode,
-                                    child: Text(
-                                      _isSignUp
-                                          ? l10n.t('login.login')
-                                          : l10n.t('login.signUp'),
-                                      style: const TextStyle(
-                                        color: Color(0xFFEFB652),
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
+                                if (!_isSignUp) ...[
+                                  const SizedBox(height: 8),
+                                  Align(
+                                    alignment: Alignment.centerRight,
+                                    child: TextButton(
+                                      onPressed: _isLoading
+                                          ? null
+                                          : () async {
+                                              if (_emailController.text
+                                                  .trim()
+                                                  .isEmpty) {
+                                                setState(() {
+                                                  _errorMessage = l10n.t(
+                                                    'login.resetEmailInputRequired',
+                                                  );
+                                                });
+                                                return;
+                                              }
+                                              try {
+                                                await _auth
+                                                    .sendPasswordResetEmail(
+                                                      email: _emailController
+                                                          .text
+                                                          .trim(),
+                                                    );
+                                                if (mounted) {
+                                                  ScaffoldMessenger.of(
+                                                    context,
+                                                  ).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(
+                                                        l10n.t(
+                                                          'login.resetEmailSent',
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                }
+                                              } catch (e) {
+                                                setState(() {
+                                                  _errorMessage = l10n.t(
+                                                    'login.resetEmailFailed',
+                                                  );
+                                                });
+                                              }
+                                            },
+                                      child: Text(
+                                        l10n.t('login.forgotPassword'),
+                                        style: TextStyle(
+                                          color: theme.colorScheme.primary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ],
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                    if (_isSignUp) const SizedBox(height: 20),
-
-                    if (!_isSignUp) ...[
-                      const SizedBox(height: 20),
-                      // Sosyal Medya Butonları
-                      _SocialLoginButton(
-                        icon: FontAwesomeIcons.google,
-                        text: l10n.t('login.continueWithGoogle'),
-                        backgroundColor: Colors.white,
-                        textColor: Colors.black,
-                        onPressed: _isLoading ? null : _signInWithGoogle,
-                      ),
-                      if (showAppleSignIn) ...[
+                        if (!_isSignUp) ...[
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              const Expanded(child: Divider()),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                child: Text(
+                                  l10n.t('login.orDivider'),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withOpacity(0.6),
+                                  ),
+                                ),
+                              ),
+                              const Expanded(child: Divider()),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          _SocialLoginButton(
+                            icon: FontAwesomeIcons.google,
+                            text: l10n.t('login.continueWithGoogle'),
+                            backgroundColor: Colors.transparent,
+                            textColor: theme.colorScheme.onSurface.withOpacity(
+                              0.9,
+                            ),
+                            borderSide: BorderSide(
+                              color: theme.dividerColor.withOpacity(
+                                theme.brightness == Brightness.dark ? 0.3 : 0.5,
+                              ),
+                            ),
+                            onPressed: _isLoading ? null : _signInWithGoogle,
+                          ),
+                          if (showAppleSignIn) ...[
+                            const SizedBox(height: 16),
+                            _SocialLoginButton(
+                              icon: FontAwesomeIcons.apple,
+                              text: l10n.t('login.continueWithApple'),
+                              backgroundColor: Colors.transparent,
+                              textColor: theme.colorScheme.onSurface,
+                              borderSide: BorderSide(
+                                color: theme.dividerColor.withOpacity(
+                                  theme.brightness == Brightness.dark
+                                      ? 0.3
+                                      : 0.5,
+                                ),
+                              ),
+                              onPressed: _isLoading ? null : _signInWithApple,
+                            ),
+                          ],
+                        ],
                         const SizedBox(height: 16),
-                        _SocialLoginButton(
-                          icon: FontAwesomeIcons.apple,
-                          text: l10n.t('login.continueWithApple'),
-                          backgroundColor: Colors.black,
-                          textColor: Colors.white,
-                          onPressed: _isLoading ? null : _signInWithApple,
-                        ),
                       ],
-                    ],
-                  ],
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  InputDecoration _inputDecoration({
+    required String labelText,
+    String? hintText,
+    IconData? prefixIcon,
+    Widget? suffixIcon,
+  }) {
+    final theme = Theme.of(context);
+    final bool isDark = theme.brightness == Brightness.dark;
+    final borderRadius = BorderRadius.circular(18);
+    final baseBorder = OutlineInputBorder(
+      borderRadius: borderRadius,
+      borderSide: BorderSide(
+        color: theme.colorScheme.primary.withOpacity(
+          theme.brightness == Brightness.dark ? 0.35 : 0.25,
+        ),
+        width: 1,
+      ),
+    );
+
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+      suffixIcon: suffixIcon,
+      labelStyle: theme.textTheme.bodyLarge?.copyWith(
+        color: theme.colorScheme.onSurface.withOpacity(0.4),
+      ),
+      filled: isDark,
+      fillColor: isDark ? Colors.white.withOpacity(0.08) : null,
+      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      border: baseBorder,
+      enabledBorder: baseBorder,
+      focusedBorder: baseBorder.copyWith(
+        borderSide: BorderSide(color: theme.colorScheme.primary, width: 1.6),
+      ),
+    );
+  }
+}
+
+class _AuthModeButton extends StatelessWidget {
+  final String text;
+  final bool isSelected;
+  final VoidCallback? onTap;
+
+  const _AuthModeButton({
+    required this.text,
+    required this.isSelected,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final borderRadius = BorderRadius.circular(24);
+    final child = AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+        borderRadius: borderRadius,
+      ),
+      child: Center(
+        child: Text(
+          text,
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: isSelected
+                ? theme.colorScheme.onPrimary
+                : theme.colorScheme.onSurface.withOpacity(0.5),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(onTap: onTap, borderRadius: borderRadius, child: child),
     );
   }
 }
@@ -1354,6 +1439,7 @@ class _SocialLoginButton extends StatelessWidget {
   final Color backgroundColor;
   final Color textColor;
   final VoidCallback? onPressed;
+  final BorderSide? borderSide;
 
   const _SocialLoginButton({
     required this.icon,
@@ -1361,6 +1447,7 @@ class _SocialLoginButton extends StatelessWidget {
     required this.backgroundColor,
     this.textColor = Colors.white,
     this.onPressed,
+    this.borderSide,
   });
 
   @override
@@ -1373,8 +1460,13 @@ class _SocialLoginButton extends StatelessWidget {
         label: Text(text, style: TextStyle(fontSize: 18, color: textColor)),
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor,
+          foregroundColor: textColor,
+          shadowColor: Colors.transparent,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: borderSide ?? BorderSide.none,
+          ),
         ),
       ),
     );
