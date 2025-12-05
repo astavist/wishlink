@@ -105,6 +105,71 @@ class AppLocalizations {
       'en': 'Need help? These areas are on the way.',
       'tr': 'Yardım mı lazım? Bu bölümler yakında geliyor.',
     },
+    'settings.deleteAccount': {'en': 'Delete account', 'tr': 'Hesabı sil'},
+    'settings.deleteAccountSubtitle': {
+      'en': 'This removes your profile, wishes and saved data permanently.',
+      'tr': 'Profilini, wishlerini ve kayıtlı verilerini kalıcı olarak siler.',
+    },
+    'settings.deleteAccountConfirmTitle': {
+      'en': 'Delete your account?',
+      'tr': 'Hesabını silmek istiyor musun?',
+    },
+    'settings.deleteAccountConfirmMessage': {
+      'en':
+          'All of your data including wishes, lists, notes and notifications will be removed forever. This action cannot be undone.',
+      'tr':
+          'Wishlerin, listelerin, notların ve bildirimlerin dahil tüm verilerin kalıcı olarak silinecek. Bu işlem geri alınamaz.',
+    },
+    'settings.deleteAccountConfirmAction': {
+      'en': 'Delete my account',
+      'tr': 'Hesabımı sil',
+    },
+    'settings.deleteAccountReauth': {
+      'en':
+          'For security reasons, please sign in again before deleting your account.',
+      'tr':
+          'Güvenlik nedeniyle hesabını silmeden önce lütfen tekrar giriş yap.',
+    },
+      'settings.reauth.passwordTitle': {
+        'en': 'Confirm your password',
+        'tr': 'Şifreni doğrula',
+      },
+      'settings.reauth.passwordMessage': {
+        'en': 'Enter your password to continue.',
+        'tr': 'Devam etmek için lütfen mevcut şifreni gir.',
+      },
+      'settings.reauth.passwordPlaceholder': {
+        'en': 'Current password',
+        'tr': 'Mevcut şifre',
+      },
+      'settings.reauth.passwordConfirm': {
+        'en': 'Confirm',
+        'tr': 'Onayla',
+      },
+      'settings.reauth.passwordRequired': {
+        'en': 'Password is required',
+        'tr': 'Şifre gerekli',
+      },
+      'settings.reauth.invalidPassword': {
+        'en': 'Incorrect password. Please try again.',
+        'tr': 'Şifre hatalı. Lütfen tekrar dene.',
+      },
+      'settings.reauth.unsupportedProvider': {
+        'en': 'Please sign out and sign back in before deleting your account.',
+        'tr': 'Hesabını silmeden önce lütfen oturumu kapatıp tekrar giriş yap.',
+      },
+      'settings.reauth.genericError': {
+        'en': 'Could not verify your session. Please try again.',
+        'tr': 'Oturum doğrulanamadı. Lütfen tekrar dene.',
+      },
+    'settings.deleteAccountError': {
+      'en': 'Could not delete account: {error}',
+      'tr': 'Hesap silinemedi: {error}',
+    },
+    'settings.deleteAccountInProgress': {
+      'en': 'Deleting your account...',
+      'tr': 'Hesabın siliniyor...',
+    },
     // Edit Profile
     'editProfile.loadFailed': {
       'en': 'Failed to load profile: {error}',

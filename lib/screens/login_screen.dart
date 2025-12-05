@@ -14,6 +14,7 @@ import 'package:crypto/crypto.dart';
 import 'email_verification_required_screen.dart';
 import 'account_setup_screen.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
+import '../services/google_sign_in_service.dart';
 import '../widgets/wishlink_card.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -27,13 +28,14 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
-  final _googleSignIn = GoogleSignIn(
-    scopes: [
-      'email',
-      'profile',
-      'https://www.googleapis.com/auth/user.birthday.read',
-    ],
-  );
+  final _googleSignIn = GoogleSignInService.instance;
+  static const _googleBirthdayScope =
+      'https://www.googleapis.com/auth/user.birthday.read';
+  static const List<String> _googleScopeHint = <String>[
+    'email',
+    'profile',
+    _googleBirthdayScope,
+  ];
 
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
@@ -473,21 +475,23 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
+      await GoogleSignInService.ensureInitialized();
       try {
         await _googleSignIn.signOut();
       } catch (_) {
         // Ignore sign-out errors and continue with sign-in flow.
       }
 
-      final googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) {
-        return;
-      }
-
+      final googleUser = await _googleSignIn.authenticate(
+        scopeHint: _googleScopeHint,
+      );
       final googleAuth = await googleUser.authentication;
-      final googleBirthday = await _fetchGoogleBirthday(googleAuth.accessToken);
+      final birthdayToken = await GoogleSignInService.requestAccessToken(
+        account: googleUser,
+        scopes: const [_googleBirthdayScope],
+      );
+      final googleBirthday = await _fetchGoogleBirthday(birthdayToken);
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
@@ -577,6 +581,15 @@ class _LoginScreenState extends State<LoginScreen> {
     } on FirebaseAuthException catch (e) {
       setState(() {
         _errorMessage = _getErrorMessage(e.code);
+      });
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled ||
+          e.code == GoogleSignInExceptionCode.interrupted ||
+          e.code == GoogleSignInExceptionCode.uiUnavailable) {
+        return;
+      }
+      setState(() {
+        _errorMessage = l10n.t('login.googleFailed');
       });
     } catch (e) {
       setState(() {
