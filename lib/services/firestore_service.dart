@@ -13,6 +13,105 @@ class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  DocumentReference<Map<String, dynamic>> _blockDocRef(
+    String ownerId,
+    String targetUserId,
+  ) {
+    return _firestore
+        .collection('users')
+        .doc(ownerId)
+        .collection('blocks')
+        .doc(targetUserId);
+  }
+
+  Future<void> submitReport({
+    required String targetId,
+    required String targetType,
+    required String reason,
+    String? description,
+  }) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('Not authenticated');
+    }
+
+    final payload = <String, dynamic>{
+      'reporterId': currentUser.uid,
+      'targetId': targetId,
+      'targetType': targetType,
+      'reason': reason,
+      'status': 'pending',
+      'createdAt': FieldValue.serverTimestamp(),
+    };
+
+    final trimmedDescription = description?.trim();
+    if (trimmedDescription != null && trimmedDescription.isNotEmpty) {
+      payload['description'] = trimmedDescription;
+    }
+
+    await _firestore.collection('reports').add(payload);
+  }
+
+  Future<bool> hasBlockedUser(String targetUserId) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null || targetUserId.isEmpty) {
+      return false;
+    }
+
+    if (currentUser.uid == targetUserId) {
+      return false;
+    }
+
+    final doc = await _blockDocRef(currentUser.uid, targetUserId).get();
+    return doc.exists;
+  }
+
+  Future<bool> isBlockedByUser(String userId) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null || userId.isEmpty) {
+      return false;
+    }
+
+    if (currentUser.uid == userId) {
+      return false;
+    }
+
+    final doc = await _blockDocRef(userId, currentUser.uid).get();
+    return doc.exists;
+  }
+
+  Future<void> blockUser(String targetUserId) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('Not authenticated');
+    }
+
+    if (currentUser.uid == targetUserId) {
+      throw Exception('Cannot block yourself');
+    }
+
+    final docRef = _blockDocRef(currentUser.uid, targetUserId);
+    await docRef.set({
+      'blockedId': targetUserId,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    try {
+      await removeFriend(targetUserId);
+    } catch (_) {
+      // Ignore friend removal failures; block should still persist.
+    }
+  }
+
+  Future<void> unblockUser(String targetUserId) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) {
+      throw Exception('Not authenticated');
+    }
+
+    await _blockDocRef(currentUser.uid, targetUserId).delete();
+  }
+
   // Get current user's friends
   Future<List<String>> getFriendIds() async {
     final currentUser = _auth.currentUser;

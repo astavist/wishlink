@@ -53,6 +53,143 @@ class AppLocalizations {
       'en': 'Failed to update like. Try again.',
       'tr': 'Beğeni güncellenemedi. Lütfen tekrar dene.',
     },
+    // Reporting & Blocking
+    'report.reasonLabel': {
+      'en': 'Choose a reason',
+      'tr': 'Bir sebep seç',
+    },
+    'report.noteLabel': {
+      'en': 'Additional details (optional)',
+      'tr': 'Ek açıklama (opsiyonel)',
+    },
+    'report.noteHint': {
+      'en': 'Tell us what happened',
+      'tr': 'Ne olduğunu kısaca anlat',
+    },
+    'report.reasonSpam': {
+      'en': 'Spam or misleading',
+      'tr': 'Spam veya yanıltıcı',
+    },
+    'report.reasonHarassment': {
+      'en': 'Harassment or hate',
+      'tr': 'Taciz veya nefret',
+    },
+    'report.reasonInappropriate': {
+      'en': 'Sexual or violent content',
+      'tr': 'Uygunsuz ya da şiddet içerik',
+    },
+    'report.reasonMisleading': {
+      'en': 'Scam or fraud',
+      'tr': 'Dolandırıcılık şüphesi',
+    },
+    'report.reasonOther': {
+      'en': 'Other',
+      'tr': 'Diğer',
+    },
+    'report.submitAction': {
+      'en': 'Send report',
+      'tr': 'Şikayeti gönder',
+    },
+    'report.userTitle': {
+      'en': 'Report {name}',
+      'tr': '{name} kullanıcısını şikayet et',
+    },
+    'report.userDescription': {
+      'en': 'Tell us why this profile should be reviewed.',
+      'tr': 'Bu profilin neden incelenmesi gerektiğini belirt.',
+    },
+    'report.wishTitle': {
+      'en': 'Report wish',
+      'tr': 'Wish\'i şikayet et',
+    },
+    'report.wishDescription': {
+      'en': 'Flag this wish for our moderation team.',
+      'tr': 'Bu wish\'i moderasyon için işaretle.',
+    },
+    'report.successMessage': {
+      'en': 'Report sent. Thanks for helping keep Wishlink safe.',
+      'tr': 'Şikayetin gönderildi. Wishlink\'i güvenli tuttuğun için teşekkürler.',
+    },
+    'report.failureMessage': {
+      'en': 'Could not send report. Please try again.',
+      'tr': 'Şikayet gönderilemedi. Lütfen tekrar dene.',
+    },
+    'report.menuReportUser': {
+      'en': 'Report user',
+      'tr': 'Kullanıcıyı şikayet et',
+    },
+    'report.menuReportWish': {
+      'en': 'Report wish',
+      'tr': 'Wish\'i şikayet et',
+    },
+    'block.menuBlockUser': {
+      'en': 'Block user',
+      'tr': 'Kullanıcıyı engelle',
+    },
+    'block.menuUnblockUser': {
+      'en': 'Unblock user',
+      'tr': 'Engeli kaldır',
+    },
+    'block.confirmTitle': {
+      'en': 'Block this user?',
+      'tr': 'Bu kullanıcı engellensin mi?',
+    },
+    'block.confirmMessage': {
+      'en': 'They will no longer be able to view or interact with you.',
+      'tr': 'Artık seninle etkileşime giremez ve seni göremez.',
+    },
+    'block.unblockConfirmTitle': {
+      'en': 'Remove block?',
+      'tr': 'Engeli kaldır?',
+    },
+    'block.unblockConfirmMessage': {
+      'en': 'They will be able to interact with you again.',
+      'tr': 'Tekrar etkileşime girebilir.',
+    },
+    'block.successMessage': {
+      'en': 'User blocked.',
+      'tr': 'Kullanıcı engellendi.',
+    },
+    'block.failureMessage': {
+      'en': 'Could not block user. Please try again.',
+      'tr': 'Engelleme başarısız. Lütfen tekrar dene.',
+    },
+    'block.unblockedMessage': {
+      'en': 'Block removed.',
+      'tr': 'Engel kaldırıldı.',
+    },
+    'block.unblockFailureMessage': {
+      'en': 'Could not remove block. Please try again.',
+      'tr': 'Engel kaldırılamadı. Lütfen tekrar dene.',
+    },
+    'block.statusBlocked': {
+      'en': 'You blocked this user',
+      'tr': 'Bu kullanıcıyı engelledin',
+    },
+    'block.infoBanner': {
+      'en': 'You blocked this user so likes, comments and other interactions are disabled.',
+      'tr': 'Bu kullanıcıyı engellediğin için beğeni, yorum vb. etkileşimler kapalı.',
+    },
+    'block.actionUnblock': {
+      'en': 'Unblock',
+      'tr': 'Engeli kaldır',
+    },
+    'block.statusBlockedByUser': {
+      'en': 'This user blocked you',
+      'tr': 'Bu kullanıcı seni engelledi',
+    },
+    'block.blockedProfileMessage': {
+      'en': 'This profile is unavailable because the user blocked you.',
+      'tr': 'Bu kullanıcı seni engellediği için profil kullanılamıyor.',
+    },
+    'block.blockedWishMessage': {
+      'en': 'You can\'t view this wish because its owner blocked you.',
+      'tr': 'Sahibi seni engellediği için bu wish\'i göremezsin.',
+    },
+    'block.blockedByOwnerBanner': {
+      'en': 'You can\'t interact with this wish because its owner blocked you.',
+      'tr': 'Sahibi seni engellediği için bu wish ile etkileşim kuramazsın.',
+    },
     // Settings
     'settings.title': {'en': 'Settings', 'tr': 'Ayarlar'},
     'settings.editProfile': {'en': 'Edit Profile', 'tr': 'Profili Düzenle'},

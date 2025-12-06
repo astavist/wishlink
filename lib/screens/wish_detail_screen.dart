@@ -14,8 +14,10 @@ import '../services/firestore_service.dart';
 import '../widgets/wishlink_card.dart';
 import 'edit_wish_screen.dart';
 import '../utils/currency_utils.dart';
+import '../widgets/report_dialog.dart';
 
 enum _WishOwnerAction { edit, delete }
+enum _WishViewerAction { report, block, unblock }
 
 class WishDetailScreen extends StatefulWidget {
   final WishItem wish;
@@ -40,6 +42,10 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
   int _likesCount = 0;
   int _commentsCount = 0;
   String _ownerAvatarUrl = '';
+  bool _hasBlockedOwner = false;
+  bool _isBlockedByOwner = false;
+  bool _isHandlingOwnerBlock = false;
+  String? _ownerUserId;
   late WishItem _wish;
   final TextEditingController _commentController = TextEditingController();
   final GlobalKey _commentsSectionKey = GlobalKey();
@@ -75,6 +81,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
             return;
           }
 
+          final previousOwnerId = _ownerUserId;
           setState(() {
             _hasLoadedActivity = true;
             _activity = activity;
@@ -86,10 +93,13 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
               _likesCount = 0;
               _commentsCount = 0;
               _ownerAvatarUrl = '';
+              _ownerUserId = null;
+              _hasBlockedOwner = false;
               return;
             }
 
             _wish = activity.wishItem;
+            _ownerUserId = activity.userId;
             _isOwnActivity =
                 currentUserId != null && activity.userId == currentUserId;
             _isLiked =
@@ -105,6 +115,11 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
           if (latestActivity != null &&
               latestActivity.userAvatarUrl.trim().isEmpty) {
             _fetchOwnerAvatar(latestActivity.userId);
+          }
+          if (latestActivity != null &&
+              latestActivity.userId.isNotEmpty &&
+              latestActivity.userId != previousOwnerId) {
+            _refreshOwnerBlockState(latestActivity.userId);
           }
         });
   }
@@ -234,9 +249,180 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     }
   }
 
+  Future<void> _handleReportWish() async {
+    final l10n = context.l10n;
+    final result = await showReportDialog(
+      context: context,
+      title: l10n.t('report.wishTitle'),
+      description: l10n.t('report.wishDescription'),
+    );
+    if (result == null) {
+      return;
+    }
+    try {
+      await _firestoreService.submitReport(
+        targetId: _wish.id,
+        targetType: 'wish',
+        reason: result.reason,
+        description: result.description,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.t('report.successMessage'))),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.t('report.failureMessage'))),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleBlockOwner() async {
+    if (_isHandlingOwnerBlock) {
+      return;
+    }
+    final ownerId = _ownerUserId;
+    if (ownerId == null || ownerId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.t('wishDetail.ownerMissing'))),
+        );
+      }
+      return;
+    }
+    final l10n = context.l10n;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.t('block.confirmTitle')),
+        content: Text(l10n.t('block.confirmMessage')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.t('common.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.t('block.menuBlockUser')),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) {
+      return;
+    }
+    setState(() {
+      _isHandlingOwnerBlock = true;
+    });
+    try {
+      await _firestoreService.blockUser(ownerId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _hasBlockedOwner = true;
+        _isBlockedByOwner = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.t('block.successMessage'))),
+      );
+      await _refreshOwnerBlockState(ownerId);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.t('block.failureMessage'))),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isHandlingOwnerBlock = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleUnblockOwner() async {
+    if (_isHandlingOwnerBlock) {
+      return;
+    }
+    final ownerId = _ownerUserId;
+    if (ownerId == null || ownerId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.l10n.t('wishDetail.ownerMissing'))),
+        );
+      }
+      return;
+    }
+    final l10n = context.l10n;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.t('block.unblockConfirmTitle')),
+        content: Text(l10n.t('block.unblockConfirmMessage')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.t('common.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.t('block.actionUnblock')),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) {
+      return;
+    }
+    setState(() {
+      _isHandlingOwnerBlock = true;
+    });
+    try {
+      await _firestoreService.unblockUser(ownerId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _hasBlockedOwner = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.t('block.unblockedMessage'))),
+      );
+      await _refreshOwnerBlockState(ownerId);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.t('block.unblockFailureMessage'))),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isHandlingOwnerBlock = false;
+        });
+      }
+    }
+  }
+
   Future<void> _handleLike() async {
     final activity = _activity;
     if (activity == null || _isOwnActivity || _isProcessingLike) {
+      return;
+    }
+    if (_hasBlockedOwner || _isBlockedByOwner) {
+      final blockMessage = _hasBlockedOwner
+          ? context.l10n.t('block.infoBanner')
+          : context.l10n.t('block.blockedByOwnerBanner');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(blockMessage)),
+        );
+      }
       return;
     }
 
@@ -319,6 +505,17 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
         _isSendingComment) {
       return;
     }
+    if (_hasBlockedOwner || _isBlockedByOwner) {
+      final blockMessage = _hasBlockedOwner
+          ? context.l10n.t('block.infoBanner')
+          : context.l10n.t('block.blockedByOwnerBanner');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(blockMessage)),
+        );
+      }
+      return;
+    }
 
     setState(() {
       _isSendingComment = true;
@@ -393,6 +590,30 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
       sections.join('\n\n'),
       subject: l10n.t(subjectKey, params: subjectParams),
     );
+  }
+
+  Future<void> _refreshOwnerBlockState(String ownerId) async {
+    try {
+      final results = await Future.wait([
+        _firestoreService.hasBlockedUser(ownerId),
+        _firestoreService.isBlockedByUser(ownerId),
+      ]);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _hasBlockedOwner = results[0];
+        _isBlockedByOwner = results[1];
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _hasBlockedOwner = false;
+        _isBlockedByOwner = false;
+      });
+    }
   }
 
   String _resolveWishName(AppLocalizations l10n) {
@@ -606,6 +827,40 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     );
   }
 
+  Widget _buildBlockedInfoBanner(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = context.l10n;
+    final background = theme.colorScheme.errorContainer.withOpacity(
+      theme.brightness == Brightness.dark ? 0.32 : 0.85,
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.block,
+            color: theme.colorScheme.error,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              l10n.t('block.infoBanner'),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onErrorContainer,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildWishInfoCard(BuildContext context, WishItem wish) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
@@ -679,6 +934,58 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     );
   }
 
+  Widget _buildBlockedWishView(AppLocalizations l10n, ThemeData theme) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: theme.colorScheme.outline.withOpacity(
+                theme.brightness == Brightness.dark ? 0.3 : 0.15,
+              ),
+            ),
+            boxShadow: theme.brightness == Brightness.dark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(10),
+                      blurRadius: 32,
+                      offset: const Offset(0, 22),
+                    ),
+                  ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.block, size: 52, color: theme.colorScheme.error),
+              const SizedBox(height: 18),
+              Text(
+                l10n.t('block.statusBlockedByUser'),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                l10n.t('block.blockedWishMessage'),
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildEngagementSection(BuildContext context) {
     final l10n = context.l10n;
 
@@ -692,9 +999,14 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     final likeLabel = _isLiked
         ? l10n.t('wishDetail.liked')
         : l10n.t('wishDetail.like');
+    final interactionsBlocked = _hasBlockedOwner || _isBlockedByOwner;
     final likeEnabled =
-        _activity != null && !_isOwnActivity && !_isProcessingLike;
-    final commentEnabled = _activity != null && !_isOwnActivity;
+        _activity != null &&
+        !_isOwnActivity &&
+        !_isProcessingLike &&
+        !interactionsBlocked;
+    final commentEnabled =
+        _activity != null && !_isOwnActivity && !interactionsBlocked;
 
     return Row(
       children: [
@@ -732,6 +1044,21 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     final activity = _activity;
     if (_isOwnActivity || activity == null) {
       return const SizedBox.shrink();
+    }
+    if (_hasBlockedOwner || _isBlockedByOwner) {
+      final message = _hasBlockedOwner
+          ? context.l10n.t('block.infoBanner')
+          : context.l10n.t('block.blockedWishMessage');
+      return Padding(
+        key: _commentsSectionKey,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Text(
+          message,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.75),
+              ),
+        ),
+      );
     }
 
     final l10n = context.l10n;
@@ -858,6 +1185,37 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
   Widget build(BuildContext context) {
     final wish = _wish;
     final l10n = context.l10n;
+    final theme = Theme.of(context);
+
+    final body = _isBlockedByOwner && !_isOwnActivity
+        ? _buildBlockedWishView(l10n, theme)
+        : SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            child: WishLinkCard(
+              margin: EdgeInsets.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildOwnerSection(context),
+                  if (_hasBlockedOwner) ...[
+                    const SizedBox(height: 16),
+                    _buildBlockedInfoBanner(context),
+                  ],
+                  const SizedBox(height: 20),
+                  _buildHeroImage(context, wish),
+                  const SizedBox(height: 20),
+                  _buildWishInfoCard(context, wish),
+                  const SizedBox(height: 24),
+                  _buildEngagementSection(context),
+                  if (!_isOwnActivity) ...[
+                    const SizedBox(height: 28),
+                    _buildCommentsSection(context),
+                  ],
+                ],
+              ),
+            ),
+          );
 
     return Scaffold(
       appBar: AppBar(
@@ -892,6 +1250,49 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
                   child: Text(l10n.t('common.delete')),
                 ),
               ],
+            )
+          else
+            PopupMenuButton<_WishViewerAction>(
+              icon: const Icon(Icons.more_vert),
+              tooltip: l10n.t('wishDetail.menuTooltip'),
+              onSelected: (action) async {
+                switch (action) {
+                  case _WishViewerAction.report:
+                    await _handleReportWish();
+                    break;
+                  case _WishViewerAction.block:
+                    await _handleBlockOwner();
+                    break;
+                  case _WishViewerAction.unblock:
+                    await _handleUnblockOwner();
+                    break;
+                }
+              },
+              itemBuilder: (context) {
+                final items = <PopupMenuEntry<_WishViewerAction>>[
+                  PopupMenuItem(
+                    value: _WishViewerAction.report,
+                    child: Text(l10n.t('report.menuReportWish')),
+                  ),
+                ];
+                final ownerId = _ownerUserId;
+                if (ownerId != null && ownerId.isNotEmpty) {
+                  final blockAction = _hasBlockedOwner
+                      ? _WishViewerAction.unblock
+                      : _WishViewerAction.block;
+                  final blockLabel = _hasBlockedOwner
+                      ? l10n.t('block.menuUnblockUser')
+                      : l10n.t('block.menuBlockUser');
+                  items.add(
+                    PopupMenuItem(
+                      value: blockAction,
+                      enabled: !_isHandlingOwnerBlock,
+                      child: Text(blockLabel),
+                    ),
+                  );
+                }
+                return items;
+              },
             ),
         ],
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
@@ -900,29 +1301,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
         scrolledUnderElevation: 0,
         surfaceTintColor: Colors.transparent,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        child: WishLinkCard(
-          margin: EdgeInsets.zero,
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildOwnerSection(context),
-              const SizedBox(height: 20),
-              _buildHeroImage(context, wish),
-              const SizedBox(height: 20),
-              _buildWishInfoCard(context, wish),
-              const SizedBox(height: 24),
-              _buildEngagementSection(context),
-              if (!_isOwnActivity) ...[
-                const SizedBox(height: 28),
-                _buildCommentsSection(context),
-              ],
-            ],
-          ),
-        ),
-      ),
+      body: body,
     );
   }
 }

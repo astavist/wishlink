@@ -6,6 +6,7 @@ import '../models/wish_list.dart';
 import '../utils/currency_utils.dart';
 import '../models/user_private_note.dart';
 import '../services/firestore_service.dart';
+import '../widgets/report_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'wish_detail_screen.dart';
 import 'wish_list_detail_screen.dart';
@@ -171,6 +172,8 @@ class _NoteEditorDialogState extends State<_NoteEditorDialog> {
   }
 }
 
+enum _ProfileAction { reportUser, blockUser, unblockUser }
+
 class _UserProfileScreenState extends State<UserProfileScreen> {
   final _firestore = FirebaseFirestore.instance;
   final FirestoreService _firestoreService = FirestoreService();
@@ -189,6 +192,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   bool _isFriend = false;
   bool _friendRequestPending = false;
   bool _isSendingFriendRequest = false;
+  bool _hasBlockedUser = false;
+  bool _isHandlingBlockAction = false;
+  bool _isBlockedByTarget = false;
 
   bool get _isViewingOwnProfile => _auth.currentUser?.uid == widget.userId;
 
@@ -247,6 +253,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return buffer.isNotEmpty ? buffer.toString().toUpperCase() : 'WL';
   }
 
+  String _resolveDisplayName(AppLocalizations l10n) {
+    final resolvedName = [
+      _firstName.trim(),
+      _lastName.trim(),
+    ].where((value) => value.isNotEmpty).join(' ').trim();
+
+    if (resolvedName.isNotEmpty) {
+      return resolvedName;
+    }
+
+    return widget.userName ?? l10n.t('profile.defaultUserName');
+  }
+
   String _formatNoteDate(DateTime date, AppLocalizations l10n) {
     final localeName = l10n.locale.toLanguageTag();
     return DateFormat('dd.MM.yyyy', localeName).format(date);
@@ -260,11 +279,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   Future<void> _loadUserData() async {
     try {
-      await _checkFriendshipStatus();
-      if (!_isViewingOwnProfile && !_isFriend) {
-        await _checkFriendRequestStatus();
+      await _checkBlockStates();
+      final blockRestriction = _hasBlockedUser || _isBlockedByTarget;
+      if (!blockRestriction) {
+        await _checkFriendshipStatus();
+        if (!_isViewingOwnProfile && !_isFriend) {
+          await _checkFriendRequestStatus();
+        } else if (mounted) {
+          setState(() {
+            _friendRequestPending = false;
+          });
+        }
       } else if (mounted) {
         setState(() {
+          _isFriend = false;
           _friendRequestPending = false;
         });
       }
@@ -298,6 +326,19 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             _birthdayDisplayPreference = 'dayMonthYear';
           }
         });
+      }
+
+      if (_isBlockedByTarget && !_isViewingOwnProfile) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _userWishes = [];
+          _wishLists = [];
+          _privateNotes = [];
+          _isLoading = false;
+        });
+        return;
       }
 
       // Load user's wishes from friend_activities
@@ -348,6 +389,49 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       }
       setState(() {
         _isFriend = false;
+      });
+    }
+  }
+
+  Future<void> _checkBlockStates() async {
+    try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _hasBlockedUser = false;
+          _isBlockedByTarget = false;
+        });
+        return;
+      }
+
+      final results = await Future.wait([
+        _firestoreService.hasBlockedUser(widget.userId),
+        _firestoreService.isBlockedByUser(widget.userId),
+      ]);
+
+      if (!mounted) {
+        return;
+      }
+      final viewerBlockedTarget = results[0];
+      final blockedByTarget = results[1];
+      setState(() {
+        _hasBlockedUser = viewerBlockedTarget;
+        _isBlockedByTarget = blockedByTarget;
+        if (viewerBlockedTarget || blockedByTarget) {
+          _isFriend = false;
+          _friendRequestPending = false;
+        }
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _hasBlockedUser = false;
+        _isBlockedByTarget = false;
       });
     }
   }
@@ -412,6 +496,152 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       if (mounted) {
         setState(() {
           _isSendingFriendRequest = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleReportUser() async {
+    final l10n = context.l10n;
+    final displayName = _resolveDisplayName(l10n);
+    final result = await showReportDialog(
+      context: context,
+      title: l10n.t('report.userTitle', params: {'name': displayName}),
+      description: l10n.t('report.userDescription'),
+    );
+    if (result == null) {
+      return;
+    }
+    try {
+      await _firestoreService.submitReport(
+        targetId: widget.userId,
+        targetType: 'user',
+        reason: result.reason,
+        description: result.description,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.t('report.successMessage'))),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.t('report.failureMessage'))),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleBlockUser() async {
+    if (_isHandlingBlockAction) {
+      return;
+    }
+    final l10n = context.l10n;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.t('block.confirmTitle')),
+        content: Text(l10n.t('block.confirmMessage')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.t('common.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.t('block.menuBlockUser')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) {
+      return;
+    }
+
+    setState(() {
+      _isHandlingBlockAction = true;
+    });
+    try {
+      await _firestoreService.blockUser(widget.userId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _hasBlockedUser = true;
+        _isFriend = false;
+        _friendRequestPending = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.t('block.successMessage'))),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.t('block.failureMessage'))),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isHandlingBlockAction = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleUnblockUser() async {
+    if (_isHandlingBlockAction) {
+      return;
+    }
+    final l10n = context.l10n;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.t('block.unblockConfirmTitle')),
+        content: Text(l10n.t('block.unblockConfirmMessage')),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.t('common.cancel')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.t('block.actionUnblock')),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) {
+      return;
+    }
+
+    setState(() {
+      _isHandlingBlockAction = true;
+    });
+    try {
+      await _firestoreService.unblockUser(widget.userId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _hasBlockedUser = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(l10n.t('block.unblockedMessage'))),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10n.t('block.unblockFailureMessage'))),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isHandlingBlockAction = false;
         });
       }
     }
@@ -882,6 +1112,43 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     if (_isViewingOwnProfile) {
       return null;
     }
+    if (_isBlockedByTarget) {
+      return _buildStatusPill(
+        backgroundColor: theme.colorScheme.errorContainer.withOpacity(
+          theme.brightness == Brightness.dark ? 0.4 : 0.9,
+        ),
+        icon: Icons.block,
+        iconColor: theme.colorScheme.error,
+        label: l10n.t('block.statusBlockedByUser'),
+        textStyle: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.error,
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    }
+    if (_hasBlockedUser) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildStatusPill(
+            backgroundColor: theme.colorScheme.errorContainer
+                .withOpacity(theme.brightness == Brightness.dark ? 0.35 : 0.25),
+            icon: Icons.block,
+            iconColor: theme.colorScheme.error,
+            label: l10n.t('block.statusBlocked'),
+            textStyle: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.error,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: _isHandlingBlockAction ? null : _handleUnblockUser,
+            child: Text(l10n.t('block.actionUnblock')),
+          ),
+        ],
+      );
+    }
     if (_isFriend) {
       return _buildStatusPill(
         backgroundColor: const Color(0xFFE6F4EA),
@@ -912,6 +1179,96 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         onPressed: _isSendingFriendRequest ? null : _sendFriendRequest,
         icon: const Icon(Icons.person_add_alt),
         label: Text(l10n.t('friends.buttonSendRequest')),
+      ),
+    );
+  }
+
+  Widget _buildProfileActionsMenu(AppLocalizations l10n) {
+    final blockAction =
+        _hasBlockedUser ? _ProfileAction.unblockUser : _ProfileAction.blockUser;
+    final blockLabel = _hasBlockedUser
+        ? l10n.t('block.menuUnblockUser')
+        : l10n.t('block.menuBlockUser');
+
+    return PopupMenuButton<_ProfileAction>(
+      padding: EdgeInsets.zero,
+      icon: const Icon(Icons.more_vert),
+      onSelected: (action) async {
+        switch (action) {
+          case _ProfileAction.reportUser:
+            await _handleReportUser();
+            break;
+          case _ProfileAction.blockUser:
+            await _handleBlockUser();
+            break;
+          case _ProfileAction.unblockUser:
+            await _handleUnblockUser();
+            break;
+        }
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: _ProfileAction.reportUser,
+          child: Text(l10n.t('report.menuReportUser')),
+        ),
+        PopupMenuItem(
+          value: blockAction,
+          enabled: !_isHandlingBlockAction,
+          child: Text(blockLabel),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBlockedProfileNotice(
+    AppLocalizations l10n,
+    ThemeData theme,
+  ) {
+    final isDark = theme.brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1F1F1F) : Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withAlpha(20)
+              : Colors.black.withAlpha(12),
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withAlpha(12),
+                  blurRadius: 30,
+                  offset: const Offset(0, 20),
+                ),
+              ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(Icons.block, size: 48, color: theme.colorScheme.error),
+          const SizedBox(height: 16),
+          Text(
+            l10n.t('block.statusBlockedByUser'),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.t('block.blockedProfileMessage'),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1161,11 +1518,69 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     ];
     final backgroundColor =
         theme.appBarTheme.backgroundColor ?? theme.colorScheme.surface;
+    final headerRow = Row(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(Icons.arrow_back),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            profileTitle,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (!_isViewingOwnProfile) ...[
+          const SizedBox(width: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              shape: BoxShape.circle,
+            ),
+            child: _buildProfileActionsMenu(l10n),
+          ),
+        ],
+      ],
+    );
 
     if (_isLoading) {
       return Scaffold(
         backgroundColor: backgroundColor,
         body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_isBlockedByTarget && !_isViewingOwnProfile) {
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              32 + MediaQuery.paddingOf(context).bottom,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                headerRow,
+                const SizedBox(height: 32),
+                _buildBlockedProfileNotice(l10n, theme),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
@@ -1189,30 +1604,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest,
-                        shape: BoxShape.circle,
-                      ),
-                      child: IconButton(
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        icon: const Icon(Icons.arrow_back),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        profileTitle,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
+                headerRow,
                 const SizedBox(height: 16),
                 _ProfileHeaderCard(
                   title: fallbackName,
