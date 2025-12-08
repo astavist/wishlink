@@ -613,8 +613,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(
-                              Theme.of(context).brightness == Brightness.dark
+                            color: Colors.black.withValues(
+                              alpha: Theme.of(context).brightness ==
+                                      Brightness.dark
                                   ? 0.35
                                   : 0.15,
                             ),
@@ -624,7 +625,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           BoxShadow(
                             color:
                                 Theme.of(context).brightness == Brightness.dark
-                                ? Colors.white.withOpacity(0.08)
+                                ? Colors.white.withValues(alpha: 0.08)
                                 : const Color(0x66FFFFFF),
                             blurRadius: 6,
                             offset: const Offset(0, -2),
@@ -738,7 +739,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ? Colors.white
         : const Color(0xFF1F1F1F);
     final Color inactiveColor = theme.brightness == Brightness.dark
-        ? Colors.white.withOpacity(0.5)
+        ? Colors.white.withValues(alpha: 0.5)
         : Colors.grey[500]!;
 
     return GestureDetector(
@@ -752,8 +753,9 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
             decoration: BoxDecoration(
               color: isSelected
-                  ? activeColor.withOpacity(
-                      theme.brightness == Brightness.dark ? 0.18 : 0.1,
+                  ? activeColor.withValues(
+                      alpha:
+                          theme.brightness == Brightness.dark ? 0.18 : 0.1,
                     )
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(24),
@@ -905,11 +907,13 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    Share.share(
-      sections.join('\n\n'),
-      subject: l10n.t(
-        'share.friendSubject',
-        params: {'user': ownerLabel, 'wish': wishName},
+    SharePlus.instance.share(
+      ShareParams(
+        text: sections.join('\n\n'),
+        subject: l10n.t(
+          'share.friendSubject',
+          params: {'user': ownerLabel, 'wish': wishName},
+        ),
       ),
     );
   }

@@ -475,11 +475,12 @@ class _WishCardDialogState extends State<WishCardDialog> {
               SizedBox(
                 width: 120,
                 child: DropdownButtonFormField<String>(
-                  value: _availableCurrencies.contains(_selectedCurrency)
-                      ? _selectedCurrency
-                      : (_availableCurrencies.isNotEmpty
-                            ? _availableCurrencies.first
-                            : _selectedCurrency),
+                  initialValue:
+                      _availableCurrencies.contains(_selectedCurrency)
+                          ? _selectedCurrency
+                          : (_availableCurrencies.isNotEmpty
+                              ? _availableCurrencies.first
+                              : _selectedCurrency),
                   decoration: const InputDecoration(
                     labelText: 'Currency',
                     border: OutlineInputBorder(),

@@ -37,6 +37,44 @@ class SettingsScreen extends StatefulWidget {
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
+class _ModalSelectionTile<T> extends StatelessWidget {
+  const _ModalSelectionTile({
+    required this.value,
+    required this.groupValue,
+    required this.title,
+    this.subtitle,
+    required this.onChanged,
+  });
+
+  final T value;
+  final T groupValue;
+  final Widget title;
+  final Widget? subtitle;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isSelected = value == groupValue;
+    final Color iconColor = isSelected
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurface.withValues(alpha: 0.6);
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(
+        isSelected
+            ? Icons.radio_button_checked
+            : Icons.radio_button_unchecked,
+        color: iconColor,
+      ),
+      title: title,
+      subtitle: subtitle,
+      onTap: () => onChanged(value),
+    );
+  }
+}
+
 class _SettingsScreenState extends State<SettingsScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final AccountDeletionService _accountDeletionService =
@@ -954,12 +992,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 8),
                   ...locales.map(
-                    (locale) => RadioListTile<Locale>(
+                    (locale) => _ModalSelectionTile<Locale>(
                       value: locale,
                       groupValue: pendingSelection,
                       title: Text(_languageLabel(locale, l10n)),
                       onChanged: (value) {
-                        if (value == null) return;
                         setModalState(() {
                           pendingSelection = value;
                         });
@@ -1025,7 +1062,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  RadioListTile<ThemeMode>(
+                  _ModalSelectionTile<ThemeMode>(
                     value: ThemeMode.system,
                     groupValue: pendingSelection,
                     title: Text(l10n.t('settings.appearance.matchSystem')),
@@ -1033,31 +1070,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       l10n.t('settings.appearance.matchSystemDesc'),
                     ),
                     onChanged: (value) {
-                      if (value == null) return;
                       setModalState(() {
                         pendingSelection = value;
                       });
                     },
                   ),
-                  RadioListTile<ThemeMode>(
+                  _ModalSelectionTile<ThemeMode>(
                     value: ThemeMode.light,
                     groupValue: pendingSelection,
                     title: Text(l10n.t('settings.appearance.light')),
                     subtitle: Text(l10n.t('settings.appearance.lightDesc')),
                     onChanged: (value) {
-                      if (value == null) return;
                       setModalState(() {
                         pendingSelection = value;
                       });
                     },
                   ),
-                  RadioListTile<ThemeMode>(
+                  _ModalSelectionTile<ThemeMode>(
                     value: ThemeMode.dark,
                     groupValue: pendingSelection,
                     title: Text(l10n.t('settings.appearance.dark')),
                     subtitle: Text(l10n.t('settings.appearance.darkDesc')),
                     onChanged: (value) {
-                      if (value == null) return;
                       setModalState(() {
                         pendingSelection = value;
                       });

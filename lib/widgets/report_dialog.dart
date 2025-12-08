@@ -83,11 +83,10 @@ class _ReportDialogState extends State<_ReportDialog> {
             ),
             const SizedBox(height: 12),
             ..._reasonOptions.map(
-              (option) => RadioListTile<String>(
+              (option) => _ReportReasonTile(
                 value: option.value,
                 groupValue: _selectedReason,
-                contentPadding: EdgeInsets.zero,
-                title: Text(l10n.t(option.labelKey)),
+                label: l10n.t(option.labelKey),
                 onChanged: (value) {
                   setState(() {
                     _selectedReason = value;
@@ -128,6 +127,42 @@ class _ReportDialogState extends State<_ReportDialog> {
           child: Text(l10n.t('report.submitAction')),
         ),
       ],
+    );
+  }
+}
+
+class _ReportReasonTile extends StatelessWidget {
+  const _ReportReasonTile({
+    required this.value,
+    required this.groupValue,
+    required this.label,
+    required this.onChanged,
+  });
+
+  final String value;
+  final String? groupValue;
+  final String label;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bool isSelected = value == groupValue;
+
+    final Color iconColor = isSelected
+        ? theme.colorScheme.primary
+        : theme.colorScheme.onSurface.withValues(alpha: 0.6);
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(
+        isSelected
+            ? Icons.radio_button_checked
+            : Icons.radio_button_unchecked,
+        color: iconColor,
+      ),
+      title: Text(label),
+      onTap: () => onChanged(value),
     );
   }
 }

@@ -342,13 +342,16 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
       end: Alignment.bottomCenter,
     );
 
-    return WillPopScope(
-      onWillPop: () async {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) {
+          return;
+        }
         if (!widget.allowCancel || _isSaving) {
-          return false;
+          return;
         }
         await _cancelSetup();
-        return false;
       },
       child: Scaffold(
         extendBodyBehindAppBar: true,

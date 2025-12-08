@@ -586,9 +586,11 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
         ? {'user': friendLabel!, 'wish': wishName}
         : {'wish': wishName};
 
-    Share.share(
-      sections.join('\n\n'),
-      subject: l10n.t(subjectKey, params: subjectParams),
+    SharePlus.instance.share(
+      ShareParams(
+        text: sections.join('\n\n'),
+        subject: l10n.t(subjectKey, params: subjectParams),
+      ),
     );
   }
 
