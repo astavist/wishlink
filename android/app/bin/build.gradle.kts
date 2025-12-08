@@ -24,12 +24,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
         isCoreLibraryDesugaringEnabled = true
     }
-    
-    lint {
-    baseline = file("lint-baseline.xml")
-    abortOnError = false       
-    checkReleaseBuilds = false 
-    }
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).

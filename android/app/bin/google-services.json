@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "997917340335",
+    "project_id": "wishlink-app",
+    "storage_bucket": "wishlink-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:997917340335:android:67bee4181ace24fbd2da5a",
+        "android_client_info": {
+          "package_name": "com.astavist.wishlink"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "997917340335-0491pciliprktd6p8lnj2fi33ot93qgg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.astavist.wishlink",
+            "certificate_hash": "cea2d9daead4ac15de967e9742c1ce76e4a6121a"
+          }
+        },
+        {
+          "client_id": "997917340335-6uon9rta7r85lauls74siuo7uda05o5l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCPypCFAplkdA6dcleGnVMdSVERe3oceaY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "997917340335-6uon9rta7r85lauls74siuo7uda05o5l.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "997917340335-rla4p1q00qo9jok6fhqc8b4od82f94q9.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.astavist.wishlink"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
