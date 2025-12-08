@@ -986,8 +986,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
                                     color: theme.brightness == Brightness.dark
-                                        ? Colors.white.withOpacity(0.08)
-                                        : Colors.grey.withOpacity(0.1),
+                                        ? Colors.white.withValues(alpha: 0.08)
+                                        : Colors.grey.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(28),
                                   ),
                                   child: Row(
@@ -1022,9 +1022,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                       : Container(
                                           key: ValueKey(_errorMessage),
                                           padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: theme.colorScheme.error
-                                                .withOpacity(0.08),
+                                            decoration: BoxDecoration(
+                                              color: theme.colorScheme.error
+                                                  .withValues(alpha: 0.08),
                                             borderRadius: BorderRadius.circular(
                                               12,
                                             ),
@@ -1306,13 +1306,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 12,
                                 ),
-                                child: Text(
-                                  l10n.t('login.orDivider'),
-                                  style: theme.textTheme.bodyMedium?.copyWith(
-                                    color: theme.colorScheme.onSurface
-                                        .withOpacity(0.6),
+                                  child: Text(
+                                    l10n.t('login.orDivider'),
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
                                   ),
-                                ),
                               ),
                               const Expanded(child: Divider()),
                             ],
@@ -1322,14 +1322,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             icon: FontAwesomeIcons.google,
                             text: l10n.t('login.continueWithGoogle'),
                             backgroundColor: Colors.transparent,
-                            textColor: theme.colorScheme.onSurface.withOpacity(
-                              0.9,
-                            ),
-                            borderSide: BorderSide(
-                              color: theme.dividerColor.withOpacity(
-                                theme.brightness == Brightness.dark ? 0.3 : 0.5,
+                              textColor: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.9,
                               ),
-                            ),
+                              borderSide: BorderSide(
+                                color: theme.dividerColor.withValues(
+                                  alpha: theme.brightness == Brightness.dark
+                                      ? 0.3
+                                      : 0.5,
+                                ),
+                              ),
                             onPressed: _isLoading ? null : _signInWithGoogle,
                           ),
                           if (showAppleSignIn) ...[
@@ -1340,8 +1342,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               backgroundColor: Colors.transparent,
                               textColor: theme.colorScheme.onSurface,
                               borderSide: BorderSide(
-                                color: theme.dividerColor.withOpacity(
-                                  theme.brightness == Brightness.dark
+                                color: theme.dividerColor.withValues(
+                                  alpha: theme.brightness == Brightness.dark
                                       ? 0.3
                                       : 0.5,
                                 ),
@@ -1375,8 +1377,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final baseBorder = OutlineInputBorder(
       borderRadius: borderRadius,
       borderSide: BorderSide(
-        color: theme.colorScheme.primary.withOpacity(
-          theme.brightness == Brightness.dark ? 0.35 : 0.25,
+        color: theme.colorScheme.primary.withValues(
+          alpha: theme.brightness == Brightness.dark ? 0.35 : 0.25,
         ),
         width: 1,
       ),
@@ -1388,10 +1390,10 @@ class _LoginScreenState extends State<LoginScreen> {
       prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
       suffixIcon: suffixIcon,
       labelStyle: theme.textTheme.bodyLarge?.copyWith(
-        color: theme.colorScheme.onSurface.withOpacity(0.4),
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
       ),
       filled: isDark,
-      fillColor: isDark ? Colors.white.withOpacity(0.08) : null,
+      fillColor: isDark ? Colors.white.withValues(alpha: 0.08) : null,
       contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
       border: baseBorder,
       enabledBorder: baseBorder,
@@ -1428,12 +1430,12 @@ class _AuthModeButton extends StatelessWidget {
       child: Center(
         child: Text(
           text,
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: isSelected
-                ? theme.colorScheme.onPrimary
-                : theme.colorScheme.onSurface.withOpacity(0.5),
-            fontWeight: FontWeight.w600,
-          ),
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: isSelected
+                  ? theme.colorScheme.onPrimary
+                  : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+              fontWeight: FontWeight.w600,
+            ),
         ),
       ),
     );

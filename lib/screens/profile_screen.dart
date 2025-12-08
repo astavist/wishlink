@@ -397,8 +397,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: RefreshIndicator(
         onRefresh: _refreshPage,
         color: theme.colorScheme.primary,
-        backgroundColor: theme.colorScheme.surface.withOpacity(
-          theme.brightness == Brightness.dark ? 0.9 : 1,
+        backgroundColor: theme.colorScheme.surface.withValues(
+          alpha: theme.brightness == Brightness.dark ? 0.9 : 1,
         ),
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -912,8 +912,9 @@ class _ProfileHeaderCard extends StatelessWidget {
                 radius: 56,
                 backgroundColor: imageUrl.isNotEmpty
                     ? Colors.white.withAlpha(77)
-                    : theme.colorScheme.primary.withOpacity(
-                        theme.brightness == Brightness.dark ? 0.35 : 0.12,
+                    : theme.colorScheme.primary.withValues(
+                        alpha:
+                            theme.brightness == Brightness.dark ? 0.35 : 0.12,
                       ),
                 backgroundImage: imageUrl.isNotEmpty
                     ? NetworkImage(imageUrl)

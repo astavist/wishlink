@@ -244,8 +244,8 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
 
                     // Fallback to default avatar
                     return CircleAvatar(
-                      backgroundColor: theme.colorScheme.primary.withOpacity(
-                        0.14,
+                      backgroundColor: theme.colorScheme.primary.withValues(
+                        alpha: 0.14,
                       ),
                       radius: 24,
                       child: Text(
@@ -293,22 +293,22 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                           if (handle.isNotEmpty)
                           _InfoPill(
                             label: '@$handle',
-                            background: theme.colorScheme.surface.withOpacity(
-                              0.6,
+                            background: theme.colorScheme.surface.withValues(
+                              alpha: 0.6,
                             ),
                             foreground: _brandColor,
                             borderColor: _brandColor,
                           ),
                           _InfoPill(
                             label: relativeTime,
-                            background: theme.colorScheme.surface.withOpacity(
-                              0.6,
+                            background: theme.colorScheme.surface.withValues(
+                              alpha: 0.6,
                             ),
                             foreground:
                                 theme.textTheme.bodySmall?.color ??
                                 theme.colorScheme.onSurface,
-                            borderColor:
-                                theme.colorScheme.onSurface.withOpacity(0.35),
+                            borderColor: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.35),
                           ),
                         ],
                       ),
@@ -355,15 +355,15 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                               return Container(
                                 width: double.infinity,
                                 height: 200,
-                                color: theme.colorScheme.primary.withOpacity(
-                                  0.06,
+                                color: theme.colorScheme.primary.withValues(
+                                  alpha: 0.06,
                                 ),
                                 alignment: Alignment.center,
                                 child: Icon(
                                   Icons.image_not_supported,
                                   size: 48,
-                                  color: theme.colorScheme.primary.withOpacity(
-                                    0.4,
+                                  color: theme.colorScheme.primary.withValues(
+                                    alpha: 0.4,
                                   ),
                                 ),
                               );
@@ -372,12 +372,14 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                         : Container(
                             width: double.infinity,
                             height: 200,
-                            color: theme.colorScheme.primary.withOpacity(0.06),
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.06),
                             alignment: Alignment.center,
                             child: Icon(
                               Icons.image_outlined,
                               size: 48,
-                              color: theme.colorScheme.primary.withOpacity(0.4),
+                              color: theme.colorScheme.primary
+                                  .withValues(alpha: 0.4),
                             ),
                           ),
                   ),
@@ -393,7 +395,8 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                 Text(
                   widget.activity.wishItem.description,
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.textTheme.bodyMedium?.color?.withOpacity(0.85),
+                    color: theme.textTheme.bodyMedium?.color
+                        ?.withValues(alpha: 0.85),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -409,7 +412,7 @@ class _FriendActivityCardState extends State<FriendActivityCard> {
                         color: Colors.transparent,
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(
-                          color: _brandColor.withOpacity(0.4),
+                          color: _brandColor.withValues(alpha: 0.4),
                           width: 1.2,
                         ),
                       ),
@@ -507,7 +510,8 @@ class _InfoPill extends StatelessWidget {
         color: background,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: borderColor ?? theme.colorScheme.primary.withOpacity(0.08),
+          color: borderColor ??
+              theme.colorScheme.primary.withValues(alpha: 0.08),
           width: 1.1,
         ),
       ),
@@ -552,10 +556,14 @@ class _ActionPillButton extends StatelessWidget {
     final enabled = onTap != null;
     final activeColor = isActive
         ? theme.colorScheme.primary
-        : theme.colorScheme.onSurface.withOpacity(enabled ? 0.85 : 0.35);
+        : theme.colorScheme.onSurface.withValues(
+            alpha: enabled ? 0.85 : 0.35,
+          );
     final backgroundColor = isActive
-        ? theme.colorScheme.primary.withOpacity(0.16)
-        : theme.colorScheme.surface.withOpacity(enabled ? 0.7 : 0.45);
+        ? theme.colorScheme.primary.withValues(alpha: 0.16)
+        : theme.colorScheme.surface.withValues(
+            alpha: enabled ? 0.7 : 0.45,
+          );
 
     return SizedBox(
       width: double.infinity,
@@ -570,7 +578,7 @@ class _ActionPillButton extends StatelessWidget {
               color: backgroundColor,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: theme.colorScheme.primary.withOpacity(0.1),
+                color: theme.colorScheme.primary.withValues(alpha: 0.1),
               ),
             ),
             child: Row(

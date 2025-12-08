@@ -401,7 +401,7 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFF6A441).withOpacity(0.35),
+            color: const Color(0xFFF6A441).withValues(alpha: 0.35),
             offset: const Offset(0, 24),
             blurRadius: 48,
           ),
@@ -416,7 +416,7 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: Colors.white.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(
@@ -441,7 +441,7 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
           Text(
             l10n.t('accountSetup.intro'),
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Colors.white.withOpacity(0.92),
+              color: Colors.white.withValues(alpha: 0.92),
               height: 1.4,
             ),
           ),
@@ -474,13 +474,13 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(
-            color: theme.colorScheme.primary.withOpacity(0.08),
+            color: theme.colorScheme.primary.withValues(alpha: 0.08),
           ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide(
-            color: theme.colorScheme.primary.withOpacity(0.08),
+            color: theme.colorScheme.primary.withValues(alpha: 0.08),
           ),
         ),
         focusedBorder: OutlineInputBorder(
@@ -504,8 +504,8 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(
-              theme.brightness == Brightness.dark ? 0.4 : 0.08,
+            color: Colors.black.withValues(
+              alpha: theme.brightness == Brightness.dark ? 0.4 : 0.08,
             ),
             offset: const Offset(0, 25),
             blurRadius: 60,
@@ -580,7 +580,7 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.redAccent.withOpacity(0.08),
+                color: Colors.redAccent.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Row(
@@ -647,7 +647,7 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 textStyle: const TextStyle(fontWeight: FontWeight.w600),
                 side: BorderSide(
-                  color: theme.colorScheme.primary.withOpacity(0.4),
+                  color: theme.colorScheme.primary.withValues(alpha: 0.4),
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18),

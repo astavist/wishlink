@@ -384,8 +384,8 @@ class _SettingsSwitchTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(
-                theme.brightness == Brightness.dark ? 0.15 : 0.08,
+              color: theme.colorScheme.primary.withValues(
+                alpha: theme.brightness == Brightness.dark ? 0.15 : 0.08,
               ),
               borderRadius: BorderRadius.circular(12),
             ),

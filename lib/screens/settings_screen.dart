@@ -779,8 +779,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final iconBackground = theme.colorScheme.primary.withOpacity(
-      isDark ? 0.15 : 0.08,
+    final iconBackground = theme.colorScheme.primary.withValues(
+      alpha: isDark ? 0.15 : 0.08,
     );
     final iconColor = theme.colorScheme.primary;
 

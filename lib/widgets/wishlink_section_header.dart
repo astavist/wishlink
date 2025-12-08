@@ -36,8 +36,9 @@ class WishLinkSectionHeader extends StatelessWidget {
                     child: Text(
                       subtitle!,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.textTheme.bodyMedium?.color?.withOpacity(
-                          0.8,
+                        color:
+                            theme.textTheme.bodyMedium?.color?.withValues(
+                          alpha: 0.8,
                         ),
                       ),
                     ),

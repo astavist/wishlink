@@ -717,7 +717,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
             child: Text(
               l10n.t('wishDetail.ownerLoading'),
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.7),
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
           ),
@@ -733,14 +733,14 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
           Icon(
             Icons.person_outline,
             size: 26,
-            color: theme.colorScheme.primary.withOpacity(0.6),
+            color: theme.colorScheme.primary.withValues(alpha: 0.6),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               l10n.t('wishDetail.ownerMissing'),
               style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.6),
+                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
               ),
             ),
           ),
@@ -775,7 +775,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
       children: [
         CircleAvatar(
           radius: 28,
-          backgroundColor: theme.colorScheme.primary.withOpacity(0.14),
+          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.14),
           backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
           child: hasAvatar
               ? null
@@ -808,15 +808,15 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
                     _DetailInfoPill(
                       label: handleLabel,
                       icon: Icons.alternate_email,
-                      background: theme.colorScheme.surface.withOpacity(0.65),
+                      background: theme.colorScheme.surface.withValues(alpha: 0.65),
                       foreground: theme.colorScheme.primary,
-                      borderColor: theme.colorScheme.primary.withOpacity(0.35),
+                      borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
                     ),
                   _DetailInfoPill(
                     label: addedLabel,
                     icon: Icons.history,
-                    background: theme.colorScheme.surface.withOpacity(0.65),
-                    foreground: theme.colorScheme.onSurface.withOpacity(0.8),
+                    background: theme.colorScheme.surface.withValues(alpha: 0.65),
+                    foreground: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                   ),
                 ],
               ),
@@ -830,7 +830,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
   Widget _buildBlockedInfoBanner(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = context.l10n;
-    final background = theme.colorScheme.errorContainer.withOpacity(
+    final background = theme.colorScheme.errorContainer.withValues(alpha: 
       theme.brightness == Brightness.dark ? 0.32 : 0.85,
     );
 
@@ -879,9 +879,9 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
             params: {'amount': priceLabel},
           ),
           icon: Icons.sell_outlined,
-          background: theme.colorScheme.primary.withOpacity(0.15),
+          background: theme.colorScheme.primary.withValues(alpha: 0.15),
           foreground: theme.colorScheme.primary,
-          borderColor: theme.colorScheme.primary.withOpacity(0.35),
+          borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
         ),
       _DetailInfoPill(
         label: l10n.t(
@@ -889,8 +889,8 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
           params: {'date': createdLabel},
         ),
         icon: Icons.event_outlined,
-        background: theme.colorScheme.surface.withOpacity(0.65),
-        foreground: theme.colorScheme.onSurface.withOpacity(0.85),
+        background: theme.colorScheme.surface.withValues(alpha: 0.65),
+        foreground: theme.colorScheme.onSurface.withValues(alpha: 0.85),
       ),
     ];
 
@@ -944,7 +944,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
             color: theme.colorScheme.surface,
             borderRadius: BorderRadius.circular(28),
             border: Border.all(
-              color: theme.colorScheme.outline.withOpacity(
+              color: theme.colorScheme.outline.withValues(alpha: 
                 theme.brightness == Brightness.dark ? 0.3 : 0.15,
               ),
             ),
@@ -1055,7 +1055,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
         child: Text(
           message,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.75),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
               ),
         ),
       );
@@ -1107,7 +1107,7 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: Theme.of(
                       context,
-                    ).colorScheme.onSurface.withOpacity(0.6),
+                    ).colorScheme.onSurface.withValues(alpha: 0.6),
                   ),
                 ),
               );
@@ -1142,9 +1142,9 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface.withOpacity(0.9),
+        color: theme.colorScheme.surface.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.12)),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.12)),
       ),
       child: Row(
         children: [
@@ -1327,10 +1327,10 @@ class _EngagementPillButton extends StatelessWidget {
     final enabled = onTap != null;
     final activeColor = isActive
         ? theme.colorScheme.primary
-        : theme.colorScheme.onSurface.withOpacity(enabled ? 0.85 : 0.35);
+        : theme.colorScheme.onSurface.withValues(alpha: enabled ? 0.85 : 0.35);
     final backgroundColor = isActive
-        ? theme.colorScheme.primary.withOpacity(0.16)
-        : theme.colorScheme.surface.withOpacity(enabled ? 0.7 : 0.45);
+        ? theme.colorScheme.primary.withValues(alpha: 0.16)
+        : theme.colorScheme.surface.withValues(alpha: enabled ? 0.7 : 0.45);
 
     Widget button = InkWell(
       onTap: onTap,
@@ -1340,7 +1340,7 @@ class _EngagementPillButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: theme.colorScheme.primary.withOpacity(0.1)),
+          border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1391,7 +1391,7 @@ class _DetailInfoPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final fillColor = background ?? theme.colorScheme.surface.withOpacity(0.8);
+    final fillColor = background ?? theme.colorScheme.surface.withValues(alpha: 0.8);
     final textColor =
         foreground ??
         theme.textTheme.bodySmall?.color ??
@@ -1403,7 +1403,7 @@ class _DetailInfoPill extends StatelessWidget {
         color: fillColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: borderColor ?? theme.colorScheme.primary.withOpacity(0.08),
+          color: borderColor ?? theme.colorScheme.primary.withValues(alpha: 0.08),
           width: 1.1,
         ),
       ),
@@ -1452,7 +1452,7 @@ class _CommentTile extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 18,
-          backgroundColor: theme.colorScheme.primary.withOpacity(0.15),
+          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
           backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
           child: hasAvatar
               ? null
@@ -1469,10 +1469,10 @@ class _CommentTile extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surface.withOpacity(0.75),
+              color: theme.colorScheme.surface.withValues(alpha: 0.75),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: theme.colorScheme.primary.withOpacity(0.08),
+                color: theme.colorScheme.primary.withValues(alpha: 0.08),
               ),
             ),
             child: Column(
@@ -1491,7 +1491,7 @@ class _CommentTile extends StatelessWidget {
                     Text(
                       relativeTime,
                       style: theme.textTheme.labelSmall?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ],

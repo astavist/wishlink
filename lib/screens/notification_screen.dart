@@ -953,14 +953,15 @@ class _NotificationScreenState extends State<NotificationScreen> {
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: hasUnreadNotifications
-                    ? theme.colorScheme.primary.withOpacity(0.18)
-                    : theme.colorScheme.surface.withOpacity(
-                        theme.brightness == Brightness.dark ? 0.25 : 0.7,
+                    ? theme.colorScheme.primary.withValues(alpha: 0.18)
+                    : theme.colorScheme.surface.withValues(
+                        alpha:
+                            theme.brightness == Brightness.dark ? 0.25 : 0.7,
                       ),
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                  color: theme.colorScheme.primary.withOpacity(
-                    hasUnreadNotifications ? 0.5 : 0.25,
+                  color: theme.colorScheme.primary.withValues(
+                    alpha: hasUnreadNotifications ? 0.5 : 0.25,
                   ),
                 ),
               ),
@@ -1041,8 +1042,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Widget _buildEmptyStateCard(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final subtitleColor = theme.colorScheme.onSurface.withOpacity(
-      theme.brightness == Brightness.dark ? 0.7 : 0.6,
+    final subtitleColor = theme.colorScheme.onSurface.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.7 : 0.6,
     );
 
     return WishLinkCard(
@@ -1078,8 +1079,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
   Widget _buildErrorStateCard(BuildContext context) {
     final l10n = context.l10n;
     final theme = Theme.of(context);
-    final captionColor = theme.colorScheme.onSurface.withOpacity(
-      theme.brightness == Brightness.dark ? 0.7 : 0.6,
+    final captionColor = theme.colorScheme.onSurface.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.7 : 0.6,
     );
 
     return WishLinkCard(
@@ -1129,8 +1130,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
     final isRead =
         notification.isRead ||
         _locallyReadNotificationIds.contains(notification.id);
-    final timestampColor = theme.colorScheme.onSurface.withOpacity(
-      theme.brightness == Brightness.dark ? 0.65 : 0.55,
+    final timestampColor = theme.colorScheme.onSurface.withValues(
+      alpha: theme.brightness == Brightness.dark ? 0.65 : 0.55,
     );
     final userDisplay = _extractNameOnly(notification.userName);
     final normalizedUsername = _normalizeInline(notification.userUsername ?? '');
@@ -1230,7 +1231,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: theme.colorScheme.primary.withOpacity(0.35),
+                            color: theme.colorScheme.primary
+                                .withValues(alpha: 0.35),
                             blurRadius: 8,
                           ),
                         ],
@@ -1349,10 +1351,10 @@ class _NotificationTitlePill extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isDark = theme.brightness == Brightness.dark;
     final Color background = isDark
-        ? theme.colorScheme.surface.withOpacity(0.35)
-        : theme.colorScheme.primary.withOpacity(0.12);
-    final Color borderColor = theme.colorScheme.primary.withOpacity(
-      isDark ? 0.35 : 0.45,
+        ? theme.colorScheme.surface.withValues(alpha: 0.35)
+        : theme.colorScheme.primary.withValues(alpha: 0.12);
+    final Color borderColor = theme.colorScheme.primary.withValues(
+      alpha: isDark ? 0.35 : 0.45,
     );
     final Color textColor = isDark
         ? theme.colorScheme.onSurface

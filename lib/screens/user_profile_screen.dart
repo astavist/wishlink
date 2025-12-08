@@ -1113,10 +1113,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       return null;
     }
     if (_isBlockedByTarget) {
-      return _buildStatusPill(
-        backgroundColor: theme.colorScheme.errorContainer.withOpacity(
-          theme.brightness == Brightness.dark ? 0.4 : 0.9,
-        ),
+        return _buildStatusPill(
+          backgroundColor: theme.colorScheme.errorContainer.withValues(
+            alpha: theme.brightness == Brightness.dark ? 0.4 : 0.9,
+          ),
         icon: Icons.block,
         iconColor: theme.colorScheme.error,
         label: l10n.t('block.statusBlockedByUser'),
@@ -1131,8 +1131,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildStatusPill(
-            backgroundColor: theme.colorScheme.errorContainer
-                .withOpacity(theme.brightness == Brightness.dark ? 0.35 : 0.25),
+            backgroundColor: theme.colorScheme.errorContainer.withValues(
+              alpha: theme.brightness == Brightness.dark ? 0.35 : 0.25,
+            ),
             icon: Icons.block,
             iconColor: theme.colorScheme.error,
             label: l10n.t('block.statusBlocked'),
@@ -1590,8 +1591,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         child: RefreshIndicator(
           onRefresh: _refreshPage,
           color: theme.colorScheme.primary,
-          backgroundColor: theme.colorScheme.surface.withOpacity(
-            theme.brightness == Brightness.dark ? 0.9 : 1,
+          backgroundColor: theme.colorScheme.surface.withValues(
+            alpha: theme.brightness == Brightness.dark ? 0.9 : 1,
           ),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -1732,8 +1733,9 @@ class _ProfileHeaderCard extends StatelessWidget {
                 radius: 56,
                 backgroundColor: imageUrl.isNotEmpty
                     ? Colors.white.withAlpha(77)
-                    : theme.colorScheme.primary.withOpacity(
-                        theme.brightness == Brightness.dark ? 0.35 : 0.12,
+                    : theme.colorScheme.primary.withValues(
+                        alpha:
+                            theme.brightness == Brightness.dark ? 0.35 : 0.12,
                       ),
                 backgroundImage: imageUrl.isNotEmpty
                     ? NetworkImage(imageUrl)

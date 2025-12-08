@@ -1023,7 +1023,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(isDark ? 0.12 : 0.2),
+              color: Colors.white.withValues(alpha: isDark ? 0.12 : 0.2),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -1048,7 +1048,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
                 Text(
                   l10n.t('addWish.heroSubtitle'),
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1167,7 +1167,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(
                   context,
-                ).textTheme.bodySmall?.color?.withOpacity(0.8),
+                ).textTheme.bodySmall?.color?.withValues(alpha: 0.8),
               ),
             ),
           ),
@@ -1300,7 +1300,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.55),
+                color: Colors.black.withValues(alpha: 0.55),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -1316,7 +1316,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
               top: 12,
               right: 12,
               child: Material(
-                color: Colors.black.withOpacity(0.45),
+                color: Colors.black.withValues(alpha: 0.45),
                 shape: const CircleBorder(),
                 child: IconButton(
                   icon: const Icon(Icons.close, color: Colors.white, size: 18),
@@ -1371,7 +1371,7 @@ class _EditWishScreenState extends State<EditWishScreen> {
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(isDark ? 0.22 : 0.15),
+        color: color.withValues(alpha: isDark ? 0.22 : 0.15),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(

@@ -25,12 +25,12 @@ class WishLinkBottomNavBar extends StatelessWidget {
       padding: padding,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: backgroundBase.withOpacity(isDark ? 0.88 : 0.96),
+          color: backgroundBase.withValues(alpha: isDark ? 0.88 : 0.96),
           borderRadius: BorderRadius.circular(28),
           border: Border.all(color: Colors.transparent, width: 0),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.22 : 0.12),
+              color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.12),
               blurRadius: 24,
               offset: const Offset(0, 18),
               spreadRadius: 2,

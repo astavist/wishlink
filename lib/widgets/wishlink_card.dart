@@ -29,14 +29,14 @@ class WishLinkCard extends StatelessWidget {
       gradient: gradient ?? gradients?.secondary,
       borderRadius: BorderRadius.circular(24),
       border: Border.all(
-        color: _brandBorderColor.withOpacity(
-          Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.18,
+        color: _brandBorderColor.withValues(
+          alpha: Theme.of(context).brightness == Brightness.dark ? 0.35 : 0.18,
         ),
         width: 1.4,
       ),
       boxShadow: [
         BoxShadow(
-          color: Colors.black.withOpacity(0.06),
+          color: Colors.black.withValues(alpha: 0.06),
           blurRadius: 18,
           offset: const Offset(0, 12),
         ),
