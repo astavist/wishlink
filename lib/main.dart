@@ -144,13 +144,32 @@ class AuthWrapper extends StatefulWidget {
   State<AuthWrapper> createState() => _AuthWrapperState();
 }
 
-class _AuthWrapperState extends State<AuthWrapper> {
+class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
   bool _checkingRemoteAuthState = true;
+  Future<DocumentSnapshot<Map<String, dynamic>>>? _userDocFuture;
+  String? _userDocFutureUid;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _refreshAuthState();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        _forceUserDocRefresh(user);
+      }
+    }
   }
 
   Future<void> _refreshAuthState() async {
@@ -206,6 +225,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
         final user = snapshot.data;
         if (user == null) {
+          _userDocFuture = null;
+          _userDocFutureUid = null;
           return const LoginScreen();
         }
 
@@ -213,19 +234,39 @@ class _AuthWrapperState extends State<AuthWrapper> {
           return const EmailVerificationRequiredScreen();
         }
 
-        return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .snapshots(),
+        if (_userDocFuture == null || _userDocFutureUid != user.uid) {
+          _userDocFutureUid = user.uid;
+          _userDocFuture = _createUserDocFuture(user);
+        }
+
+        final userDocFuture = _userDocFuture!;
+
+        return FutureBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          future: userDocFuture,
           builder: (context, userSnapshot) {
             if (userSnapshot.connectionState == ConnectionState.waiting) {
               return _buildLoadingScaffold();
             }
 
+            if (userSnapshot.hasError) {
+              debugPrint(
+                'Failed to load user document: ${userSnapshot.error}',
+              );
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  _forceUserDocRefresh(user);
+                }
+              });
+              return _buildLoadingScaffold();
+            }
+
             final userDoc = userSnapshot.data;
-            final docExists = userDoc?.exists ?? false;
-            final data = userDoc?.data();
+            if (userDoc == null) {
+              return _buildLoadingScaffold();
+            }
+
+            final docExists = userDoc.exists;
+            final data = userDoc.data();
             final firstName = (data?['firstName'] as String?)?.trim() ?? '';
             final lastName = (data?['lastName'] as String?)?.trim() ?? '';
             final username = (data?['username'] as String?)?.trim() ?? '';
@@ -266,6 +307,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
                 email: user.email,
                 suggestedUsername: suggestion,
                 isNewUser: data == null,
+                onProfileCompleted: () => _forceUserDocRefresh(user),
               );
             }
 
@@ -283,6 +325,22 @@ class _AuthWrapperState extends State<AuthWrapper> {
     }
     return DateTime.now().difference(creationTime) < const Duration(minutes: 5);
   }
+
+  Future<DocumentSnapshot<Map<String, dynamic>>> _createUserDocFuture(
+    User user,
+  ) {
+    return FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+  }
+
+  void _forceUserDocRefresh(User user) {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _userDocFutureUid = user.uid;
+      _userDocFuture = _createUserDocFuture(user);
+    });
+  }
 }
 
 class _ProfileCompletionGate extends StatefulWidget {
@@ -292,6 +350,7 @@ class _ProfileCompletionGate extends StatefulWidget {
   final String? email;
   final String suggestedUsername;
   final bool isNewUser;
+  final VoidCallback onProfileCompleted;
 
   const _ProfileCompletionGate({
     required this.user,
@@ -300,6 +359,7 @@ class _ProfileCompletionGate extends StatefulWidget {
     this.email,
     required this.suggestedUsername,
     required this.isNewUser,
+    required this.onProfileCompleted,
   });
 
   @override
@@ -343,6 +403,8 @@ class _ProfileCompletionGateState extends State<_ProfileCompletionGate> {
 
     if (result == null || result.trim().isEmpty) {
       await FirebaseAuth.instance.signOut();
+    } else {
+      widget.onProfileCompleted();
     }
   }
 

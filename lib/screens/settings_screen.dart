@@ -144,8 +144,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _isDeletingAccount = true;
     });
+    var deletionSucceeded = false;
     try {
       await _accountDeletionService.deleteCurrentUserAccount();
+      deletionSucceeded = true;
     } on AccountDeletionException catch (e) {
       if (e.code == 'requires-recent-login' && allowReauthAttempt) {
         if (!mounted) {
@@ -184,6 +186,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() {
         _isDeletingAccount = false;
       });
+      if (deletionSucceeded) {
+        Navigator.of(context, rootNavigator: true)
+            .popUntil((route) => route.isFirst);
+      }
     }
   }
 
