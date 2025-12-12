@@ -15,4 +15,11 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+    <style name="WishNativeCtaButton" parent="@android:style/Widget.Button">
+        <item name="android:background">@drawable/wish_native_cta_background</item>
+        <item name="android:textColor">@android:color/white</item>
+        <item name="android:paddingLeft">24dp</item>
+        <item name="android:paddingRight">24dp</item>
+        <item name="android:minHeight">40dp</item>
+    </style>
 </resources>

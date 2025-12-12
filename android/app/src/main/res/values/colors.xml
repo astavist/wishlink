@@ -1,4 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="wishlink_notification_color">#EFB652</color>
+    <color name="wish_native_card_light">#FBF7F0</color>
+    <color name="wish_native_card_dark">#1F1F1F</color>
+    <color name="wish_native_icon_light">#1A000000</color>
+    <color name="wish_native_icon_dark">#33FFFFFF</color>
+    <color name="wish_native_media_light">#FFFFFFFF</color>
+    <color name="wish_native_media_dark">#2C2C2C</color>
+    <color name="wish_native_text_primary_light">#1F1F1F</color>
+    <color name="wish_native_text_primary_dark">#FFFFFF</color>
+    <color name="wish_native_text_secondary_light">#6B6B6B</color>
+    <color name="wish_native_text_secondary_dark">#B3FFFFFF</color>
+    <color name="ad_sponsored_label">#F6A441</color>
+    <color name="wish_native_cta_start">#FDD27B</color>
+    <color name="wish_native_cta_end">#F6A441</color>
 </resources>

@@ -41,6 +41,8 @@
 	<string>Profil fotoğrafı çekmek için kamera erişimi gerekiyor</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Profil fotoğrafı seçmek için galeri erişimi gerekiyor</string>
+	<key>GADApplicationIdentifier</key>
+	<string>REMOVED_BY_FILTER</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

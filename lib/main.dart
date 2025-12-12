@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:wishlink/screens/login_screen.dart';
 import 'package:wishlink/screens/home_screen.dart';
 import 'package:wishlink/screens/email_verification_required_screen.dart';
@@ -22,6 +23,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await MobileAds.instance.initialize();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await NotificationService.instance.initialize();
   final themeController = ThemeController();
@@ -249,9 +251,7 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
             }
 
             if (userSnapshot.hasError) {
-              debugPrint(
-                'Failed to load user document: ${userSnapshot.error}',
-              );
+              debugPrint('Failed to load user document: ${userSnapshot.error}');
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
                   _forceUserDocRefresh(user);

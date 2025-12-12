@@ -7,6 +7,7 @@ import '../models/friend_activity.dart';
 import '../services/firestore_service.dart';
 import '../widgets/friend_activity_card.dart';
 import '../widgets/activity_comments_sheet.dart';
+import '../widgets/wish_native_ad_card.dart';
 import 'add_wish_screen.dart';
 import 'edit_wish_screen.dart';
 import 'profile_screen.dart';
@@ -43,6 +44,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const int _nativeAdEvery = 2;
   final FirestoreService _firestoreService = FirestoreService();
   int _selectedIndex = 0;
   bool _hasFriendRequests = false;
@@ -533,11 +535,22 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         }
 
+                        final totalItems =
+                            _calculateFeedLength(activities.length);
                         return ListView.builder(
                           padding: const EdgeInsets.only(bottom: 160),
-                          itemCount: activities.length,
+                          itemCount: totalItems,
                           itemBuilder: (context, index) {
-                            final activity = activities[index];
+                            if (_isAdPosition(index)) {
+                              return const Padding(
+                                padding: EdgeInsets.only(bottom: 16.0),
+                                child: WishNativeAdCard(),
+                              );
+                            }
+
+                            final activityIndex =
+                                _activityIndexForListIndex(index);
+                            final activity = activities[activityIndex];
 
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 16.0),
@@ -931,6 +944,31 @@ class _HomeScreenState extends State<HomeScreen> {
       return username.startsWith('@') ? username : '@$username';
     }
     return l10n.t('share.someone');
+  }
+
+  bool _isAdPosition(int index) {
+    if (_nativeAdEvery <= 0) {
+      return false;
+    }
+    final blockSize = _nativeAdEvery + 1;
+    return (index + 1) % blockSize == 0;
+  }
+
+  int _calculateFeedLength(int activitiesCount) {
+    if (_nativeAdEvery <= 0 || activitiesCount <= 0) {
+      return activitiesCount;
+    }
+    final adCount = activitiesCount ~/ _nativeAdEvery;
+    return activitiesCount + adCount;
+  }
+
+  int _activityIndexForListIndex(int listIndex) {
+    if (_nativeAdEvery <= 0) {
+      return listIndex;
+    }
+    final blockSize = _nativeAdEvery + 1;
+    final adsBefore = (listIndex + 1) ~/ blockSize;
+    return listIndex - adsBefore;
   }
 
   void _buyNow(FriendActivity activity) {
