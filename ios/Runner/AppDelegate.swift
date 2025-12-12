@@ -70,9 +70,9 @@ final class WishActivityNativeAdFactory: NSObject, FLTNativeAdFactory {
     static let verticalPadding: CGFloat = 18
   }
 
-  func createNativeAd(_ nativeAd: GADNativeAd, customOptions: [AnyHashable: Any]? = nil)
-    -> GADNativeAdView {
-    let adView = GADNativeAdView()
+  func createNativeAd(_ nativeAd: NativeAd, customOptions: [AnyHashable: Any]? = nil)
+    -> NativeAdView {
+    let adView = NativeAdView()
     adView.translatesAutoresizingMaskIntoConstraints = false
 
     let isDarkMode: Bool
@@ -195,7 +195,7 @@ final class WishActivityNativeAdFactory: NSObject, FLTNativeAdFactory {
     contentStack.addArrangedSubview(headlineLabel)
 
     // Media
-    let mediaView = GADMediaView()
+    let mediaView = MediaView()
     mediaView.translatesAutoresizingMaskIntoConstraints = false
     mediaView.contentMode = .scaleAspectFill
     mediaView.layer.cornerRadius = 20
