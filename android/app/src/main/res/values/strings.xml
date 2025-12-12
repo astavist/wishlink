@@ -2,5 +2,5 @@
 <resources>
     <string name="ad_sponsored_label">Sponsorlu içerik</string>
     <!-- AdMob application ID -->
-    <string name="admob_app_id">REMOVED_BY_FILTER</string>
+    <string name="admob_app_id">ADMOB_APP_ID_PLACEHOLDER</string>
 </resources>

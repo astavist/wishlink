@@ -42,7 +42,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Profil fotoğrafı seçmek için galeri erişimi gerekiyor</string>
 	<key>GADApplicationIdentifier</key>
-	<string>REMOVED_BY_FILTER</string>
+	<string>(ADMOB_APP_ID_IOS)</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

@@ -12,9 +12,12 @@ class WishNativeAdCard extends StatefulWidget {
 }
 
 class _WishNativeAdCardState extends State<WishNativeAdCard> {
-  static const String _iosAdUnitId = 'ca-app-pub-5117801858129358/6582317610';
-  static const String _androidAdUnitId =
-      'ca-app-pub-5117801858129358/6582317610';
+  static const String _iosAdUnitId = String.fromEnvironment(
+    'ADMOB_IOS_AD_UNIT_ID',
+  );
+  static const String _androidAdUnitId = String.fromEnvironment(
+    'ADMOB_ANDROID_AD_UNIT_ID',
+  );
   static const String _iosTestAdUnitId =
       'ca-app-pub-3940256099942544/3986624511';
   static const String _androidTestAdUnitId =
