@@ -1037,7 +1037,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildWishListsSection(ThemeData theme, AppLocalizations l10n) {
+  Widget _buildWishListsSection(
+    ThemeData theme,
+    AppLocalizations l10n,
+    String allWishesTitle,
+  ) {
     return _SectionCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1054,7 +1058,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               final spacing = 12.0;
               final tileWidth = (constraints.maxWidth - spacing) / 2;
               final tiles = <Widget>[
-                _buildAllWishesTile(tileWidth, l10n),
+                _buildAllWishesTile(tileWidth, l10n, allWishesTitle),
                 ..._wishLists.map(
                   (list) => _buildWishListTile(tileWidth, list),
                 ),
@@ -1071,7 +1075,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildAllWishesTile(double tileWidth, AppLocalizations l10n) {
+  Widget _buildAllWishesTile(
+    double tileWidth,
+    AppLocalizations l10n,
+    String appBarTitle,
+  ) {
     return SizedBox(
       width: tileWidth,
       child: AspectRatio(
@@ -1083,7 +1091,14 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           onTap: () {
             Navigator.of(
               context,
-            ).push(createRightToLeftSlideRoute(const AllWishesScreen()));
+            ).push(
+              createRightToLeftSlideRoute(
+                AllWishesScreen(
+                  userId: widget.userId,
+                  title: appBarTitle,
+                ),
+              ),
+            );
           },
         ),
       ),
@@ -1628,7 +1643,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   _buildPrivateNotesSection(theme, l10n),
                   const SizedBox(height: 24),
                 ],
-                _buildWishListsSection(theme, l10n),
+                _buildWishListsSection(theme, l10n, wishesTitle),
                 const SizedBox(height: 24),
                 _buildWishesSection(theme, l10n, wishesTitle, emptyStateName),
               ],

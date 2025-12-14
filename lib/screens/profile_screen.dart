@@ -465,10 +465,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ? _userWishes.first.imageUrl
                               : '',
                           onTap: () {
+                            final userId = _auth.currentUser?.uid;
+                            if (userId == null) {
+                              return;
+                            }
                             Navigator.push(
                               context,
                               createRightToLeftSlideRoute(
-                                const AllWishesScreen(),
+                                AllWishesScreen(
+                                  userId: userId,
+                                  title: l10n.t('profile.allWishes'),
+                                ),
                               ),
                             );
                           },

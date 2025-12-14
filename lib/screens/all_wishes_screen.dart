@@ -1,19 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:wishlink/l10n/app_localizations.dart';
 import '../models/wish_item.dart';
 import 'wish_detail_screen.dart';
 
 class AllWishesScreen extends StatelessWidget {
-  const AllWishesScreen({super.key});
+  const AllWishesScreen({
+    super.key,
+    required this.userId,
+    this.title,
+  });
+
+  final String userId;
+  final String? title;
 
   Future<List<WishItem>> _loadUserWishes() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return [];
+    if (userId.isEmpty) {
+      return [];
+    }
 
     final wishesSnapshot = await FirebaseFirestore.instance
         .collection('friend_activities')
-        .where('userId', isEqualTo: user.uid)
+        .where('userId', isEqualTo: userId)
         .where('activityType', isEqualTo: 'added')
         .orderBy('activityTime', descending: true)
         .get();
@@ -28,9 +36,14 @@ class AllWishesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final appBarTitle = (title != null && title!.trim().isNotEmpty)
+        ? title!.trim()
+        : l10n.t('profile.allWishes');
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All Wishes'),
+        title: Text(appBarTitle),
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
         elevation: 0,
