@@ -696,7 +696,7 @@ class _AddWishScreenState extends State<AddWishScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(l10n.t('addWish.success'))));
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
       }
     } catch (e) {
       if (mounted) {

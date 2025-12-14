@@ -19,8 +19,8 @@ import 'package:wishlink/l10n/app_localizations.dart';
 // (Removed unused left-to-right slide route)
 
 // Custom page route for bottom-to-top slide animation (for add wish)
-PageRouteBuilder<dynamic> _createBottomToTopSlideRoute(Widget page) {
-  return PageRouteBuilder<dynamic>(
+PageRouteBuilder<bool> _createBottomToTopSlideRoute(Widget page) {
+  return PageRouteBuilder<bool>(
     pageBuilder: (context, animation, secondaryAnimation) => page,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       const begin = Offset(0.0, 1.0);
@@ -50,12 +50,14 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _hasFriendRequests = false;
   int _unreadNotificationsCount = 0;
   late final PageController _pageController;
+  Future<List<FriendActivity>>? _activitiesFuture;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
     _pageController = PageController(initialPage: 0);
+    _activitiesFuture = _firestoreService.getAllActivities();
+    _loadData();
   }
 
   int _bottomIndexToPageIndex(int bottomIndex) {
@@ -84,6 +86,19 @@ class _HomeScreenState extends State<HomeScreen> {
         _unreadNotificationsCount = unreadCount;
       });
     }
+  }
+
+  Future<void> _refreshActivities() async {
+    final future = _firestoreService.getAllActivities();
+    if (!mounted) {
+      _activitiesFuture = future;
+      await future;
+      return;
+    }
+    setState(() {
+      _activitiesFuture = future;
+    });
+    await future;
   }
 
   void _handleLogoTap() {
@@ -461,12 +476,17 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Expanded(
                   child: RefreshIndicator(
-                    onRefresh: _loadData,
+                    onRefresh: () async {
+                      await _loadData();
+                      await _refreshActivities();
+                    },
                     child: FutureBuilder<List<FriendActivity>>(
-                      future: _firestoreService.getAllActivities(),
+                      future: _activitiesFuture,
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
-                            ConnectionState.waiting) {
+                                ConnectionState.waiting ||
+                            snapshot.connectionState ==
+                                ConnectionState.none) {
                           return const Center(
                             child: CircularProgressIndicator(),
                           );
@@ -678,10 +698,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     bottom: bottomInset + addButtonBottomOffset,
                     child: GestureDetector(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          _createBottomToTopSlideRoute(const AddWishScreen()),
-                        );
+                        _openAddWish();
                       },
                       child: Container(
                         width: addButtonSize,
@@ -723,10 +740,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _handleBottomNavTap(int index) {
     if (index == 2) {
-      Navigator.push(
-        context,
-        _createBottomToTopSlideRoute(const AddWishScreen()),
-      );
+      _openAddWish();
       return;
     }
 
@@ -739,6 +753,17 @@ class _HomeScreenState extends State<HomeScreen> {
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
+  }
+
+  Future<void> _openAddWish() async {
+    final result = await Navigator.push<bool>(
+          context,
+          _createBottomToTopSlideRoute(const AddWishScreen()),
+        ) ??
+        false;
+    if (result) {
+      await _refreshActivities();
+    }
   }
 
   Widget _buildBottomNavItem({
@@ -826,8 +851,8 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
 
-    if (result == true && mounted) {
-      setState(() {});
+    if (result == true) {
+      await _refreshActivities();
     }
   }
 
@@ -872,6 +897,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(l10n.t('wishDetail.deleteSuccess'))),
       );
+      await _refreshActivities();
     } catch (error) {
       if (!mounted) {
         return;
