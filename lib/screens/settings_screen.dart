@@ -97,7 +97,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await _auth.signOut();
       if (!mounted) return;
-      Navigator.of(context).pop();
+      Navigator.of(context, rootNavigator: true)
+          .popUntil((route) => route.isFirst);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
