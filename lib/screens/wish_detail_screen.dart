@@ -11,10 +11,11 @@ import '../models/friend_activity.dart';
 import '../models/friend_activity_comment.dart';
 import '../models/wish_item.dart';
 import '../services/firestore_service.dart';
-import '../widgets/wishlink_card.dart';
-import 'edit_wish_screen.dart';
 import '../utils/currency_utils.dart';
 import '../widgets/report_dialog.dart';
+import '../widgets/wishlink_card.dart';
+import 'edit_wish_screen.dart';
+import 'user_profile_screen.dart';
 
 enum _WishOwnerAction { edit, delete }
 enum _WishViewerAction { report, block, unblock }
@@ -156,6 +157,24 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     if (updated == true) {
       await _reloadWish();
     }
+  }
+
+  void _openOwnerProfile() {
+    final ownerId = _ownerUserId;
+    final activity = _activity;
+    if (ownerId == null || ownerId.isEmpty || activity == null) {
+      return;
+    }
+    Navigator.of(context).push(
+      createRightToLeftSlideRoute(
+        UserProfileScreen(
+          userId: ownerId,
+          userName: activity.userName.isNotEmpty ? activity.userName : null,
+          userUsername:
+              activity.userUsername.isNotEmpty ? activity.userUsername : null,
+        ),
+      ),
+    );
   }
 
   Future<void> _confirmDeleteWish() async {
@@ -771,59 +790,79 @@ class _WishDetailScreenState extends State<WishDetailScreen> {
     final initials = displayName.isNotEmpty
         ? displayName.trim()[0].toUpperCase()
         : '?';
+    final canOpenProfile = _ownerUserId?.isNotEmpty == true;
+
+    Widget avatar = CircleAvatar(
+      radius: 28,
+      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.14),
+      backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
+      child: hasAvatar
+          ? null
+          : Text(
+              initials,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+    );
+
+    if (canOpenProfile) {
+      avatar = GestureDetector(
+        onTap: _openOwnerProfile,
+        child: avatar,
+      );
+    }
+
+    Widget ownerDetails = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          header,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            if (handle.isNotEmpty)
+              _DetailInfoPill(
+                label: handleLabel,
+                icon: Icons.alternate_email,
+                background: theme.colorScheme.surface.withValues(alpha: 0.65),
+                foreground: theme.colorScheme.primary,
+                borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
+              ),
+            _DetailInfoPill(
+              label: addedLabel,
+              icon: Icons.history,
+              background: theme.colorScheme.surface.withValues(alpha: 0.65),
+              foreground: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    if (canOpenProfile) {
+      ownerDetails = GestureDetector(
+        onTap: _openOwnerProfile,
+        behavior: HitTestBehavior.translucent,
+        child: ownerDetails,
+      );
+    }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CircleAvatar(
-          radius: 28,
-          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.14),
-          backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
-          child: hasAvatar
-              ? null
-              : Text(
-                  initials,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-        ),
+        avatar,
         const SizedBox(width: 16),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                header,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (handle.isNotEmpty)
-                    _DetailInfoPill(
-                      label: handleLabel,
-                      icon: Icons.alternate_email,
-                      background: theme.colorScheme.surface.withValues(alpha: 0.65),
-                      foreground: theme.colorScheme.primary,
-                      borderColor: theme.colorScheme.primary.withValues(alpha: 0.35),
-                    ),
-                  _DetailInfoPill(
-                    label: addedLabel,
-                    icon: Icons.history,
-                    background: theme.colorScheme.surface.withValues(alpha: 0.65),
-                    foreground: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          child: ownerDetails,
         ),
       ],
     );
