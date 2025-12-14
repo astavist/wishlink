@@ -5,6 +5,7 @@ import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
 import 'package:wishlink/locale/locale_controller.dart';
@@ -76,6 +77,8 @@ class _ModalSelectionTile<T> extends StatelessWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static final Uri _supportPortalUri =
+      Uri.parse('https://astavist.github.io/wishlink-app/');
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final AccountDeletionService _accountDeletionService =
       AccountDeletionService();
@@ -451,6 +454,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ).push<void>(_buildSlideRoute<void>(const NotificationSettingsScreen()));
   }
 
+  Future<void> _openSupportPortal() async {
+    await _openExternalLink(_supportPortalUri);
+  }
+
+  Future<void> _openExternalLink(Uri uri) async {
+    final launched =
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.l10n.t('common.couldNotOpenLink'))),
+      );
+    }
+  }
+
   Route<T> _buildSlideRoute<T>(Widget page) {
     return PageRouteBuilder<T>(
       // ignore: unnecessary_underscores
@@ -598,16 +615,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           icon: Icons.privacy_tip_outlined,
                           title: l10n.t('settings.privacy'),
                           subtitle: l10n.t('settings.privacyComing'),
-                          onTap: () =>
-                              _showComingSoon(l10n.t('settings.privacyComing')),
+                          onTap: _openSupportPortal,
                         ),
                         _buildSettingTile(
                           context: context,
                           icon: Icons.help_outline_rounded,
                           title: l10n.t('settings.help'),
                           subtitle: l10n.t('settings.helpComing'),
-                          onTap: () =>
-                              _showComingSoon(l10n.t('settings.helpComing')),
+                          onTap: _openSupportPortal,
                         ),
                       ],
                     ),

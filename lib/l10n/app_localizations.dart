@@ -54,10 +54,7 @@ class AppLocalizations {
       'tr': 'Beğeni güncellenemedi. Lütfen tekrar dene.',
     },
     // Reporting & Blocking
-    'report.reasonLabel': {
-      'en': 'Choose a reason',
-      'tr': 'Bir sebep seç',
-    },
+    'report.reasonLabel': {'en': 'Choose a reason', 'tr': 'Bir sebep seç'},
     'report.noteLabel': {
       'en': 'Additional details (optional)',
       'tr': 'Ek açıklama (opsiyonel)',
@@ -82,14 +79,8 @@ class AppLocalizations {
       'en': 'Scam or fraud',
       'tr': 'Dolandırıcılık şüphesi',
     },
-    'report.reasonOther': {
-      'en': 'Other',
-      'tr': 'Diğer',
-    },
-    'report.submitAction': {
-      'en': 'Send report',
-      'tr': 'Şikayeti gönder',
-    },
+    'report.reasonOther': {'en': 'Other', 'tr': 'Diğer'},
+    'report.submitAction': {'en': 'Send report', 'tr': 'Şikayeti gönder'},
     'report.userTitle': {
       'en': 'Report {name}',
       'tr': '{name} kullanıcısını şikayet et',
@@ -98,17 +89,15 @@ class AppLocalizations {
       'en': 'Tell us why this profile should be reviewed.',
       'tr': 'Bu profilin neden incelenmesi gerektiğini belirt.',
     },
-    'report.wishTitle': {
-      'en': 'Report wish',
-      'tr': 'Wish\'i şikayet et',
-    },
+    'report.wishTitle': {'en': 'Report wish', 'tr': 'Wish\'i şikayet et'},
     'report.wishDescription': {
       'en': 'Flag this wish for our moderation team.',
       'tr': 'Bu wish\'i moderasyon için işaretle.',
     },
     'report.successMessage': {
       'en': 'Report sent. Thanks for helping keep Wishlink safe.',
-      'tr': 'Şikayetin gönderildi. Wishlink\'i güvenli tuttuğun için teşekkürler.',
+      'tr':
+          'Şikayetin gönderildi. Wishlink\'i güvenli tuttuğun için teşekkürler.',
     },
     'report.failureMessage': {
       'en': 'Could not send report. Please try again.',
@@ -118,18 +107,9 @@ class AppLocalizations {
       'en': 'Report user',
       'tr': 'Kullanıcıyı şikayet et',
     },
-    'report.menuReportWish': {
-      'en': 'Report wish',
-      'tr': 'Wish\'i şikayet et',
-    },
-    'block.menuBlockUser': {
-      'en': 'Block user',
-      'tr': 'Kullanıcıyı engelle',
-    },
-    'block.menuUnblockUser': {
-      'en': 'Unblock user',
-      'tr': 'Engeli kaldır',
-    },
+    'report.menuReportWish': {'en': 'Report wish', 'tr': 'Wish\'i şikayet et'},
+    'block.menuBlockUser': {'en': 'Block user', 'tr': 'Kullanıcıyı engelle'},
+    'block.menuUnblockUser': {'en': 'Unblock user', 'tr': 'Engeli kaldır'},
     'block.confirmTitle': {
       'en': 'Block this user?',
       'tr': 'Bu kullanıcı engellensin mi?',
@@ -167,13 +147,12 @@ class AppLocalizations {
       'tr': 'Bu kullanıcıyı engelledin',
     },
     'block.infoBanner': {
-      'en': 'You blocked this user so likes, comments and other interactions are disabled.',
-      'tr': 'Bu kullanıcıyı engellediğin için beğeni, yorum vb. etkileşimler kapalı.',
+      'en':
+          'You blocked this user so likes, comments and other interactions are disabled.',
+      'tr':
+          'Bu kullanıcıyı engellediğin için beğeni, yorum vb. etkileşimler kapalı.',
     },
-    'block.actionUnblock': {
-      'en': 'Unblock',
-      'tr': 'Engeli kaldır',
-    },
+    'block.actionUnblock': {'en': 'Unblock', 'tr': 'Engeli kaldır'},
     'block.statusBlockedByUser': {
       'en': 'This user blocked you',
       'tr': 'Bu kullanıcı seni engelledi',
@@ -267,38 +246,35 @@ class AppLocalizations {
       'tr':
           'Güvenlik nedeniyle hesabını silmeden önce lütfen tekrar giriş yap.',
     },
-      'settings.reauth.passwordTitle': {
-        'en': 'Confirm your password',
-        'tr': 'Şifreni doğrula',
-      },
-      'settings.reauth.passwordMessage': {
-        'en': 'Enter your password to continue.',
-        'tr': 'Devam etmek için lütfen mevcut şifreni gir.',
-      },
-      'settings.reauth.passwordPlaceholder': {
-        'en': 'Current password',
-        'tr': 'Mevcut şifre',
-      },
-      'settings.reauth.passwordConfirm': {
-        'en': 'Confirm',
-        'tr': 'Onayla',
-      },
-      'settings.reauth.passwordRequired': {
-        'en': 'Password is required',
-        'tr': 'Şifre gerekli',
-      },
-      'settings.reauth.invalidPassword': {
-        'en': 'Incorrect password. Please try again.',
-        'tr': 'Şifre hatalı. Lütfen tekrar dene.',
-      },
-      'settings.reauth.unsupportedProvider': {
-        'en': 'Please sign out and sign back in before deleting your account.',
-        'tr': 'Hesabını silmeden önce lütfen oturumu kapatıp tekrar giriş yap.',
-      },
-      'settings.reauth.genericError': {
-        'en': 'Could not verify your session. Please try again.',
-        'tr': 'Oturum doğrulanamadı. Lütfen tekrar dene.',
-      },
+    'settings.reauth.passwordTitle': {
+      'en': 'Confirm your password',
+      'tr': 'Şifreni doğrula',
+    },
+    'settings.reauth.passwordMessage': {
+      'en': 'Enter your password to continue.',
+      'tr': 'Devam etmek için lütfen mevcut şifreni gir.',
+    },
+    'settings.reauth.passwordPlaceholder': {
+      'en': 'Current password',
+      'tr': 'Mevcut şifre',
+    },
+    'settings.reauth.passwordConfirm': {'en': 'Confirm', 'tr': 'Onayla'},
+    'settings.reauth.passwordRequired': {
+      'en': 'Password is required',
+      'tr': 'Şifre gerekli',
+    },
+    'settings.reauth.invalidPassword': {
+      'en': 'Incorrect password. Please try again.',
+      'tr': 'Şifre hatalı. Lütfen tekrar dene.',
+    },
+    'settings.reauth.unsupportedProvider': {
+      'en': 'Please sign out and sign back in before deleting your account.',
+      'tr': 'Hesabını silmeden önce lütfen oturumu kapatıp tekrar giriş yap.',
+    },
+    'settings.reauth.genericError': {
+      'en': 'Could not verify your session. Please try again.',
+      'tr': 'Oturum doğrulanamadı. Lütfen tekrar dene.',
+    },
     'settings.deleteAccountError': {
       'en': 'Could not delete account: {error}',
       'tr': 'Hesap silinemedi: {error}',
@@ -523,14 +499,11 @@ class AppLocalizations {
     },
     'settings.privacy': {'en': 'Privacy Settings', 'tr': 'Gizlilik Ayarları'},
     'settings.privacyComing': {
-      'en': 'Privacy Settings - Coming Soon',
-      'tr': 'Gizlilik Ayarları - Yakında',
+      'en': 'Privacy Settings',
+      'tr': 'Gizlilik Ayarları',
     },
     'settings.help': {'en': 'Help & Support', 'tr': 'Yardım ve Destek'},
-    'settings.helpComing': {
-      'en': 'Help & Support - Coming Soon',
-      'tr': 'Yardım & Destek - Yakında',
-    },
+    'settings.helpComing': {'en': 'Help & Support', 'tr': 'Yardım & Destek'},
     'settings.errorSigningOut': {
       'en': 'Error signing out',
       'tr': 'Çıkış yapılırken hata oluştu',
