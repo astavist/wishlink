@@ -1487,24 +1487,54 @@ class _CommentTile extends StatelessWidget {
     final initials = displayName.isNotEmpty
         ? displayName.trim()[0].toUpperCase()
         : 'U';
+    final canOpenProfile = comment.userId.isNotEmpty;
+
+    void openCommentUserProfile() {
+      if (!canOpenProfile) {
+        return;
+      }
+      Navigator.of(context).push(
+        createRightToLeftSlideRoute(
+          UserProfileScreen(
+            userId: comment.userId,
+            userName: comment.userName.isNotEmpty ? comment.userName : null,
+            userUsername:
+                comment.userUsername.isNotEmpty ? comment.userUsername : null,
+          ),
+        ),
+      );
+    }
+
+    Widget avatar = CircleAvatar(
+      radius: 18,
+      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
+      backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
+      child: hasAvatar
+          ? null
+          : Text(
+              initials,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+    );
+
+    if (canOpenProfile) {
+      avatar = Material(
+        color: Colors.transparent,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: openCommentUserProfile,
+          child: avatar,
+        ),
+      );
+    }
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        CircleAvatar(
-          radius: 18,
-          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.15),
-          backgroundImage: hasAvatar ? NetworkImage(avatarUrl) : null,
-          child: hasAvatar
-              ? null
-              : Text(
-                  initials,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-        ),
+        avatar,
         const SizedBox(width: 12),
         Expanded(
           child: Container(
