@@ -15,6 +15,7 @@ import 'email_verification_required_screen.dart';
 import 'account_setup_screen.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
 import '../services/google_sign_in_service.dart';
+import '../services/storage_service.dart';
 import '../widgets/wishlink_card.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -29,6 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
   final _googleSignIn = GoogleSignInService.instance;
+  final StorageService _storageService = StorageService();
   static const _googleBirthdayScope =
       'https://www.googleapis.com/auth/user.birthday.read';
   static const List<String> _googleScopeHint = <String>[
@@ -274,6 +276,44 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _syncGoogleProfilePhotoIfNeeded({
+    required User user,
+    required String? providerPhotoUrl,
+    required String existingProfilePhotoUrl,
+  }) async {
+    if (providerPhotoUrl == null ||
+        providerPhotoUrl.isEmpty ||
+        existingProfilePhotoUrl.isNotEmpty) {
+      return;
+    }
+
+    try {
+      final response = await http.get(Uri.parse(providerPhotoUrl));
+      if (response.statusCode != 200 || response.bodyBytes.isEmpty) {
+        return;
+      }
+
+      final downloadUrl = await _storageService.uploadProfilePhotoBytes(
+        userId: user.uid,
+        bytes: response.bodyBytes,
+      );
+
+      await _firestore.collection('users').doc(user.uid).set(
+        {'profilePhotoUrl': downloadUrl},
+        SetOptions(merge: true),
+      );
+
+      try {
+        await user.updatePhotoURL(downloadUrl);
+      } catch (_) {
+        // Ignore failures to populate the auth profile photo.
+      }
+    } catch (e, stackTrace) {
+      debugPrint('Failed to sync Google profile photo: $e');
+      debugPrint('$stackTrace');
+    }
+  }
+
   Future<String?> _promptForUsername({String? initialValue}) async {
     if (!mounted) return null;
 
@@ -506,6 +546,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final userDocRef = _firestore.collection('users').doc(user.uid);
       final userDoc = await userDocRef.get();
+      final storedProfilePhotoUrl =
+          (userDoc.data()?['profilePhotoUrl'] as String?)?.trim() ?? '';
 
       final displayName = user.displayName?.trim() ?? '';
       final nameParts = displayName.isNotEmpty
@@ -527,6 +569,13 @@ class _LoginScreenState extends State<LoginScreen> {
           (userDoc.data()?['username'] as String?)?.trim() ?? '';
       final existingBirthday = userDoc.data()?['birthday'];
       final isNewUser = !userDoc.exists;
+      final providerPhotoUrl = googleUser.photoUrl ?? user.photoURL;
+
+      await _syncGoogleProfilePhotoIfNeeded(
+        user: user,
+        providerPhotoUrl: providerPhotoUrl,
+        existingProfilePhotoUrl: storedProfilePhotoUrl,
+      );
 
       if (isNewUser || currentUsername.isEmpty) {
         if (!mounted) {
