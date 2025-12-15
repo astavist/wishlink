@@ -221,6 +221,11 @@ class AppLocalizations {
       'en': 'Need help? These areas are on the way.',
       'tr': 'Yardım mı lazım? Bu bölümler yakında geliyor.',
     },
+    'settings.adminPanel': {'en': 'Admin panel', 'tr': 'Admin paneli'},
+    'settings.adminPanelSubtitle': {
+      'en': 'Review reports, bans and community actions in one place.',
+      'tr': 'Raporları, yasaklamaları ve topluluğu buradan yönet.',
+    },
     'settings.deleteAccount': {'en': 'Delete account', 'tr': 'Hesabı sil'},
     'settings.deleteAccountSubtitle': {
       'en': 'This removes your profile, wishes and saved data permanently.',

@@ -17,6 +17,7 @@ import '../theme/theme_controller.dart';
 import 'change_password_screen.dart';
 import 'edit_profile_screen.dart';
 import 'notification_settings_screen.dart';
+import 'admin_panel_screen.dart';
 
 const _lightBackground = Color(0xFFFDF9F4);
 const _darkBackground = Color(0xFF0F0F0F);
@@ -65,9 +66,7 @@ class _ModalSelectionTile<T> extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(
-        isSelected
-            ? Icons.radio_button_checked
-            : Icons.radio_button_unchecked,
+        isSelected ? Icons.radio_button_checked : Icons.radio_button_unchecked,
         color: iconColor,
       ),
       title: title,
@@ -78,13 +77,15 @@ class _ModalSelectionTile<T> extends StatelessWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  static final Uri _supportPortalUri =
-      Uri.parse('https://astavist.github.io/wishlink-app/');
+  static final Uri _supportPortalUri = Uri.parse(
+    'https://astavist.github.io/wishlink-app/',
+  );
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final AccountDeletionService _accountDeletionService =
       AccountDeletionService();
   final GoogleSignIn _googleSignIn = GoogleSignInService.instance;
   static const List<String> _googleReauthScopes = <String>['email', 'profile'];
+  static const Set<String> _adminUserIds = {'bOVmtHT4hIglo2UCtv297l3ZwfK2'};
   bool _isDeletingAccount = false;
 
   void _showComingSoon(String message) {
@@ -98,8 +99,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       await NotificationService.instance.signOutWithCleanup(_auth);
       if (!mounted) return;
-      Navigator.of(context, rootNavigator: true)
-          .popUntil((route) => route.isFirst);
+      Navigator.of(
+        context,
+        rootNavigator: true,
+      ).popUntil((route) => route.isFirst);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -192,8 +195,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _isDeletingAccount = false;
       });
       if (deletionSucceeded) {
-        Navigator.of(context, rootNavigator: true)
-            .popUntil((route) => route.isFirst);
+        Navigator.of(
+          context,
+          rootNavigator: true,
+        ).popUntil((route) => route.isFirst);
       }
     }
   }
@@ -460,9 +465,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _openExternalLink(_supportPortalUri);
   }
 
+  void _openAdminPanel() {
+    Navigator.of(
+      context,
+    ).push<void>(_buildSlideRoute<void>(const AdminPanelScreen()));
+  }
+
   Future<void> _openExternalLink(Uri uri) async {
-    final launched =
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.l10n.t('common.couldNotOpenLink'))),
@@ -626,6 +636,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           subtitle: l10n.t('settings.helpComing'),
                           onTap: _openSupportPortal,
                         ),
+                        if (_isAdminUser(user))
+                          _buildSettingTile(
+                            context: context,
+                            icon: Icons.admin_panel_settings_outlined,
+                            title: l10n.t('settings.adminPanel'),
+                            subtitle: l10n.t('settings.adminPanelSubtitle'),
+                            onTap: _openAdminPanel,
+                          ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -655,6 +673,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  bool _isAdminUser(User? user) {
+    if (user == null) {
+      return false;
+    }
+    return _adminUserIds.contains(user.uid);
   }
 
   Widget _buildHeroCard(
