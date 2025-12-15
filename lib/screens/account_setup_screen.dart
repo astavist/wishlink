@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
 import 'package:wishlink/screens/login_screen.dart';
+import 'package:wishlink/services/notification_service.dart';
 
 class AccountSetupScreen extends StatefulWidget {
   final User user;
@@ -311,9 +312,9 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
       } on FirebaseAuthException catch (_) {
         // Ignore deletion errors; we'll still sign out below.
       }
-    } finally {
-      await auth.signOut();
-    }
+      } finally {
+        await NotificationService.instance.signOutWithCleanup(auth);
+      }
 
     if (!mounted) {
       return;

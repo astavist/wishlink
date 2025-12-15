@@ -256,20 +256,41 @@ class NotificationService {
       return;
     }
 
-    await _removeTokenForUser(_lastUserId!);
+    await _removeTokenForUser(_lastUserId!, allowNoAuth: true);
     _cachedToken = null;
     _lastUserId = null;
   }
 
-  Future<void> _removeTokenForUser(String userId) async {
+  Future<void> prepareForSignOut() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      return;
+    }
+
+    await _removeTokenForUser(userId);
+    _cachedToken = null;
+    _lastUserId = null;
+  }
+
+  Future<void> signOutWithCleanup(FirebaseAuth auth) async {
+    await prepareForSignOut();
+    await auth.signOut();
+  }
+
+  Future<void> _removeTokenForUser(
+    String userId, {
+    bool allowNoAuth = false,
+  }) async {
     final token = _cachedToken ?? await _messaging.getToken();
     if (token == null) {
       return;
     }
 
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null || currentUser.uid != userId) {
-      return;
+    if (!allowNoAuth) {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null || currentUser.uid != userId) {
+        return;
+      }
     }
 
     try {

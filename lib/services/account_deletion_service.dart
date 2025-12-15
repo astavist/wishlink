@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 import 'firestore_service.dart';
+import 'notification_service.dart';
 
 class AccountDeletionException implements Exception {
   final String code;
@@ -51,7 +52,7 @@ class AccountDeletionService {
       throw AccountDeletionException(e.code, message: e.message);
     }
 
-    await _auth.signOut();
+    await NotificationService.instance.signOutWithCleanup(_auth);
   }
 
   Future<void> _deleteFirestoreData(String userId) async {

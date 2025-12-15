@@ -12,6 +12,7 @@ import 'package:wishlink/locale/locale_controller.dart';
 
 import '../services/account_deletion_service.dart';
 import '../services/google_sign_in_service.dart';
+import '../services/notification_service.dart';
 import '../theme/theme_controller.dart';
 import 'change_password_screen.dart';
 import 'edit_profile_screen.dart';
@@ -95,7 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _signOut() async {
     final l10n = context.l10n;
     try {
-      await _auth.signOut();
+      await NotificationService.instance.signOutWithCleanup(_auth);
       if (!mounted) return;
       Navigator.of(context, rootNavigator: true)
           .popUntil((route) => route.isFirst);

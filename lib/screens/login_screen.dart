@@ -16,6 +16,7 @@ import 'account_setup_screen.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
 import '../services/google_sign_in_service.dart';
 import '../services/storage_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/wishlink_card.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -427,7 +428,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final chosenUsername = await _promptForUsername(initialValue: suggested);
       if (chosenUsername == null) {
-        await _auth.signOut();
+        await NotificationService.instance.signOutWithCleanup(_auth);
         if (mounted) {
           setState(() {
             _errorMessage = l10n.t('login.usernameRequired');
@@ -597,7 +598,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         if (result == null) {
-          await _auth.signOut();
+          await NotificationService.instance.signOutWithCleanup(_auth);
           if (mounted) {
             setState(() {
               _errorMessage = l10n.t('login.googleSetupCancelled');
@@ -765,7 +766,7 @@ class _LoginScreenState extends State<LoginScreen> {
         );
 
         if (result == null) {
-          await _auth.signOut();
+          await NotificationService.instance.signOutWithCleanup(_auth);
           if (mounted) {
             setState(() {
               _errorMessage = l10n.t('login.appleSetupCancelled');

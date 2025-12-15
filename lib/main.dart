@@ -189,14 +189,14 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
     try {
       // Reload to ensure deletions/disablements made from Firebase console take effect.
       await user.reload();
-      if (mounted && auth.currentUser == null) {
-        await auth.signOut();
-      }
-    } on FirebaseAuthException catch (e) {
-      if (_shouldForceLogout(e.code)) {
-        await auth.signOut();
-      }
-    } finally {
+        if (mounted && auth.currentUser == null) {
+          await NotificationService.instance.signOutWithCleanup(auth);
+        }
+      } on FirebaseAuthException catch (e) {
+        if (_shouldForceLogout(e.code)) {
+          await NotificationService.instance.signOutWithCleanup(auth);
+        }
+      } finally {
       if (mounted) {
         setState(() {
           _checkingRemoteAuthState = false;
@@ -401,11 +401,12 @@ class _ProfileCompletionGateState extends State<_ProfileCompletionGate> {
       return;
     }
 
-    if (result == null || result.trim().isEmpty) {
-      await FirebaseAuth.instance.signOut();
-    } else {
-      widget.onProfileCompleted();
-    }
+      if (result == null || result.trim().isEmpty) {
+        await NotificationService.instance
+            .signOutWithCleanup(FirebaseAuth.instance);
+      } else {
+        widget.onProfileCompleted();
+      }
   }
 
   @override
@@ -427,12 +428,13 @@ class _ForcedLogoutView extends StatefulWidget {
 
 class _ForcedLogoutViewState extends State<_ForcedLogoutView> {
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await FirebaseAuth.instance.signOut();
-    });
-  }
+    void initState() {
+      super.initState();
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await NotificationService.instance
+            .signOutWithCleanup(FirebaseAuth.instance);
+      });
+    }
 
   @override
   Widget build(BuildContext context) {

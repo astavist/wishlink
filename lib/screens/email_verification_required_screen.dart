@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:wishlink/screens/login_screen.dart';
 import 'package:wishlink/locale/locale_controller.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
+import 'package:wishlink/services/notification_service.dart';
 
 class EmailVerificationRequiredScreen extends StatefulWidget {
   const EmailVerificationRequiredScreen({super.key});
@@ -166,7 +167,7 @@ class _EmailVerificationRequiredScreenState
     _stopVerificationCheck();
 
     // Çıkış yap
-    await _auth.signOut();
+    await NotificationService.instance.signOutWithCleanup(_auth);
 
     // Navigate (mounted kontrolü gerekli değil çünkü zaten disposed)
     if (mounted) {
