@@ -35,6 +35,12 @@ class FirestoreService {
       throw Exception('Not authenticated');
     }
 
+    final reporterUsername = await _fetchUsernameForUserId(currentUser.uid) ??
+        currentUser.displayName?.trim() ??
+        currentUser.email?.trim();
+    final targetUsername =
+        await _resolveTargetUsername(targetId: targetId, targetType: targetType);
+
     final payload = <String, dynamic>{
       'reporterId': currentUser.uid,
       'targetId': targetId,
@@ -43,6 +49,13 @@ class FirestoreService {
       'status': 'pending',
       'createdAt': FieldValue.serverTimestamp(),
     };
+
+    if (reporterUsername != null && reporterUsername.isNotEmpty) {
+      payload['reporterUsername'] = reporterUsername;
+    }
+    if (targetUsername != null && targetUsername.isNotEmpty) {
+      payload['targetUsername'] = targetUsername;
+    }
 
     final trimmedDescription = description?.trim();
     if (trimmedDescription != null && trimmedDescription.isNotEmpty) {
@@ -110,6 +123,70 @@ class FirestoreService {
     }
 
     await _blockDocRef(currentUser.uid, targetUserId).delete();
+  }
+
+  Future<String?> _fetchUsernameForUserId(String userId) async {
+    if (userId.isEmpty) {
+      return null;
+    }
+
+    final doc = await _firestore.collection('users').doc(userId).get();
+    if (!doc.exists) {
+      return null;
+    }
+
+    return _extractPreferredUsername(doc.data());
+  }
+
+  Future<String?> _resolveTargetUsername({
+    required String targetId,
+    required String targetType,
+  }) async {
+    final normalizedType = targetType.trim().toLowerCase();
+
+    if (normalizedType == 'user') {
+      return _fetchUsernameForUserId(targetId);
+    }
+
+    if (normalizedType == 'wish') {
+      final wishDoc =
+          await _firestore.collection('wishes').doc(targetId).get();
+      final wishData = wishDoc.data();
+      final ownerId = (wishData?['ownerId'] as String?)?.trim() ?? '';
+      if (ownerId.isNotEmpty) {
+        return _fetchUsernameForUserId(ownerId);
+      }
+    }
+
+    return null;
+  }
+
+  String? _extractPreferredUsername(Map<String, dynamic>? data) {
+    if (data == null) {
+      return null;
+    }
+
+    final username = (data['username'] as String?)?.trim();
+    if (username != null && username.isNotEmpty) {
+      return username;
+    }
+
+    final firstName = (data['firstName'] as String?)?.trim() ?? '';
+    final lastName = (data['lastName'] as String?)?.trim() ?? '';
+    final combined = [firstName, lastName]
+        .where((part) => part.isNotEmpty)
+        .join(' ')
+        .trim();
+    if (combined.isNotEmpty) {
+      return combined;
+    }
+
+    final displayName = (data['displayName'] as String?)?.trim();
+    if (displayName != null && displayName.isNotEmpty) {
+      return displayName;
+    }
+
+    return null;
   }
 
   // Get current user's friends
