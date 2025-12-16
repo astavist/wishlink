@@ -237,6 +237,7 @@ class AppLocalizations {
     },
     'admin.tabReports': {'en': 'Reports', 'tr': 'Raporlar'},
     'admin.tabUsers': {'en': 'Users', 'tr': 'Kullanıcılar'},
+    'admin.tabBanned': {'en': 'Banned', 'tr': 'Yasaklılar'},
     'admin.searchReportsHint': {
       'en': 'Search reports by username',
       'tr': 'Raporları kullanıcı adına göre ara',
@@ -244,6 +245,10 @@ class AppLocalizations {
     'admin.searchUsersHint': {
       'en': 'Search users by username',
       'tr': 'Kullanıcıları kullanıcı adına göre ara',
+    },
+    'admin.searchBannedHint': {
+      'en': 'Search banned users by username',
+      'tr': 'Yasaklı kullanıcıları kullanıcı adına göre ara',
     },
     'admin.reportsFilteredEmpty': {
       'en': 'No reports match this search',
@@ -260,6 +265,62 @@ class AppLocalizations {
     'admin.usersSearchError': {
       'en': 'Unable to search users right now. Please try again.',
       'tr': 'Kullanıcı araması şu anda yapılamıyor. Lütfen tekrar dene.',
+    },
+    'admin.reportDeleteOption': {
+      'en': 'Delete report',
+      'tr': 'Raporu sil',
+    },
+    'admin.reportDeleteSuccess': {
+      'en': 'Report deleted.',
+      'tr': 'Rapor silindi.',
+    },
+    'admin.reportDeleteFailure': {
+      'en': 'Could not delete report: {error}',
+      'tr': 'Rapor silinemedi: {error}',
+    },
+    'admin.reportNoTargetForBan': {
+      'en': 'No target user to moderate for this report.',
+      'tr': 'Bu raporda yasaklanacak kullanıcı yok.',
+    },
+    'admin.reportActionsTooltip': {
+      'en': 'Report actions',
+      'tr': 'Rapor işlemleri',
+    },
+    'admin.bannedEmptyTitle': {
+      'en': 'No banned users',
+      'tr': 'Yasaklı kullanıcı yok',
+    },
+    'admin.bannedEmptySubtitle': {
+      'en': 'Banned users will appear here.',
+      'tr': 'Yasaklanan kullanıcılar burada görünecek.',
+    },
+    'admin.bannedFilteredEmpty': {
+      'en': 'No banned users match this search',
+      'tr': 'Bu aramayla eşleşen yasaklı kullanıcı yok',
+    },
+    'admin.userBanOption': {
+      'en': 'Ban user',
+      'tr': 'Kullanıcıyı yasakla',
+    },
+    'admin.userUnbanOption': {
+      'en': 'Remove ban',
+      'tr': 'Yasağı kaldır',
+    },
+    'admin.userBanSuccess': {
+      'en': 'User status updated to banned.',
+      'tr': 'Kullanıcı yasaklandı.',
+    },
+    'admin.userUnbanSuccess': {
+      'en': 'User ban removed.',
+      'tr': 'Kullanıcının yasağı kaldırıldı.',
+    },
+    'admin.userBanFailure': {
+      'en': 'Could not update ban status: {error}',
+      'tr': 'Yasak durumu güncellenemedi: {error}',
+    },
+    'admin.userActionsTooltip': {
+      'en': 'Moderation actions',
+      'tr': 'Moderasyon işlemleri',
     },
     'admin.reporterLabel': {'en': 'Reporter', 'tr': 'Bildirimi yapan'},
     'admin.targetLabel': {'en': 'Target', 'tr': 'Hedef'},
