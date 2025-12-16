@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import '../config/admin_config.dart';
 import '../models/friend_activity.dart';
 import '../models/friend_activity_comment.dart';
 import '../models/wish_list.dart';
@@ -12,6 +14,11 @@ class FirestoreService {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+
+  bool _isCurrentUserAdmin() {
+    return isAdminUserId(_auth.currentUser?.uid);
+  }
 
   DocumentReference<Map<String, dynamic>> _blockDocRef(
     String ownerId,
@@ -35,11 +42,14 @@ class FirestoreService {
       throw Exception('Not authenticated');
     }
 
-    final reporterUsername = await _fetchUsernameForUserId(currentUser.uid) ??
+    final reporterUsername =
+        await _fetchUsernameForUserId(currentUser.uid) ??
         currentUser.displayName?.trim() ??
         currentUser.email?.trim();
-    final targetUsername =
-        await _resolveTargetUsername(targetId: targetId, targetType: targetType);
+    final targetUsername = await _resolveTargetUsername(
+      targetId: targetId,
+      targetType: targetType,
+    );
 
     final payload = <String, dynamic>{
       'reporterId': currentUser.uid,
@@ -149,8 +159,7 @@ class FirestoreService {
     }
 
     if (normalizedType == 'wish') {
-      final wishDoc =
-          await _firestore.collection('wishes').doc(targetId).get();
+      final wishDoc = await _firestore.collection('wishes').doc(targetId).get();
       final wishData = wishDoc.data();
       final ownerId = (wishData?['ownerId'] as String?)?.trim() ?? '';
       if (ownerId.isNotEmpty) {
@@ -173,10 +182,10 @@ class FirestoreService {
 
     final firstName = (data['firstName'] as String?)?.trim() ?? '';
     final lastName = (data['lastName'] as String?)?.trim() ?? '';
-    final combined = [firstName, lastName]
-        .where((part) => part.isNotEmpty)
-        .join(' ')
-        .trim();
+    final combined = [
+      firstName,
+      lastName,
+    ].where((part) => part.isNotEmpty).join(' ').trim();
     if (combined.isNotEmpty) {
       return combined;
     }
@@ -287,14 +296,8 @@ class FirestoreService {
       }
     }
 
-    processSnapshot(
-      snapshots[0] as QuerySnapshot,
-      currentUserIsOwner: true,
-    );
-    processSnapshot(
-      snapshots[1] as QuerySnapshot,
-      currentUserIsOwner: false,
-    );
+    processSnapshot(snapshots[0] as QuerySnapshot, currentUserIsOwner: true);
+    processSnapshot(snapshots[1] as QuerySnapshot, currentUserIsOwner: false);
 
     return friendships.values.toList();
   }
@@ -843,9 +846,7 @@ class FirestoreService {
     required String name,
     String? coverImageUrl,
   }) async {
-    final updates = <String, dynamic>{
-      'name': name,
-    };
+    final updates = <String, dynamic>{'name': name};
     if (coverImageUrl != null) {
       updates['coverImageUrl'] = coverImageUrl;
     }
@@ -894,8 +895,9 @@ class FirestoreService {
       throw Exception('Wish not found');
     }
 
-    final wishData =
-        Map<String, dynamic>.from(wishSnapshot.data() as Map<String, dynamic>);
+    final wishData = Map<String, dynamic>.from(
+      wishSnapshot.data() as Map<String, dynamic>,
+    );
     final updatePayload = <String, dynamic>{
       'name': name,
       'description': description,
@@ -934,9 +936,11 @@ class FirestoreService {
 
     final activityDoc = activitySnapshot.docs.first;
     final activityData = Map<String, dynamic>.from(activityDoc.data());
-    final existingWishItem =
-        Map<String, dynamic>.from(activityData['wishItem'] ?? {});
-    final createdAt = existingWishItem['createdAt'] ??
+    final existingWishItem = Map<String, dynamic>.from(
+      activityData['wishItem'] ?? {},
+    );
+    final createdAt =
+        existingWishItem['createdAt'] ??
         wishData['createdAt'] ??
         Timestamp.fromDate(DateTime.now());
 
@@ -963,17 +967,20 @@ class FirestoreService {
     if (currentUser == null) {
       throw Exception('Not authenticated');
     }
+    final isAdmin = _isCurrentUserAdmin();
 
     final wishRef = _firestore.collection('wishes').doc(wishId);
     final wishSnapshot = await wishRef.get();
 
     String? ownerId;
+    String? imageUrl;
     if (wishSnapshot.exists) {
       final wishData =
           (wishSnapshot.data() as Map<String, dynamic>?) ?? <String, dynamic>{};
       ownerId =
           (wishData['ownerId'] as String?)?.trim() ??
           (wishData['userId'] as String?)?.trim();
+      imageUrl = (wishData['imageUrl'] as String?)?.trim();
     }
 
     final activitySnapshot = await _firestore
@@ -992,13 +999,17 @@ class FirestoreService {
       }
     }
 
-    if (ownerId != null && ownerId.isNotEmpty && ownerId != currentUser.uid) {
+    if (!isAdmin &&
+        ownerId != null &&
+        ownerId.isNotEmpty &&
+        ownerId != currentUser.uid) {
       throw Exception('Not authorized to delete this wish');
     }
 
     for (final activityDoc in activitySnapshot.docs) {
-      final commentsSnapshot =
-          await activityDoc.reference.collection('comments').get();
+      final commentsSnapshot = await activityDoc.reference
+          .collection('comments')
+          .get();
       for (final commentDoc in commentsSnapshot.docs) {
         await commentDoc.reference.delete();
       }
@@ -1007,7 +1018,56 @@ class FirestoreService {
 
     if (wishSnapshot.exists) {
       await wishRef.delete();
+      await _deleteWishImageFromStorage(imageUrl);
     }
+  }
+
+  Future<void> _deleteWishImageFromStorage(String? imageUrl) async {
+    final url = imageUrl?.trim();
+    if (url == null || url.isEmpty) {
+      return;
+    }
+
+    try {
+      final ref = _storage.refFromURL(url);
+      if (!ref.fullPath.startsWith('wish_images/')) {
+        return;
+      }
+      await ref.delete();
+    } catch (_) {
+      // Ignore cleanup errors, storage inconsistency isn't critical.
+    }
+  }
+
+  Future<void> setUserBanState({
+    required String targetUserId,
+    required bool banned,
+    String? reason,
+  }) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null || !isAdminUserId(currentUser.uid)) {
+      throw Exception('Not authorized');
+    }
+
+    final updates = <String, dynamic>{
+      'isBanned': banned,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    if (banned) {
+      updates['bannedAt'] = FieldValue.serverTimestamp();
+      if (reason != null && reason.trim().isNotEmpty) {
+        updates['banReason'] = reason.trim();
+      }
+    } else {
+      updates['bannedAt'] = FieldValue.delete();
+      updates['banReason'] = FieldValue.delete();
+    }
+
+    await _firestore
+        .collection('users')
+        .doc(targetUserId)
+        .set(updates, SetOptions(merge: true));
   }
 
   Future<List<DocumentSnapshot>> getWishesByList(String listId) async {
@@ -1036,8 +1096,10 @@ class FirestoreService {
 
     return snapshot.docs
         .map(
-          (doc) =>
-              UserPrivateNote.fromMap(doc.data() as Map<String, dynamic>, doc.id),
+          (doc) => UserPrivateNote.fromMap(
+            doc.data() as Map<String, dynamic>,
+            doc.id,
+          ),
         )
         .toList();
   }
@@ -1064,7 +1126,9 @@ class FirestoreService {
       payload['noteDate'] = Timestamp.fromDate(noteDate);
     }
 
-    final docRef = await _firestore.collection('user_private_notes').add(payload);
+    final docRef = await _firestore
+        .collection('user_private_notes')
+        .add(payload);
     final snapshot = await docRef.get();
 
     return UserPrivateNote.fromMap(

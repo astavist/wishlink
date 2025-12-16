@@ -226,6 +226,108 @@ class AppLocalizations {
       'en': 'Review reports, bans and community actions in one place.',
       'tr': 'Raporları, yasaklamaları ve topluluğu buradan yönet.',
     },
+    'admin.reportsEmptyTitle': {
+      'en': 'No reports yet',
+      'tr': 'Henüz rapor yok',
+    },
+    'admin.reportsEmptySubtitle': {
+      'en': 'Incoming reports from the community will appear here.',
+      'tr': 'Topluluktan gelen raporlar burada görünecek.',
+    },
+    'admin.reporterLabel': {'en': 'Reporter', 'tr': 'Bildirimi yapan'},
+    'admin.targetLabel': {'en': 'Target', 'tr': 'Hedef'},
+    'admin.detailsLabel': {'en': 'Details', 'tr': 'Detaylar'},
+    'admin.reportIdLabel': {'en': 'Report ID', 'tr': 'Rapor ID'},
+    'admin.reportedAtLabel': {'en': 'Reported', 'tr': 'Rapor tarihi'},
+    'admin.unknownValue': {'en': 'Unknown', 'tr': 'Bilinmiyor'},
+    'admin.targetType.user': {'en': 'User', 'tr': 'Kullanıcı'},
+    'admin.targetType.wish': {'en': 'Wish', 'tr': 'Wish'},
+    'admin.reportDetailTitle': {
+      'en': 'Report details',
+      'tr': 'Rapor detayları',
+    },
+    'admin.targetSectionTitle': {
+      'en': 'Target information',
+      'tr': 'Hedef bilgileri',
+    },
+    'admin.preview.targetIdLabel': {
+      'en': 'Target ID',
+      'tr': 'Hedef ID',
+    },
+    'admin.action.ignore': {'en': 'Ignore report', 'tr': 'Raporu yok say'},
+    'admin.action.remove': {'en': 'Remove content', 'tr': 'İçeriği kaldır'},
+    'admin.action.banUser': {
+      'en': 'Ban user',
+      'tr': 'Kullanıcıyı yasakla',
+    },
+    'admin.action.confirmIgnore': {
+      'en': 'Mark this report as ignored?',
+      'tr': 'Bu rapor yok sayılsın mı?',
+    },
+    'admin.action.confirmRemove': {
+      'en': 'Remove the reported content?',
+      'tr': 'Şikayet edilen içerik kaldırılsın mı?',
+    },
+    'admin.action.confirmBanUser': {
+      'en': 'Ban this user?',
+      'tr': 'Bu kullanıcı yasaklansın mı?',
+    },
+    'admin.action.confirm': {'en': 'Confirm', 'tr': 'Onayla'},
+    'admin.action.success': {
+      'en': 'Action completed',
+      'tr': 'İşlem tamamlandı',
+    },
+    'admin.action.failure': {
+      'en': 'Could not complete action: {error}',
+      'tr': 'İşlem tamamlanamadı: {error}',
+    },
+    'admin.targetPreviewUnavailableTitle': {
+      'en': 'Preview unavailable',
+      'tr': 'Önizleme kullanılamıyor',
+    },
+    'admin.targetPreviewUnavailableSubtitle': {
+      'en': 'This content may have been removed.',
+      'tr': 'Bu içerik kaldırılmış olabilir.',
+    },
+    'admin.targetPreviewLoadError': {
+      'en': 'Unable to load target preview.',
+      'tr': 'Önizleme yüklenemedi.',
+    },
+    'admin.targetPreviewUnknown': {
+      'en': 'Unknown target',
+      'tr': 'Bilinmeyen hedef',
+    },
+    'admin.targetPreviewUserTitle': {
+      'en': 'Profile preview',
+      'tr': 'Profil önizlemesi',
+    },
+    'admin.targetPreviewWishTitle': {
+      'en': 'Wish preview',
+      'tr': 'Wish önizlemesi',
+    },
+    'admin.preview.wishUnknownName': {
+      'en': 'Untitled wish',
+      'tr': 'Adsız wish',
+    },
+    'admin.preview.wishPriceLabel': {
+      'en': 'Price {price}',
+      'tr': 'Fiyat {price}',
+    },
+    'admin.preview.wishDescriptionLabel': {
+      'en': 'Description',
+      'tr': 'Açıklama',
+    },
+    'admin.preview.wishOwnerLabel': {
+      'en': 'Owner ID',
+      'tr': 'Sahip ID',
+    },
+    'admin.preview.wishLinkLabel': {
+      'en': 'Product link',
+      'tr': 'Ürün linki',
+    },
+    'admin.preview.userStatusLabel': {'en': 'Status', 'tr': 'Durum'},
+    'admin.preview.userStatusBanned': {'en': 'Banned', 'tr': 'Yasaklı'},
+    'admin.preview.userStatusActive': {'en': 'Active', 'tr': 'Aktif'},
     'settings.deleteAccount': {'en': 'Delete account', 'tr': 'Hesabı sil'},
     'settings.deleteAccountSubtitle': {
       'en': 'This removes your profile, wishes and saved data permanently.',

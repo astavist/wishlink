@@ -10,6 +10,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
 import 'package:wishlink/locale/locale_controller.dart';
 
+import '../config/admin_config.dart';
 import '../services/account_deletion_service.dart';
 import '../services/google_sign_in_service.dart';
 import '../services/notification_service.dart';
@@ -85,7 +86,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       AccountDeletionService();
   final GoogleSignIn _googleSignIn = GoogleSignInService.instance;
   static const List<String> _googleReauthScopes = <String>['email', 'profile'];
-  static const Set<String> _adminUserIds = {'bOVmtHT4hIglo2UCtv297l3ZwfK2'};
   bool _isDeletingAccount = false;
 
   void _showComingSoon(String message) {
@@ -679,7 +679,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (user == null) {
       return false;
     }
-    return _adminUserIds.contains(user.uid);
+    return isAdminUserId(user.uid);
   }
 
   Widget _buildHeroCard(
