@@ -45,6 +45,7 @@ class AppLocalizations {
       'en': 'Could not open link',
       'tr': 'Link açılamadı',
     },
+    'common.emailLabel': {'en': 'Email', 'tr': 'E-posta'},
     'common.signInToLike': {
       'en': 'Please sign in to like wishes.',
       'tr': 'Beğenmek için lütfen giriş yap.',
@@ -234,10 +235,37 @@ class AppLocalizations {
       'en': 'Incoming reports from the community will appear here.',
       'tr': 'Topluluktan gelen raporlar burada görünecek.',
     },
+    'admin.tabReports': {'en': 'Reports', 'tr': 'Raporlar'},
+    'admin.tabUsers': {'en': 'Users', 'tr': 'Kullanıcılar'},
+    'admin.searchReportsHint': {
+      'en': 'Search reports by username',
+      'tr': 'Raporları kullanıcı adına göre ara',
+    },
+    'admin.searchUsersHint': {
+      'en': 'Search users by username',
+      'tr': 'Kullanıcıları kullanıcı adına göre ara',
+    },
+    'admin.reportsFilteredEmpty': {
+      'en': 'No reports match this search',
+      'tr': 'Bu aramayla eşleşen rapor yok',
+    },
+    'admin.usersSearchStart': {
+      'en': 'Type at least 3 characters to search users.',
+      'tr': 'Kullanıcı aramak için en az 3 karakter yaz.',
+    },
+    'admin.usersNoResults': {
+      'en': 'No users found for this username',
+      'tr': 'Bu kullanıcı adına sahip kullanıcı bulunamadı',
+    },
+    'admin.usersSearchError': {
+      'en': 'Unable to search users right now. Please try again.',
+      'tr': 'Kullanıcı araması şu anda yapılamıyor. Lütfen tekrar dene.',
+    },
     'admin.reporterLabel': {'en': 'Reporter', 'tr': 'Bildirimi yapan'},
     'admin.targetLabel': {'en': 'Target', 'tr': 'Hedef'},
     'admin.detailsLabel': {'en': 'Details', 'tr': 'Detaylar'},
     'admin.reportIdLabel': {'en': 'Report ID', 'tr': 'Rapor ID'},
+    'admin.userIdLabel': {'en': 'User ID', 'tr': 'Kullanıcı ID'},
     'admin.reportedAtLabel': {'en': 'Reported', 'tr': 'Rapor tarihi'},
     'admin.unknownValue': {'en': 'Unknown', 'tr': 'Bilinmiyor'},
     'admin.targetType.user': {'en': 'User', 'tr': 'Kullanıcı'},
