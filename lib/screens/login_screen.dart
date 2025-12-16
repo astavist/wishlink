@@ -299,10 +299,9 @@ class _LoginScreenState extends State<LoginScreen> {
         bytes: response.bodyBytes,
       );
 
-      await _firestore.collection('users').doc(user.uid).set(
-        {'profilePhotoUrl': downloadUrl},
-        SetOptions(merge: true),
-      );
+      await _firestore.collection('users').doc(user.uid).set({
+        'profilePhotoUrl': downloadUrl,
+      }, SetOptions(merge: true));
 
       try {
         await user.updatePhotoURL(downloadUrl);
@@ -990,6 +989,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final theme = Theme.of(context);
     final mediaQuery = MediaQuery.of(context);
     final showAppleSignIn = !kIsWeb && theme.platform == TargetPlatform.iOS;
+    final logoAsset = theme.brightness == Brightness.dark
+        ? 'assets/images/LogoDarkPNG.png'
+        : 'assets/images/LogoPNG.png';
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
@@ -1013,10 +1015,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const SizedBox(height: 12),
-                        Image.asset('assets/images/LogoPNG.png', height: 120),
+                        Image.asset(logoAsset, height: 120),
                         const SizedBox(height: 24),
                         WishLinkCard(
-                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+                          padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
                           gradient: theme.brightness == Brightness.dark
                               ? const LinearGradient(
                                   colors: [
@@ -1072,9 +1074,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                       : Container(
                                           key: ValueKey(_errorMessage),
                                           padding: const EdgeInsets.all(12),
-                                            decoration: BoxDecoration(
-                                              color: theme.colorScheme.error
-                                                  .withValues(alpha: 0.08),
+                                          decoration: BoxDecoration(
+                                            color: theme.colorScheme.error
+                                                .withValues(alpha: 0.08),
                                             borderRadius: BorderRadius.circular(
                                               12,
                                             ),
@@ -1348,7 +1350,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         if (!_isSignUp) ...[
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 12),
                           Row(
                             children: [
                               const Expanded(child: Divider()),
@@ -1356,13 +1358,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 12,
                                 ),
-                                  child: Text(
-                                    l10n.t('login.orDivider'),
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurface
-                                          .withValues(alpha: 0.6),
-                                    ),
+                                child: Text(
+                                  l10n.t('login.orDivider'),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.6),
                                   ),
+                                ),
                               ),
                               const Expanded(child: Divider()),
                             ],
@@ -1372,16 +1374,16 @@ class _LoginScreenState extends State<LoginScreen> {
                             icon: FontAwesomeIcons.google,
                             text: l10n.t('login.continueWithGoogle'),
                             backgroundColor: Colors.transparent,
-                              textColor: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.9,
+                            textColor: theme.colorScheme.onSurface.withValues(
+                              alpha: 0.9,
+                            ),
+                            borderSide: BorderSide(
+                              color: theme.dividerColor.withValues(
+                                alpha: theme.brightness == Brightness.dark
+                                    ? 0.3
+                                    : 0.5,
                               ),
-                              borderSide: BorderSide(
-                                color: theme.dividerColor.withValues(
-                                  alpha: theme.brightness == Brightness.dark
-                                      ? 0.3
-                                      : 0.5,
-                                ),
-                              ),
+                            ),
                             onPressed: _isLoading ? null : _signInWithGoogle,
                           ),
                           if (showAppleSignIn) ...[
@@ -1480,12 +1482,12 @@ class _AuthModeButton extends StatelessWidget {
       child: Center(
         child: Text(
           text,
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: isSelected
-                  ? theme.colorScheme.onPrimary
-                  : theme.colorScheme.onSurface.withValues(alpha: 0.5),
-              fontWeight: FontWeight.w600,
-            ),
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: isSelected
+                ? theme.colorScheme.onPrimary
+                : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
     );
