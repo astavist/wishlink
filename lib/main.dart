@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:wishlink/screens/banned_user_screen.dart';
 import 'package:wishlink/screens/login_screen.dart';
 import 'package:wishlink/screens/home_screen.dart';
 import 'package:wishlink/screens/email_verification_required_screen.dart';
@@ -271,6 +272,7 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
             final lastName = (data?['lastName'] as String?)?.trim() ?? '';
             final username = (data?['username'] as String?)?.trim() ?? '';
             final isAuthorized = data?['isAuthorized'] as bool? ?? true;
+            final isBanned = data?['isBanned'] == true;
             final isGoogleUser = _isGoogleProvider(user);
             final isAppleUser = _isAppleProvider(user);
 
@@ -280,6 +282,10 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
 
             if (!docExists && !_isNewlyCreatedUser(user)) {
               return const _ForcedLogoutView();
+            }
+
+            if (isBanned) {
+              return const BannedUserScreen();
             }
 
             final requiresProfile =
@@ -420,7 +426,7 @@ Widget _buildLoadingScaffold() {
 }
 
 class _ForcedLogoutView extends StatefulWidget {
-  const _ForcedLogoutView({super.key});
+  const _ForcedLogoutView();
 
   @override
   State<_ForcedLogoutView> createState() => _ForcedLogoutViewState();

@@ -1278,6 +1278,35 @@ class AppLocalizations {
       'tr': '{handle} wishleri',
     },
     'profile.userUnknown': {'en': 'This user', 'tr': 'Bu kullanıcı'},
+    'profile.bannedNoticeTitle': {
+      'en': 'Account unavailable',
+      'tr': 'Hesap kullanılamıyor',
+    },
+    'profile.bannedNoticeSubtitle': {
+      'en': 'This profile is hidden because the user was banned.',
+      'tr': 'Bu kullanıcı yasaklandığı için profili görüntülenemiyor.',
+    },
+    'banned.modalTitle': {
+      'en': 'Your account has been banned',
+      'tr': 'Hesabın yasaklandı',
+    },
+    'banned.modalDescription': {
+      'en':
+          'You no longer have access to Wishlink. You can sign out, contact support or delete your account.',
+      'tr':
+          'Wishlink erişimin kapatıldı. Çıkış yapabilir, destekle iletişime geçebilir ya da hesabını silebilirsin.',
+    },
+    'banned.signOut': {'en': 'Sign out', 'tr': 'Çıkış yap'},
+    'banned.support': {'en': 'Support', 'tr': 'Destek'},
+    'banned.deleteAccount': {'en': 'Delete account', 'tr': 'Hesabı sil'},
+    'banned.supportError': {
+      'en': 'Could not open support page.',
+      'tr': 'Destek sayfası açılamadı.',
+    },
+    'banned.deleteReauthRequired': {
+      'en': 'Please sign out and sign in again before deleting your account.',
+      'tr': 'Hesabını silmeden önce çıkış yapıp tekrar giriş yapmalısın.',
+    },
     'profile.noWishesTitle': {'en': 'No wishes yet', 'tr': 'Henüz wish yok'},
     'profile.noWishesSubtitle': {
       'en': "{name} hasn't added any wishes yet",

@@ -1,4 +1,3 @@
-import 'package:characters/characters.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/wish_item.dart';
@@ -195,6 +194,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   bool _hasBlockedUser = false;
   bool _isHandlingBlockAction = false;
   bool _isBlockedByTarget = false;
+  bool _isBanned = false;
 
   bool get _isViewingOwnProfile => _auth.currentUser?.uid == widget.userId;
 
@@ -307,6 +307,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         if (!mounted) {
           return;
         }
+        final isBanned = (data?['isBanned'] as bool?) ?? false;
         setState(() {
           _firstName = data?['firstName'] ?? '';
           _lastName = data?['lastName'] ?? '';
@@ -325,7 +326,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           } else {
             _birthdayDisplayPreference = 'dayMonthYear';
           }
+          _isBanned = isBanned;
         });
+        if (isBanned) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _userWishes = [];
+            _wishLists = [];
+            _privateNotes = [];
+            _isLoading = false;
+          });
+          return;
+        }
       }
 
       if (_isBlockedByTarget && !_isViewingOwnProfile) {
@@ -1289,6 +1303,58 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
+  Widget _buildBannedProfileNotice(
+    AppLocalizations l10n,
+    ThemeData theme,
+  ) {
+    final isDark = theme.brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1F1F1F) : Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color:
+              isDark ? Colors.white.withAlpha(20) : Colors.black.withAlpha(12),
+        ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withAlpha(12),
+                  blurRadius: 30,
+                  offset: const Offset(0, 20),
+                ),
+              ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(Icons.block_rounded, size: 48, color: theme.colorScheme.error),
+          const SizedBox(height: 16),
+          Text(
+            l10n.t('profile.bannedNoticeTitle'),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            l10n.t('profile.bannedNoticeSubtitle'),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStatusPill({
     required Color backgroundColor,
     required IconData icon,
@@ -1573,6 +1639,30 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       return Scaffold(
         backgroundColor: backgroundColor,
         body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_isBanned) {
+      return Scaffold(
+        backgroundColor: backgroundColor,
+        body: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              16,
+              16,
+              16,
+              32 + MediaQuery.paddingOf(context).bottom,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                headerRow,
+                const SizedBox(height: 32),
+                _buildBannedProfileNotice(l10n, theme),
+              ],
+            ),
+          ),
+        ),
       );
     }
 
