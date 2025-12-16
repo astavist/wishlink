@@ -170,7 +170,7 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        _forceUserDocRefresh(user);
+        _forceUserDocRefresh(user, fromServer: true);
       }
     }
   }
@@ -190,18 +190,22 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
     try {
       // Reload to ensure deletions/disablements made from Firebase console take effect.
       await user.reload();
-        if (mounted && auth.currentUser == null) {
-          await NotificationService.instance.signOutWithCleanup(auth);
-        }
-      } on FirebaseAuthException catch (e) {
-        if (_shouldForceLogout(e.code)) {
-          await NotificationService.instance.signOutWithCleanup(auth);
-        }
-      } finally {
+      if (mounted && auth.currentUser == null) {
+        await NotificationService.instance.signOutWithCleanup(auth);
+      }
+    } on FirebaseAuthException catch (e) {
+      if (_shouldForceLogout(e.code)) {
+        await NotificationService.instance.signOutWithCleanup(auth);
+      }
+    } finally {
       if (mounted) {
         setState(() {
           _checkingRemoteAuthState = false;
         });
+        final refreshedUser = auth.currentUser;
+        if (refreshedUser != null) {
+          _forceUserDocRefresh(refreshedUser, fromServer: true);
+        }
       }
     }
   }
@@ -239,7 +243,10 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
 
         if (_userDocFuture == null || _userDocFutureUid != user.uid) {
           _userDocFutureUid = user.uid;
-          _userDocFuture = _createUserDocFuture(user);
+          _userDocFuture = _createUserDocFuture(
+            user,
+            fromServer: true,
+          );
         }
 
         final userDocFuture = _userDocFuture!;
@@ -333,18 +340,30 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
   }
 
   Future<DocumentSnapshot<Map<String, dynamic>>> _createUserDocFuture(
-    User user,
-  ) {
-    return FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    User user, {
+    bool fromServer = false,
+  }) {
+    final docRef =
+        FirebaseFirestore.instance.collection('users').doc(user.uid);
+    if (fromServer) {
+      return docRef.get(const GetOptions(source: Source.server));
+    }
+    return docRef.get();
   }
 
-  void _forceUserDocRefresh(User user) {
+  void _forceUserDocRefresh(
+    User user, {
+    bool fromServer = false,
+  }) {
     if (!mounted) {
       return;
     }
     setState(() {
       _userDocFutureUid = user.uid;
-      _userDocFuture = _createUserDocFuture(user);
+      _userDocFuture = _createUserDocFuture(
+        user,
+        fromServer: fromServer,
+      );
     });
   }
 }

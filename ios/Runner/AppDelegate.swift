@@ -41,6 +41,8 @@ import google_mobile_ads
       )
     }
     GeneratedPluginRegistrant.register(with: self)
+    // Keep the native splash visible briefly so the logo is noticeable.
+    Thread.sleep(forTimeInterval: 1.0)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
