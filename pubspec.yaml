@@ -2,7 +2,7 @@ name: wishlink
 description: "Social and Interactive Wish List Platform - The Future of Gift-Giving"
 publish_to: 'none'
 
-version: 1.0.0+21
+version: 1.0.0+22
 
 environment:
   sdk: ^3.8.1
@@ -84,10 +84,10 @@ flutter_native_splash:
   ios: true
 
   color: "#ffffff"
-  image: assets/images/Logo.png
+  image: assets/images/LogoBlack.png
 
   color_dark: "#000000"
-  image_dark: assets/images/LogoBlack.png
+  image_dark: assets/images/Logo.png
 
 
 
