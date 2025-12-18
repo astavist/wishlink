@@ -266,10 +266,7 @@ class AppLocalizations {
       'en': 'Unable to search users right now. Please try again.',
       'tr': 'Kullanıcı araması şu anda yapılamıyor. Lütfen tekrar dene.',
     },
-    'admin.reportDeleteOption': {
-      'en': 'Delete report',
-      'tr': 'Raporu sil',
-    },
+    'admin.reportDeleteOption': {'en': 'Delete report', 'tr': 'Raporu sil'},
     'admin.reportDeleteSuccess': {
       'en': 'Report deleted.',
       'tr': 'Rapor silindi.',
@@ -298,14 +295,8 @@ class AppLocalizations {
       'en': 'No banned users match this search',
       'tr': 'Bu aramayla eşleşen yasaklı kullanıcı yok',
     },
-    'admin.userBanOption': {
-      'en': 'Ban user',
-      'tr': 'Kullanıcıyı yasakla',
-    },
-    'admin.userUnbanOption': {
-      'en': 'Remove ban',
-      'tr': 'Yasağı kaldır',
-    },
+    'admin.userBanOption': {'en': 'Ban user', 'tr': 'Kullanıcıyı yasakla'},
+    'admin.userUnbanOption': {'en': 'Remove ban', 'tr': 'Yasağı kaldır'},
     'admin.userBanSuccess': {
       'en': 'User status updated to banned.',
       'tr': 'Kullanıcı yasaklandı.',
@@ -339,16 +330,10 @@ class AppLocalizations {
       'en': 'Target information',
       'tr': 'Hedef bilgileri',
     },
-    'admin.preview.targetIdLabel': {
-      'en': 'Target ID',
-      'tr': 'Hedef ID',
-    },
+    'admin.preview.targetIdLabel': {'en': 'Target ID', 'tr': 'Hedef ID'},
     'admin.action.ignore': {'en': 'Ignore report', 'tr': 'Raporu yok say'},
     'admin.action.remove': {'en': 'Remove content', 'tr': 'İçeriği kaldır'},
-    'admin.action.banUser': {
-      'en': 'Ban user',
-      'tr': 'Kullanıcıyı yasakla',
-    },
+    'admin.action.banUser': {'en': 'Ban user', 'tr': 'Kullanıcıyı yasakla'},
     'admin.action.confirmIgnore': {
       'en': 'Mark this report as ignored?',
       'tr': 'Bu rapor yok sayılsın mı?',
@@ -406,14 +391,8 @@ class AppLocalizations {
       'en': 'Description',
       'tr': 'Açıklama',
     },
-    'admin.preview.wishOwnerLabel': {
-      'en': 'Owner ID',
-      'tr': 'Sahip ID',
-    },
-    'admin.preview.wishLinkLabel': {
-      'en': 'Product link',
-      'tr': 'Ürün linki',
-    },
+    'admin.preview.wishOwnerLabel': {'en': 'Owner ID', 'tr': 'Sahip ID'},
+    'admin.preview.wishLinkLabel': {'en': 'Product link', 'tr': 'Ürün linki'},
     'admin.preview.userStatusLabel': {'en': 'Status', 'tr': 'Durum'},
     'admin.preview.userStatusBanned': {'en': 'Banned', 'tr': 'Yasaklı'},
     'admin.preview.userStatusActive': {'en': 'Active', 'tr': 'Aktif'},
@@ -693,11 +672,8 @@ class AppLocalizations {
       'en': 'Notifications are turned off',
       'tr': 'Bildirimler kapalı',
     },
-    'settings.privacy': {'en': 'Privacy Settings', 'tr': 'Gizlilik Ayarları'},
-    'settings.privacyComing': {
-      'en': 'Privacy Settings',
-      'tr': 'Gizlilik Ayarları',
-    },
+    'settings.privacy': {'en': 'Privacy', 'tr': 'Gizlilik'},
+    'settings.privacyComing': {'en': 'Privacy', 'tr': 'Gizlilik'},
     'settings.help': {'en': 'Help & Support', 'tr': 'Yardım ve Destek'},
     'settings.helpComing': {'en': 'Help & Support', 'tr': 'Yardım & Destek'},
     'settings.errorSigningOut': {
