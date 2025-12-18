@@ -71,6 +71,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return pageIndex <= 1 ? pageIndex : pageIndex + 1;
   }
 
+  void _dismissKeyboard() {
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
   @override
   void dispose() {
     _pageController.dispose();
@@ -453,6 +457,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: PageView(
         controller: _pageController,
         onPageChanged: (pageIndex) {
+          _dismissKeyboard();
           final newBottomIndex = _pageIndexToBottomIndex(pageIndex);
           if (newBottomIndex == 3) {
             // Fire-and-forget to avoid race with subsequent page changes
@@ -739,6 +744,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleBottomNavTap(int index) {
+    _dismissKeyboard();
     if (index == 2) {
       _openAddWish();
       return;
