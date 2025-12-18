@@ -990,8 +990,8 @@ class _LoginScreenState extends State<LoginScreen> {
     final mediaQuery = MediaQuery.of(context);
     final showAppleSignIn = !kIsWeb && theme.platform == TargetPlatform.iOS;
     final logoAsset = theme.brightness == Brightness.dark
-        ? 'assets/images/LogoBlack.png'
-        : 'assets/images/Logo.png';
+        ? 'assets/images/Logo.png'
+        : 'assets/images/LogoBlack.png';
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
