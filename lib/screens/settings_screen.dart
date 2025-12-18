@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -82,16 +83,82 @@ class _SettingsScreenState extends State<SettingsScreen> {
     'https://astavist.github.io/wishlink-app/',
   );
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final AccountDeletionService _accountDeletionService =
       AccountDeletionService();
   final GoogleSignIn _googleSignIn = GoogleSignInService.instance;
   static const List<String> _googleReauthScopes = <String>['email', 'profile'];
   bool _isDeletingAccount = false;
+  bool _isLoadingProfilePhoto = false;
+  String? _profilePhotoUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfilePhoto();
+  }
 
   void _showComingSoon(String message) {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _loadProfilePhoto({bool force = false}) async {
+    final user = _auth.currentUser;
+    final authPhoto = user?.photoURL?.trim() ?? '';
+    if (user == null) {
+      if (_profilePhotoUrl != null && mounted) {
+        setState(() {
+          _profilePhotoUrl = null;
+        });
+      }
+      return;
+    }
+    if (!force && authPhoto.isNotEmpty) {
+      if (_profilePhotoUrl != null && mounted) {
+        setState(() {
+          _profilePhotoUrl = null;
+        });
+      }
+      return;
+    }
+    if (!force && (_profilePhotoUrl?.isNotEmpty ?? false)) {
+      return;
+    }
+    if (_isLoadingProfilePhoto) {
+      return;
+    }
+    setState(() {
+      _isLoadingProfilePhoto = true;
+    });
+    try {
+      final snapshot =
+          await _firestore.collection('users').doc(user.uid).get();
+      final data = snapshot.data();
+      final photoUrl = (data?['profilePhotoUrl'] as String?)?.trim();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _profilePhotoUrl =
+            (photoUrl != null && photoUrl.isNotEmpty) ? photoUrl : null;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _profilePhotoUrl = null;
+      });
+    } finally {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoadingProfilePhoto = false;
+      });
+    }
   }
 
   Future<void> _signOut() async {
@@ -443,6 +510,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ).push<bool>(_buildSlideRoute<bool>(const EditProfileScreen()));
     if (!mounted) return;
     if (updated == true) {
+      await _auth.currentUser?.reload();
+      await _loadProfilePhoto(force: true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(context.l10n.t('settings.profileUpdated'))),
       );
@@ -750,10 +819,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildHeroAvatar(BuildContext context, User? user) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final photoUrl = user?.photoURL;
+    final photoUrl = user?.photoURL?.trim();
+    final fallbackPhotoUrl = _profilePhotoUrl?.trim();
+    final resolvedPhotoUrl = (photoUrl != null && photoUrl.isNotEmpty)
+        ? photoUrl
+        : (fallbackPhotoUrl != null && fallbackPhotoUrl.isNotEmpty
+            ? fallbackPhotoUrl
+            : null);
 
-    if (photoUrl != null && photoUrl.isNotEmpty) {
-      return CircleAvatar(radius: 32, backgroundImage: NetworkImage(photoUrl));
+    if (resolvedPhotoUrl != null) {
+      return CircleAvatar(
+        radius: 32,
+        backgroundImage: NetworkImage(resolvedPhotoUrl),
+      );
     }
 
     final initial = _userInitial(user);
