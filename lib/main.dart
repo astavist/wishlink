@@ -11,6 +11,7 @@ import 'package:wishlink/screens/login_screen.dart';
 import 'package:wishlink/screens/home_screen.dart';
 import 'package:wishlink/screens/email_verification_required_screen.dart';
 import 'package:wishlink/screens/account_setup_screen.dart';
+import 'package:wishlink/screens/onboarding_screen.dart';
 import 'package:wishlink/theme/theme_controller.dart';
 import 'package:wishlink/locale/locale_controller.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
@@ -243,10 +244,7 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
 
         if (_userDocFuture == null || _userDocFutureUid != user.uid) {
           _userDocFutureUid = user.uid;
-          _userDocFuture = _createUserDocFuture(
-            user,
-            fromServer: true,
-          );
+          _userDocFuture = _createUserDocFuture(user, fromServer: true);
         }
 
         final userDocFuture = _userDocFuture!;
@@ -324,6 +322,15 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
               );
             }
 
+            final hasCompletedOnboarding =
+                (data?['hasCompletedOnboarding'] as bool?) ?? false;
+
+            if (!hasCompletedOnboarding) {
+              return OnboardingScreen(
+                onContinue: () => _completeOnboarding(user),
+              );
+            }
+
             return const HomeScreen();
           },
         );
@@ -343,28 +350,30 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
     User user, {
     bool fromServer = false,
   }) {
-    final docRef =
-        FirebaseFirestore.instance.collection('users').doc(user.uid);
+    final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
     if (fromServer) {
       return docRef.get(const GetOptions(source: Source.server));
     }
     return docRef.get();
   }
 
-  void _forceUserDocRefresh(
-    User user, {
-    bool fromServer = false,
-  }) {
+  void _forceUserDocRefresh(User user, {bool fromServer = false}) {
     if (!mounted) {
       return;
     }
     setState(() {
       _userDocFutureUid = user.uid;
-      _userDocFuture = _createUserDocFuture(
-        user,
-        fromServer: fromServer,
-      );
+      _userDocFuture = _createUserDocFuture(user, fromServer: fromServer);
     });
+  }
+
+  Future<void> _completeOnboarding(User user) async {
+    final doc = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    await doc.set({'hasCompletedOnboarding': true}, SetOptions(merge: true));
+    if (!mounted) {
+      return;
+    }
+    _forceUserDocRefresh(user, fromServer: true);
   }
 }
 
@@ -426,12 +435,13 @@ class _ProfileCompletionGateState extends State<_ProfileCompletionGate> {
       return;
     }
 
-      if (result == null || result.trim().isEmpty) {
-        await NotificationService.instance
-            .signOutWithCleanup(FirebaseAuth.instance);
-      } else {
-        widget.onProfileCompleted();
-      }
+    if (result == null || result.trim().isEmpty) {
+      await NotificationService.instance.signOutWithCleanup(
+        FirebaseAuth.instance,
+      );
+    } else {
+      widget.onProfileCompleted();
+    }
   }
 
   @override
@@ -453,13 +463,14 @@ class _ForcedLogoutView extends StatefulWidget {
 
 class _ForcedLogoutViewState extends State<_ForcedLogoutView> {
   @override
-    void initState() {
-      super.initState();
-      WidgetsBinding.instance.addPostFrameCallback((_) async {
-        await NotificationService.instance
-            .signOutWithCleanup(FirebaseAuth.instance);
-      });
-    }
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await NotificationService.instance.signOutWithCleanup(
+        FirebaseAuth.instance,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

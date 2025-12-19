@@ -242,6 +242,7 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
       };
       if (widget.isNewUser) {
         data['createdAt'] = FieldValue.serverTimestamp();
+        data['hasCompletedOnboarding'] = false;
       }
 
       await FirebaseFirestore.instance
@@ -312,9 +313,9 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
       } on FirebaseAuthException catch (_) {
         // Ignore deletion errors; we'll still sign out below.
       }
-      } finally {
-        await NotificationService.instance.signOutWithCleanup(auth);
-      }
+    } finally {
+      await NotificationService.instance.signOutWithCleanup(auth);
+    }
 
     if (!mounted) {
       return;
@@ -332,7 +333,6 @@ class _AccountSetupScreenState extends State<AccountSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = context.l10n;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final backgroundGradient = LinearGradient(

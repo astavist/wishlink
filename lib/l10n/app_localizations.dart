@@ -54,6 +54,55 @@ class AppLocalizations {
       'en': 'Failed to update like. Try again.',
       'tr': 'Beğeni güncellenemedi. Lütfen tekrar dene.',
     },
+    // Onboarding
+    'onboarding.title': {
+      'en': 'Create Your Personal Wish List',
+      'tr': 'Kişisel Dilek Listeni Oluştur',
+    },
+    'onboarding.subtitle': {
+      'en':
+          'Add a photo, enter a price, drop a link, and organize every wish in one place.',
+      'tr':
+          'Fotoğraf ekle, fiyat gir, link paylaş. İsteklerini tek bir yerde topla.',
+    },
+    'onboarding.cta': {'en': 'Continue', 'tr': 'Devam Et'},
+    'onboarding.error': {
+      'en': 'We couldn\'t save your progress. Please try again.',
+      'tr': 'İlerlemen kaydedilemedi. Lütfen tekrar dene.',
+    },
+    'onboarding.followTitle': {
+      'en': 'Follow Your Friends',
+      'tr': 'Arkadaşlarını Takip Et',
+    },
+    'onboarding.followSubtitle': {
+      'en': 'Add friends, see their activity feed, and send surprise gifts.',
+      'tr':
+          'Arkadaş ekle, aktivitelerini akışta gör ve onlara sürpriz hediyeler gönder.',
+    },
+    'onboarding.skip': {'en': 'Skip', 'tr': 'Atla'},
+    'onboarding.pinTitlePrefix': {
+      'en': 'Like-comment wishes,',
+      'tr': 'Wishleri beğen-yorumla,',
+    },
+    'onboarding.pinTitleHighlight': {'en': 'Gift twins', 'tr': 'piştileri'},
+    'onboarding.pinTitleSuffix': {'en': 'no more.', 'tr': 'önle.'},
+    'onboarding.pinSubtitle': {
+      'en': 'Let friends know you\'re buying this.',
+      'tr': 'Diğer arkadaşlarına bu hediyeyi alacağını göster.',
+    },
+    'onboarding.pinMeta': {
+      'en': 'Keep notifications on',
+      'tr': 'Bildirimleri açık tut',
+    },
+    'onboarding.hiddenTitle': {'en': 'No spoilers!', 'tr': 'Sürpriz bozulmaz!'},
+    'onboarding.hiddenSubtitle': {
+      'en': 'Friends likes and comments; the wish owner never sees them.',
+      'tr': 'Arkadaşlar beğeni ve yorumlar yapar, wish sahibi asla görmez.',
+    },
+    'onboarding.hiddenMeta': {
+      'en': 'Only your gift circle sees activity',
+      'tr': 'Aktiviteyi sadece hediye ekibi görür',
+    },
     // Reporting & Blocking
     'report.reasonLabel': {'en': 'Choose a reason', 'tr': 'Bir sebep seç'},
     'report.noteLabel': {

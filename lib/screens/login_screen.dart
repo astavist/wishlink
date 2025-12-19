@@ -928,6 +928,7 @@ class _LoginScreenState extends State<LoginScreen> {
         'birthdayDisplay': 'dayMonthYear',
         'emailVerified': false,
         'createdAt': FieldValue.serverTimestamp(),
+        'hasCompletedOnboarding': false,
       });
 
       if (mounted) {
