@@ -2,7 +2,7 @@ name: wishlink
 description: "Social and Interactive Wish List Platform - The Future of Gift-Giving"
 publish_to: 'none'
 
-version: 1.0.0+23
+version: 1.0.0+24
 
 environment:
   sdk: ^3.8.1
