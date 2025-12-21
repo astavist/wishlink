@@ -1,0 +1,3 @@
+"NSUserTrackingUsageDescription" = "Sana daha uygun reklamlar göstermek için takip iznine ihtiyacımız var.";
+"NSCameraUsageDescription" = "Profil fotoğrafı çekebilmek için kamera erişimine ihtiyacımız var.";
+"NSPhotoLibraryUsageDescription" = "Profil fotoğrafı seçebilmek için galeri erişimine ihtiyacımız var.";

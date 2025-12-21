@@ -41,6 +41,8 @@
 		<string>Profil fotoğrafı çekmek için kamera erişimi gerekiyor</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>Profil fotoğrafı seçmek için galeri erişimi gerekiyor</string>
+		<key>NSUserTrackingUsageDescription</key>
+		<string>Tracking permission is required to show more relevant ads.</string>
 		<key>GADApplicationIdentifier</key>
 		<string>(ADMOB_APP_ID_IOS)</string>
 		<key>UIApplicationSupportsIndirectInputEvents</key>

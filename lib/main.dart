@@ -15,6 +15,7 @@ import 'package:wishlink/screens/onboarding_screen.dart';
 import 'package:wishlink/theme/theme_controller.dart';
 import 'package:wishlink/locale/locale_controller.dart';
 import 'package:wishlink/l10n/app_localizations.dart';
+import 'package:wishlink/services/ad_consent_service.dart';
 import 'package:wishlink/services/notification_service.dart';
 
 @pragma('vm:entry-point')
@@ -25,6 +26,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await AdConsentService.instance.initialize();
   await MobileAds.instance.initialize();
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   await NotificationService.instance.initialize();
