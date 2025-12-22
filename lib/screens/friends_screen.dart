@@ -173,18 +173,10 @@ class _FriendsScreenState extends State<FriendsScreen>
   String _formatDisplayName(Map<String, dynamic> data, AppLocalizations l10n) {
     final firstName = (data['firstName'] as String? ?? '').trim();
     final lastName = (data['lastName'] as String? ?? '').trim();
-    final username = (data['username'] as String?)?.trim() ?? '';
     final displayName = [
       firstName,
       lastName,
     ].where((value) => value.isNotEmpty).join(' ').trim();
-
-    if (username.isNotEmpty) {
-      if (displayName.isNotEmpty) {
-        return '$displayName (@$username)';
-      }
-      return '@$username';
-    }
 
     return displayName.isNotEmpty ? displayName : l10n.t('friends.unknownUser');
   }
@@ -1034,7 +1026,7 @@ class _FriendsScreenState extends State<FriendsScreen>
     final l10n = context.l10n;
     final displayName = _formatDisplayName(userData, l10n);
     final avatarUrl = (userData['profilePhotoUrl'] as String?)?.trim() ?? '';
-    final email = (userData['email'] as String? ?? '').trim();
+    final username = (userData['username'] as String? ?? '').trim();
     final initials = _buildInitials(userData);
 
     return WishLinkCard(
@@ -1060,11 +1052,11 @@ class _FriendsScreenState extends State<FriendsScreen>
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  if (email.isNotEmpty)
+                  if (username.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        email,
+                        '@$username',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.textTheme.bodySmall?.color?.withValues(
                             alpha: 0.7,
